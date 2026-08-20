@@ -1,20 +1,20 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.4.3';
+const APP_VERSION = '1.5.1';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
   {id:'ecmwf',name:'ECMWF IFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/ecmwf',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
   {id:'gfs',name:'GFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/gfs',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
-  {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
-  {id:'meteoblue',name:'meteoblue',kind:'meteoblue'}
+  {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']}
 ];
-const TYPE_LABEL={trailhead:'登山口・下山口',hut:'山小屋・避難小屋',pass:'乗越・峠・分岐',peak:'山頂'};
+const TYPE_LABEL={trailhead:'登山口・下山口',peak:'山頂',hut:'山小屋・避難小屋'};
 const MOUNTAIN_PRESETS = {
   '槍ヶ岳': {latitude:36.3419, longitude:137.6476},
   '奥穂高岳': {latitude:36.2892, longitude:137.6480},
   '北穂高岳': {latitude:36.3028, longitude:137.6511},
   '前穂高岳': {latitude:36.2819, longitude:137.6606},
   '燕岳': {latitude:36.4069, longitude:137.7129},
+  '大天井岳': {latitude:36.3658, longitude:137.7027},
   '常念岳': {latitude:36.3255, longitude:137.7273},
   '双六岳': {latitude:36.3723, longitude:137.5875},
   '白馬岳': {latitude:36.7585, longitude:137.7586},
@@ -158,6 +158,56 @@ TRAVERSE_CATALOG['唐松岳'] = TRAVERSE_CATALOG['白馬岳'];
 TRAVERSE_CATALOG['五竜岳'] = TRAVERSE_CATALOG['白馬岳'];
 TRAVERSE_CATALOG['南岳'] = TRAVERSE_CATALOG['槍ヶ岳'];
 
+
+// 縦走では「選んだ山だけ」に候補を閉じず、同じ山域の主要地点をまとめて提示する。
+const REGIONAL_CATALOG = {
+  omoteginza: [
+    {id:'area-omote-nakabusa',type:'trailhead',name:'中房温泉登山口',lat:36.3929,lon:137.7485,elevation:1462},
+    {id:'area-omote-tsubakuro',type:'peak',name:'燕岳',lat:36.4069,lon:137.7129,elevation:2763},
+    {id:'area-omote-enzanso',type:'hut',name:'燕山荘',lat:36.4073,lon:137.7152,elevation:2712},
+    {id:'area-omote-otensho',type:'peak',name:'大天井岳',lat:36.3658,lon:137.7027,elevation:2922},
+    {id:'area-omote-daitenso',type:'hut',name:'大天荘',lat:36.3646,lon:137.7043,elevation:2870},
+    {id:'area-omote-jonen',type:'peak',name:'常念岳',lat:36.3255,lon:137.7273,elevation:2857},
+    {id:'area-omote-jonengoya',type:'hut',name:'常念小屋',lat:36.3297,lon:137.7281,elevation:2450},
+    {id:'area-omote-yari',type:'peak',name:'槍ヶ岳',lat:36.3420,lon:137.6477,elevation:3180},
+    {id:'area-omote-yarigoya',type:'hut',name:'槍ヶ岳山荘',lat:36.3409,lon:137.6458,elevation:3080},
+    {id:'area-omote-kamikochi',type:'trailhead',name:'上高地',lat:36.246656,lon:137.635388,elevation:1505},
+    {id:'area-omote-ichinosawa',type:'trailhead',name:'一ノ沢登山口',lat:36.3388,lon:137.7420,elevation:1320},
+    {id:'area-omote-shinhotaka',type:'trailhead',name:'新穂高温泉',lat:36.285405,lon:137.575014,elevation:1117}
+  ],
+  yarihotaka: [
+    {id:'area-yh-kamikochi',type:'trailhead',name:'上高地',lat:36.246656,lon:137.635388,elevation:1505},
+    {id:'area-yh-shinhotaka',type:'trailhead',name:'新穂高温泉',lat:36.285405,lon:137.575014,elevation:1117},
+    {id:'area-yh-yokoo',type:'hut',name:'横尾山荘',lat:36.293444,lon:137.699175,elevation:1600},
+    {id:'area-yh-yarisawa',type:'hut',name:'槍沢ロッヂ',lat:36.318056,lon:137.681111,elevation:1825},
+    {id:'area-yh-yari',type:'peak',name:'槍ヶ岳',lat:36.342009,lon:137.647735,elevation:3180},
+    {id:'area-yh-yarigoya',type:'hut',name:'槍ヶ岳山荘',lat:36.340939,lon:137.645795,elevation:3080},
+    {id:'area-yh-okuwa',type:'peak',name:'大喰岳',lat:36.3339,lon:137.6469,elevation:3101},
+    {id:'area-yh-naka',type:'peak',name:'中岳',lat:36.3264,lon:137.6498,elevation:3084},
+    {id:'area-yh-minami',type:'peak',name:'南岳',lat:36.3183,lon:137.6519,elevation:3033},
+    {id:'area-yh-minamigoya',type:'hut',name:'南岳小屋',lat:36.3147,lon:137.6502,elevation:2970},
+    {id:'area-yh-kitaho',type:'peak',name:'北穂高岳',lat:36.3028,lon:137.6511,elevation:3106},
+    {id:'area-yh-kitahogoya',type:'hut',name:'北穂高小屋',lat:36.3025,lon:137.6502,elevation:3100},
+    {id:'area-yh-karasawa',type:'peak',name:'涸沢岳',lat:36.2959,lon:137.6508,elevation:3110},
+    {id:'area-yh-okuhotaka',type:'peak',name:'奥穂高岳',lat:36.2892,lon:137.6480,elevation:3190},
+    {id:'area-yh-maehotaka',type:'peak',name:'前穂高岳',lat:36.2819,lon:137.6606,elevation:3090},
+    {id:'area-yh-hotakagoya',type:'hut',name:'穂高岳山荘',lat:36.2950,lon:137.6484,elevation:2996},
+    {id:'area-yh-karasawahutte',type:'hut',name:'涸沢ヒュッテ',lat:36.3008,lon:137.6668,elevation:2309},
+    {id:'area-yh-karasawagoya',type:'hut',name:'涸沢小屋',lat:36.3018,lon:137.6652,elevation:2350}
+  ]
+};
+const MOUNTAIN_REGION = {
+  '燕岳':'omoteginza','大天井岳':'omoteginza','常念岳':'omoteginza',
+  '槍ヶ岳':'yarihotaka','南岳':'yarihotaka','北穂高岳':'yarihotaka','奥穂高岳':'yarihotaka','前穂高岳':'yarihotaka'
+};
+function regionalCandidates(mountain){
+  const key=MOUNTAIN_REGION[mountain];
+  if(!key)return [];
+  // 槍ヶ岳は表銀座側からも選べるよう両グループを統合。
+  if(mountain==='槍ヶ岳')return [...REGIONAL_CATALOG.omoteginza,...REGIONAL_CATALOG.yarihotaka];
+  return REGIONAL_CATALOG[key]||[];
+}
+
 function builtinCandidates(mountain){
   const center=MOUNTAIN_PRESETS[mountain];
   return [...(BUILTIN_ROUTE_CATALOG[mountain]||[]), ...(TRAVERSE_CATALOG[mountain]||[])].map((p,i)=>({
@@ -177,7 +227,6 @@ function haversineMeters(lat1,lon1,lat2,lon2){
 
 let candidates=[];
 let pointSeq=0;
-let meteoblueConfigured=null;
 const sessionId=(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
 
 document.addEventListener('DOMContentLoaded',init);
@@ -190,26 +239,23 @@ function init(){
   $('analyzeBtn').addEventListener('click',analyze);
   $('mountainPreset').addEventListener('change',()=>{candidates=[];$('candidateState').textContent='「この山のルート候補を読み込む」を押してください';$('points').innerHTML='';pointSeq=0;});
   loadCandidates();
+  updateForecastHorizon();
   logEvent('page_view',{success:true});
 }
 
 function loadCandidates(){
   const mountain=$('mountainPreset').value;
-  const base=[...(BUILTIN_ROUTE_CATALOG[mountain]||[]),...(TRAVERSE_CATALOG[mountain]||[])];
+  const base=[...(BUILTIN_ROUTE_CATALOG[mountain]||[]),...(TRAVERSE_CATALOG[mountain]||[]),...regionalCandidates(mountain)].filter(p=>Object.prototype.hasOwnProperty.call(TYPE_LABEL,p.type));
   const seen=new Set();
   candidates=base.filter(p=>{const k=`${p.name}|${p.lat}|${p.lon}`;if(seen.has(k))return false;seen.add(k);return true;});
   if(!candidates.some(p=>p.type==='peak') && MOUNTAIN_PRESETS[mountain]){const c=MOUNTAIN_PRESETS[mountain];candidates.push({id:'center-peak',type:'peak',name:mountain,lat:c.latitude,lon:c.longitude,elevation:''});}
   $('candidateState').textContent=`${mountain}：${candidates.length}地点を読み込みました（通信なし）`;
   $('points').innerHTML=''; pointSeq=0;
   addPointRow('trailhead','','登山口');
-  addPointRow('pass','','経由');
-  addPointRow('hut','','山小屋');
-  addPointRow('pass','','経由');
   addPointRow('peak','','山頂');
-  addPointRow('pass','','経由');
-  addPointRow('hut','','山小屋');
-  addPointRow('pass','','経由');
+  addPointRow('hut','','山小屋・避難小屋');
   addPointRow('trailhead','','下山口');
+  updateForecastHorizon();
   logEvent('route_candidates_loaded',{success:true,metadata:{mountain,candidate_count:candidates.length}});
 }
 
@@ -242,9 +288,21 @@ function addPointRow(type='peak',selected='',roleLabel=''){
       const after=rowDateTimeValue(row) || '';
       if(before && after && before!==after) shiftFollowingPointTimes(row,before,after);
       row.dataset.datetimeBefore=after;
+      updateForecastHorizon();
     });
   });
-  row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();});
+  row.querySelector('.point-stay').addEventListener('change',e=>{
+    if(!e.target.checked)return;
+    const next=row.nextElementSibling;
+    const date=row.querySelector('.point-date').value;
+    if(next&&date){
+      next.querySelector('.point-date').value=addDays(date,1);
+      next.dataset.datetimeBefore=rowDateTimeValue(next)||'';
+      setStatus(`宿泊の次のポイントを翌日（${next.querySelector('.point-date').value}）にしました。`);
+      updateForecastHorizon();
+    }
+  });
+  row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();updateForecastHorizon();});
   row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();});
   row.querySelector('.down').addEventListener('click',()=>{const n=row.nextElementSibling;if(n)row.parentNode.insertBefore(n,row);renumber();});
 }
@@ -284,6 +342,24 @@ function formatShift(ms){
   const parts=[]; if(days)parts.push(`${days}日`); if(hrs)parts.push(`${hrs}時間`); if(rem||!parts.length)parts.push(`${rem}分`);
   return `${sign}${parts.join('')}`;
 }
+function updateForecastHorizon(){
+  const el=$('forecastHorizonCurrent');
+  if(!el)return;
+  const dates=[...document.querySelectorAll('.point-date')].map(x=>x.value).filter(Boolean);
+  if(!dates.length){el.textContent='通過日を入力すると予報期間の目安を表示します';return;}
+  const today=todayLocal();
+  const base=new Date(`${today}T00:00:00+09:00`).getTime();
+  const maxDay=Math.max(...dates.map(d=>Math.round((new Date(`${d}T00:00:00+09:00`).getTime()-base)/86400000)));
+  let text='',cls='';
+  if(maxDay<0){text='過去の日付が含まれています';cls='out';}
+  else if(maxDay<=4){text=`最遠 ${maxDay}日先：4モデル比較 ◎`;cls='best';}
+  else if(maxDay<=7){text=`最遠 ${maxDay}日先：3モデル程度 ○`;cls='good';}
+  else if(maxDay<=15){text=`最遠 ${maxDay}日先：ECMWF / GFS中心 △`;cls='caution';}
+  else{text=`最遠 ${maxDay}日先：予報対象外`;cls='out';}
+  el.textContent=`選択中：${text}`;
+  el.className=`current-horizon ${cls}`;
+}
+
 function selectedCandidate(id){return candidates.find(p=>String(p.id)===String(id));}
 function updateMeta(row){const p=selectedCandidate(row.querySelector('.point-select').value); row.querySelector('.point-meta').textContent=p?`${p.name} / ${p.elevation||'標高自動'}m / ${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)}`:'地点を選択してください';}
 function collectPoints(){
@@ -344,16 +420,12 @@ async function analyzePoint(point){
   const avg=averageRows(rows.map(x=>x.row));
   return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:assessConfidence(rows.map(x=>x.row)),thunder:thunderLevel(avg)};
 }
-async function fetchProvider(provider,point){return provider.kind==='meteoblue'?fetchMeteoblue(point):fetchOpenMeteo(provider,point);}
+async function fetchProvider(provider,point){return fetchOpenMeteo(provider,point);}
 async function fetchOpenMeteo(provider,point){
   const params=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation,hourly:provider.vars.join(','),timezone:'Asia/Tokyo',start_date:point.date,end_date:point.date,wind_speed_unit:'ms'}); if(provider.model)params.set('models',provider.model);
   const r=await proxyFetch(`${provider.endpoint}?${params}`); if(!r.ok)throw new Error(`HTTP ${r.status}`); const j=await r.json(); const h=j.hourly;if(!h?.time)throw new Error('hourly dataなし');
   const idx=nearestTimeIndex(h.time,`${point.date}T${point.time}`); if(idx<0)throw new Error('指定時刻なし'); const get=k=>numberOrNaN(h[k]?.[idx]);
   return {time:h.time[idx],temp:get('temperature_2m'),rh:get('relative_humidity_2m'),rain:get('precipitation'),cloud:get('cloud_cover'),wind:get('wind_speed_10m'),gust:get('wind_gusts_10m'),windDir:get('wind_direction_10m'),cape:get('cape'),visibility:get('visibility'),freezing:get('freezing_level_height')};
-}
-async function fetchMeteoblue(point){
-  const q=new URLSearchParams({lat:point.lat,lon:point.lon,asl:point.elevation||'',date:point.date,time:point.time}); const r=await fetch(`/api/meteoblue?${q}`); const j=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(j.error||`HTTP ${r.status}`); meteoblueConfigured=true; return j.row;
 }
 async function analyzeOvernight(point,nightNo){
   const next=addDays(point.date,1);

@@ -170,3 +170,19 @@ footer{color:#768d82}footer strong{color:#4e675c}
   .point-row .datetime-label.date-label,
   .point-row .datetime-label.time-label{grid-column:2/4 !important}
 }
+
+
+/* V1.5.1: forecast horizon guide */
+.forecast-horizon{margin:18px 0 20px;padding:15px;border:1px solid #d2e4db;border-radius:16px;background:#f7fbf8}
+.forecast-horizon-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.forecast-horizon-head strong{display:block;color:#183128;font-size:15px}
+.forecast-horizon-head small{display:block;margin-top:4px;font-weight:800;color:#315f4c}
+.current-horizon.best{color:#16784b}.current-horizon.good{color:#39745a}.current-horizon.caution{color:#9a6800}.current-horizon.out{color:#b64242}
+.forecast-horizon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.horizon-chip{display:flex;flex-direction:column;gap:3px;padding:10px 11px;border-radius:12px;border:1px solid transparent}
+.horizon-chip b{font-size:13px}.horizon-chip small{font-size:11px;font-weight:800}
+.horizon-chip.best{background:#e7f7ee;border-color:#b9e3cc;color:#176a46}
+.horizon-chip.good{background:#eef7f1;border-color:#cee3d5;color:#38664f}
+.horizon-chip.caution{background:#fff7df;border-color:#ecd99d;color:#805d00}
+.horizon-chip.out{background:#fff0f0;border-color:#edc7c7;color:#a63b3b}
+@media(max-width:700px){.forecast-horizon-grid{grid-template-columns:repeat(2,1fr)}.forecast-horizon{padding:13px}.horizon-chip{padding:9px}}

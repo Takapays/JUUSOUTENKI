@@ -24,7 +24,7 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "6.0"
+APP_VERSION = "1.5.0"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
@@ -34,7 +34,6 @@ CACHE_MAX_ITEMS = int(os.environ.get("CACHE_MAX_ITEMS", "256"))
 MAX_OVERPASS_BYTES = int(os.environ.get("MAX_OVERPASS_BYTES", str(512 * 1024)))
 
 
-METEOBLUE_API_KEY = os.environ.get("METEOBLUE_API_KEY", "").strip()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -71,7 +70,7 @@ OVERPASS_ENDPOINTS = [
 
 UA = os.environ.get(
     "UPSTREAM_USER_AGENT",
-    "MountainWeatherDecision/6.0",
+    "TraverseWeatherDecision/1.5.0",
 )
 
 app = Flask(__name__, static_folder=None)
@@ -355,7 +354,6 @@ def health():
         overpass_endpoints=len(OVERPASS_ENDPOINTS),
         usage_logging=True,
         supabase_configured=bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY),
-        meteoblue_configured=bool(METEOBLUE_API_KEY),
         trail_regions_ready=sum(1 for r in _load_trail_manifest().get("regions", []) if r.get("ready")),
     )
 
@@ -432,86 +430,6 @@ def trail_route():
     return response, 404
 
 
-
-def _mb_pick_series(data: dict[str, Any], names: list[str]) -> list[Any]:
-    for name in names:
-        value = data.get(name)
-        if isinstance(value, list):
-            return value
-    return []
-
-
-@app.get("/api/meteoblue")
-def meteoblue_forecast():
-    if not METEOBLUE_API_KEY:
-        return jsonify(error="meteoblue APIキーが未設定です。RenderのEnvironmentに METEOBLUE_API_KEY を設定してください。"), 503
-    try:
-        lat = float(request.args["lat"])
-        lon = float(request.args["lon"])
-        asl = request.args.get("asl", "")
-        date = request.args.get("date", "")
-        hhmm = request.args.get("time", "")
-        if not date or not hhmm:
-            return jsonify(error="date/time are required"), 400
-        params = {
-            "lat": f"{lat:.6f}",
-            "lon": f"{lon:.6f}",
-            "apikey": METEOBLUE_API_KEY,
-            "tz": "Asia/Tokyo",
-            "format": "json",
-            "windspeed": "ms",
-        }
-        if asl:
-            try:
-                params["asl"] = str(round(float(asl)))
-            except Exception:
-                pass
-        url = "https://my.meteoblue.com/packages/basic-1h_clouds-1h?" + urllib.parse.urlencode(params)
-        status, ctype, body = _request_url(url)
-        if status != 200:
-            return jsonify(error=f"meteoblue HTTP {status}"), 502
-        raw = json.loads(body.decode("utf-8"))
-        data = raw.get("data_1h") or raw.get("data1h") or raw.get("hourly") or {}
-        if not isinstance(data, dict):
-            return jsonify(error="meteoblue hourly dataなし"), 502
-        times = _mb_pick_series(data, ["time", "time_iso8601", "timestamp"])
-        if not times:
-            return jsonify(error="meteoblue time dataなし"), 502
-        target = f"{date}T{hhmm}"
-        from datetime import datetime
-        def norm(value: Any) -> str:
-            text = str(value).replace(" ", "T")
-            return text[:16]
-        target_dt = datetime.fromisoformat(target)
-        idx = min(range(len(times)), key=lambda i: abs((datetime.fromisoformat(norm(times[i])) - target_dt).total_seconds()))
-        def pick(names: list[str]) -> float | None:
-            series = _mb_pick_series(data, names)
-            if idx >= len(series):
-                return None
-            try:
-                value = float(series[idx])
-                return value if math.isfinite(value) else None
-            except Exception:
-                return None
-        row = {
-            "time": str(times[idx]),
-            "temp": pick(["temperature", "temperature2m", "temperature_2m"]),
-            "rh": pick(["relativehumidity", "relative_humidity", "humidity"]),
-            "rain": pick(["precipitation", "precipitationamount", "precipitation_amount"]),
-            "cloud": pick(["totalcloudcover", "cloudcover", "cloud_cover"]),
-            "wind": pick(["windspeed", "wind_speed", "windspeed10m"]),
-            "gust": pick(["windgustspeed", "gust", "wind_gusts"]),
-            "windDir": pick(["winddirection", "wind_direction"]),
-            "cape": pick(["cape"]),
-            "visibility": pick(["visibility"]),
-            "freezing": pick(["freezinglevelheight", "freezing_level_height"]),
-        }
-        return jsonify(ok=True, row=row)
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:500]
-        return jsonify(error=f"meteoblue API HTTP {exc.code}", detail=detail), 502
-    except Exception as exc:
-        return jsonify(error=f"meteoblue取得失敗: {exc}"), 502
 
 @app.get("/api/proxy")
 def proxy():

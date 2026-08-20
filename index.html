@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b1714">
-  <title>縦走山行判断ツール | V1.4.3</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.3">
+  <title>縦走山行判断ツール | V1.5.1</title>
+  <link rel="stylesheet" href="styles.css?v=1.5.1">
 </head>
 <body>
 <header class="hero">
@@ -14,7 +14,7 @@
       <div class="eyebrow">TRAVERSE WEATHER DECISION</div>
       <h1>縦走山行判断ツール</h1>
       <p>山に行くか？やめるか？</p>
-      <span class="version">V1.4.3</span>
+      <span class="version">V1.5.1</span>
     </div>
     <div class="hero-mark" aria-hidden="true">
       <span class="ridge ridge-back"></span>
@@ -35,6 +35,18 @@
       <label>山<select id="mountainPreset"></select></label>
       <button id="loadPoiBtn" class="secondary" type="button">この山のルート候補を読み込む</button>
       <div id="candidateState" class="state"></div>
+    </div>
+
+    <div class="forecast-horizon" id="forecastHorizon">
+      <div class="forecast-horizon-head">
+        <div><strong>予報期間の目安</strong><small id="forecastHorizonCurrent">選択中：0〜4日先 / 4モデル比較 ◎</small></div>
+      </div>
+      <div class="forecast-horizon-grid">
+        <span class="horizon-chip best"><b>0〜4日先</b><small>4モデル比較 ◎</small></span>
+        <span class="horizon-chip good"><b>5〜7日先</b><small>3モデル程度 ○</small></span>
+        <span class="horizon-chip caution"><b>8〜15日先</b><small>ECMWF / GFS中心 △</small></span>
+        <span class="horizon-chip out"><b>16日以降</b><small>予報対象外</small></span>
+      </div>
     </div>
 
     <div class="points-head">
@@ -74,7 +86,7 @@
     </section>
 
     <section class="panel">
-      <div class="section-title"><span>05</span><div><h2>気象モデル詳細</h2><p>JMA / ECMWF / GFS / ICON / meteoblue</p></div></div>
+      <div class="section-title"><span>05</span><div><h2>気象モデル詳細</h2><p>JMA / ECMWF / GFS / ICON</p></div></div>
       <div id="modelDetails"></div>
     </section>
   </section>
@@ -82,9 +94,8 @@
 
 <footer>
   <strong>縦走山行判断ツール</strong><br>
-  Weather via Open-Meteo + meteoblue（APIキー設定時）。予報は登山の安全を保証しません。<br>
-  <small>meteoblue APIキーはサーバー側環境変数に保存し、ブラウザには公開しません。</small>
+  Weather via Open-Meteo。予報は登山の安全を保証しません。
 </footer>
-<script src="app.js?v=1.4.3"></script>
+<script src="app.js?v=1.5.1"></script>
 </body>
 </html>
