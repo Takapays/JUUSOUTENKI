@@ -24,7 +24,7 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "1.5.2"
+APP_VERSION = "1.6.2"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
@@ -70,7 +70,7 @@ OVERPASS_ENDPOINTS = [
 
 UA = os.environ.get(
     "UPSTREAM_USER_AGENT",
-    "TraverseWeatherDecision/1.5.0",
+    "TraverseWeatherDecision/1.6.2",
 )
 
 app = Flask(__name__, static_folder=None)
@@ -449,7 +449,9 @@ def proxy():
         return _bytes_response(status, ctype, body, cache_control="public, max-age=60")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:1200]
-        return jsonify(error=f"上流API HTTP {exc.code}", detail=detail), 502
+        # Preserve the upstream status so the frontend can distinguish
+        # invalid query/date-range errors from genuine gateway failures.
+        return jsonify(error=f"上流API HTTP {exc.code}", detail=detail), exc.code
     except Exception as exc:
         return jsonify(error=f"上流APIへ接続できません: {exc}"), 502
 
