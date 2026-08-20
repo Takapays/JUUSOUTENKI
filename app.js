@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -8,7 +8,7 @@ const providers = [
   {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
   {id:'meteoblue',name:'meteoblue',kind:'meteoblue'}
 ];
-const TYPE_LABEL={trailhead:'登山口・下山口',hut:'山小屋・避難小屋',camp:'テント場',pass:'乗越・峠・分岐',peak:'山頂'};
+const TYPE_LABEL={trailhead:'登山口・下山口',hut:'山小屋・避難小屋',pass:'乗越・峠・分岐',peak:'山頂'};
 const MOUNTAIN_PRESETS = {
   '槍ヶ岳': {latitude:36.3419, longitude:137.6476},
   '奥穂高岳': {latitude:36.2892, longitude:137.6480},
@@ -201,7 +201,15 @@ function loadCandidates(){
   if(!candidates.some(p=>p.type==='peak') && MOUNTAIN_PRESETS[mountain]){const c=MOUNTAIN_PRESETS[mountain];candidates.push({id:'center-peak',type:'peak',name:mountain,lat:c.latitude,lon:c.longitude,elevation:''});}
   $('candidateState').textContent=`${mountain}：${candidates.length}地点を読み込みました（通信なし）`;
   $('points').innerHTML=''; pointSeq=0;
-  addPointRow('trailhead','','登山口'); addPointRow('peak','','山頂'); addPointRow('hut','','山小屋'); addPointRow('trailhead','','下山口');
+  addPointRow('trailhead','','登山口');
+  addPointRow('pass','','経由');
+  addPointRow('hut','','山小屋');
+  addPointRow('pass','','経由');
+  addPointRow('peak','','山頂');
+  addPointRow('pass','','経由');
+  addPointRow('hut','','山小屋');
+  addPointRow('pass','','経由');
+  addPointRow('trailhead','','下山口');
   logEvent('route_candidates_loaded',{success:true,metadata:{mountain,candidate_count:candidates.length}});
 }
 
@@ -217,14 +225,14 @@ function addPointRow(type='peak',selected='',roleLabel=''){
     <div class="role-chip">${esc(roleLabel||'経由')}</div>
     <label>種類<select class="point-type">${typeOptions(type)}</select></label>
     <label class="point-name-label">地点<select class="point-select">${candidateOptions(type,selected)}</select></label>
-    <label>通過日<input class="point-date" type="date" value="${todayLocal()}"></label>
-    <label>通過時刻<input class="point-time" type="time" value="06:00"></label>
-    <label class="stay-option ${type==='hut'||type==='camp'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b>ここに泊まる</b></span></label>
+    <label class="datetime-label"><span class="field-caption">📅 通過日</span><input class="point-date" type="date" value="${todayLocal()}"></label>
+    <label class="datetime-label"><span class="field-caption">🕒 通過時刻</span><input class="point-time" type="time" value="06:00"></label>
+    <label class="stay-option ${type==='hut'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b>ここに泊まる</b></span></label>
     <button class="move up" type="button" title="上へ">↑</button><button class="move down" type="button" title="下へ">↓</button><button class="remove" type="button" title="削除">×</button>
     <div class="point-meta">地点を選択してください</div>`;
   $('points').appendChild(row); renumber();
   const typeSel=row.querySelector('.point-type'), pointSel=row.querySelector('.point-select'), stay=row.querySelector('.stay-option');
-  typeSel.addEventListener('change',()=>{pointSel.innerHTML=candidateOptions(typeSel.value); stay.classList.toggle('hidden',!['hut','camp'].includes(typeSel.value)); if(!['hut','camp'].includes(typeSel.value))row.querySelector('.point-stay').checked=false; updateMeta(row);});
+  typeSel.addEventListener('change',()=>{pointSel.innerHTML=candidateOptions(typeSel.value); stay.classList.toggle('hidden',typeSel.value!=='hut'); if(typeSel.value!=='hut')row.querySelector('.point-stay').checked=false; updateMeta(row);});
   pointSel.addEventListener('change',()=>updateMeta(row));
   row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();});
   row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();});
@@ -242,6 +250,18 @@ function collectPoints(){
     return {...p,date,time,type:row.querySelector('.point-type').value,stay:!!row.querySelector('.point-stay')?.checked,role:row.dataset.role||''};
   }).filter(Boolean);
 }
+function validateChronology(points){
+  for(let i=1;i<points.length;i++){
+    const prev=points[i-1], cur=points[i];
+    const prevMs=new Date(`${prev.date}T${prev.time}:00+09:00`).getTime();
+    const curMs=new Date(`${cur.date}T${cur.time}:00+09:00`).getTime();
+    if(!Number.isFinite(prevMs)||!Number.isFinite(curMs)) throw new Error('通過日時の形式を確認してください。');
+    if(curMs<=prevMs){
+      throw new Error(`時系列エラー：${cur.name}（${cur.date} ${cur.time}）は、直前の ${prev.name}（${prev.date} ${prev.time}）より後の日時にしてください。`);
+    }
+  }
+}
+
 async function ensureElevation(point){
   if(Number.isFinite(Number(point.elevation)) && Number(point.elevation)>0) return point;
   const url=`https://api.open-meteo.com/v1/elevation?latitude=${point.lat}&longitude=${point.lon}`;
@@ -253,6 +273,7 @@ async function analyze(){
   const started=performance.now(); let points=[];
   try{
     points=collectPoints(); if(points.length<1)throw new Error('分析する地点を1つ以上選択してください。');
+    validateChronology(points);
     $('analyzeBtn').disabled=true; setStatus(`分析開始：${points.length}地点の気象データを取得しています…`);
     const results=[];
     for(let i=0;i<points.length;i++){
@@ -296,9 +317,13 @@ async function analyzeOvernight(point,nightNo){
   const r=await proxyFetch(`https://api.open-meteo.com/v1/forecast?${q}`); if(!r.ok)throw new Error(`${point.name}: 宿泊予報 HTTP ${r.status}`);
   const j=await r.json(), h=j.hourly||{}, d=j.daily||{};
   const sunset=d.sunset?.[0]||`${point.date}T18:00`, sunrise=d.sunrise?.[1]||`${next}T05:00`;
+  const allRows=(h.time||[]).map((t,i)=>({time:t,temp:numberOrNaN(h.temperature_2m?.[i]),apparent:numberOrNaN(h.apparent_temperature?.[i]),rh:numberOrNaN(h.relative_humidity_2m?.[i]),rain:numberOrNaN(h.precipitation?.[i]),cloud:numberOrNaN(h.cloud_cover?.[i]),wind:numberOrNaN(h.wind_speed_10m?.[i]),gust:numberOrNaN(h.wind_gusts_10m?.[i]),visibility:numberOrNaN(h.visibility?.[i])}));
   const startMs=new Date(`${point.date}T${point.time}`).getTime();
   const endMs=new Date(`${next}T08:00`).getTime();
-  const rows=(h.time||[]).map((t,i)=>({time:t,temp:numberOrNaN(h.temperature_2m?.[i]),apparent:numberOrNaN(h.apparent_temperature?.[i]),rh:numberOrNaN(h.relative_humidity_2m?.[i]),rain:numberOrNaN(h.precipitation?.[i]),cloud:numberOrNaN(h.cloud_cover?.[i]),wind:numberOrNaN(h.wind_speed_10m?.[i]),gust:numberOrNaN(h.wind_gusts_10m?.[i]),visibility:numberOrNaN(h.visibility?.[i])})).filter(x=>{const t=new Date(x.time).getTime();return t>=startMs&&t<=endMs;});
+  const rows=allRows.filter(x=>{const t=new Date(x.time).getTime();return t>=startMs&&t<=endMs;});
+  const sunsetRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunset)]||null;
+  const sunriseRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunrise)]||null;
+  const sunsetView=horizonVisibility(sunsetRow), sunriseView=horizonVisibility(sunriseRow);
   const darkStart=new Date(sunset).getTime()+90*60000, darkEnd=new Date(sunrise).getTime()-90*60000;
   const darkRows=rows.filter(x=>{const t=new Date(x.time).getTime();return t>=darkStart&&t<=darkEnd;});
   const astroRows=darkRows.length?darkRows:rows;
@@ -307,11 +332,25 @@ async function analyzeOvernight(point,nightNo){
   const minTemp=minFinite(rows.map(x=>x.temp)), minApp=minFinite(rows.map(x=>x.apparent)), maxWind=max(rows.map(x=>x.wind)), maxGust=max(rows.map(x=>x.gust)), maxRain=max(rows.map(x=>x.rain)), avgCloud=mean(rows.map(x=>x.cloud)), maxRh=max(rows.map(x=>x.rh)), minVis=minFinite(rows.map(x=>x.visibility));
   const fogRisk=(maxRh>=97&&avgCloud>=85)||(Number.isFinite(minVis)&&minVis<1000)?'高':(maxRh>=92||avgCloud>=75)?'中':'低';
   const score=best?milkyScore(best,moon):0;
-  return {nightNo,point,sunset,sunrise,minTemp,minApp,maxWind,maxGust,maxRain,avgCloud,maxRh,minVis,fogRisk,moon,best,score,milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
+  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,minApp,maxWind,maxGust,maxRain,avgCloud,maxRh,minVis,fogRisk,moon,best,score,milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
 }
 function addDays(date,n){const d=new Date(`${date}T12:00:00`);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function minFinite(v){const x=v.filter(Number.isFinite);return x.length?Math.min(...x):NaN;}
 function timeOnly(s){return s?String(s).slice(11,16):'–';}
+function horizonVisibility(row){
+  if(!row) return {label:'判定不可',mark:'–',score:0};
+  let s=100;
+  if(Number.isFinite(row.cloud)) s-=row.cloud*.75;
+  if(Number.isFinite(row.rain)) s-=Math.min(45,row.rain*22);
+  if(Number.isFinite(row.visibility)&&row.visibility<15000) s-=Math.min(30,(15000-row.visibility)/500);
+  if(Number.isFinite(row.rh)&&row.rh>92) s-=Math.min(18,(row.rh-92)*2.2);
+  s=Math.max(0,Math.min(100,s));
+  if(s>=75)return {label:'期待できる',mark:'◎',score:s};
+  if(s>=55)return {label:'可能性あり',mark:'○',score:s};
+  if(s>=35)return {label:'微妙',mark:'△',score:s};
+  return {label:'厳しい',mark:'×',score:s};
+}
+
 function moonInfo(date){
   const syn=29.53058867, known=new Date('2000-01-06T18:14:00Z').getTime(), t=new Date(`${date}T12:00:00+09:00`).getTime();
   let age=((t-known)/86400000)%syn;if(age<0)age+=syn;
@@ -332,7 +371,7 @@ function renderOvernights(items){
   const section=$('overnightSection');
   if(!items.length){section.classList.add('hidden');$('overnightCards').innerHTML='';return;}
   section.classList.remove('hidden');
-  $('overnightCards').innerHTML=items.map(o=>`<article class="overnight-card"><div class="overnight-head"><div><span class="night-badge">${o.nightNo}泊目</span><h3>${esc(o.point.name)}</h3><small>${o.point.date} / ${Math.round(o.point.elevation||0)}m</small></div><div class="milky-score"><small>天の川</small><b>${o.milkyLabel}</b><span>${Math.round(o.score)} / 100</span></div></div><div class="astro-strip"><span>🌇 日の入り <b>${timeOnly(o.sunset)}</b></span><span>🌌 星空ベスト <b>${o.best?timeOnly(o.best.time):'–'}</b></span><span>🌄 日の出 <b>${timeOnly(o.sunrise)}</b></span></div><div class="overnight-metrics"><span>最低気温<b>${num(o.minTemp)}℃</b></span><span>最低体感<b>${num(o.minApp)}℃</b></span><span>最大風<b>${num(o.maxWind)}m/s</b></span><span>最大突風<b>${num(o.maxGust)}m/s</b></span><span>夜間降水<b>${num(o.maxRain)}mm/h</b></span><span>平均雲量<b>${num(o.avgCloud,0)}%</b></span><span>ガス・霧<b>${o.fogRisk}</b></span><span>月明かり<b>${o.moon.phase} ${Math.round(o.moon.illum)}%</b></span></div><p class="night-note">天の川スコアは、夜間の雲量・降水・視程・湿度と月明かりから算出した目安です。地形による空の開け方や局地的な雲は反映しません。</p></article>`).join('');
+  $('overnightCards').innerHTML=items.map(o=>`<article class="overnight-card"><div class="overnight-head"><div><span class="night-badge">${o.nightNo}泊目</span><h3>${esc(o.point.name)}</h3><small>${o.point.date} / ${Math.round(o.point.elevation||0)}m</small></div><div class="milky-score"><small>天の川</small><b>${o.milkyLabel}</b><span>${Math.round(o.score)} / 100</span></div></div><div class="astro-strip"><span>🌇 日の入り <b>${timeOnly(o.sunset)}</b><em class="astro-judge">${o.sunsetView.mark} ${o.sunsetView.label}</em></span><span>🌌 星空ベスト <b>${o.best?timeOnly(o.best.time):'–'}</b></span><span>🌄 日の出 <b>${timeOnly(o.sunrise)}</b><em class="astro-judge">${o.sunriseView.mark} ${o.sunriseView.label}</em></span></div><div class="overnight-metrics"><span>最低気温<b>${num(o.minTemp)}℃</b></span><span>最低体感<b>${num(o.minApp)}℃</b></span><span>最大風<b>${num(o.maxWind)}m/s</b></span><span>最大突風<b>${num(o.maxGust)}m/s</b></span><span>夜間降水<b>${num(o.maxRain)}mm/h</b></span><span>平均雲量<b>${num(o.avgCloud,0)}%</b></span><span>ガス・霧<b>${o.fogRisk}</b></span><span>月明かり<b>${o.moon.phase} ${Math.round(o.moon.illum)}%</b></span></div><p class="night-note">天の川スコアは、夜間の雲量・降水・視程・湿度と月明かりから算出した目安です。地形による空の開け方や局地的な雲は反映しません。</p></article>`).join('');
 }
 
 function nearestTimeIndex(times,target){const t=new Date(target).getTime();let best=-1,d=Infinity;times.forEach((s,i)=>{const x=Math.abs(new Date(s).getTime()-t);if(x<d){d=x;best=i;}});return best;}
