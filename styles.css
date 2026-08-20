@@ -126,3 +126,12 @@ footer{color:#768d82}footer strong{color:#4e675c}
 .sunrise-card{background:linear-gradient(145deg,#fff5ed,#ffe8da);border-color:#efcdb9}
 .milky-card b{color:#6249a6}.sunset-card b{color:#9b5c0d}.sunrise-card b{color:#aa4f2a}
 @media(max-width:620px){.astro-cards{grid-template-columns:1fr}.astro-card{min-height:auto}}
+
+
+/* V1.4.1: show full month/day in passage-date control */
+@media(min-width:851px){
+  .point-row{grid-template-columns:42px 72px 140px minmax(210px,1fr) 180px 112px 128px 40px 40px 40px}
+}
+.point-date{min-width:170px;font-variant-numeric:tabular-nums;padding-left:14px;padding-right:42px}
+.point-date::-webkit-datetime-edit{padding:0 2px;min-width:112px}
+.point-date::-webkit-datetime-edit-year-field,.point-date::-webkit-datetime-edit-month-field,.point-date::-webkit-datetime-edit-day-field{padding:0 1px}
