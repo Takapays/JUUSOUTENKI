@@ -1,9 +1,9 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.6.3';
+const APP_VERSION = '1.6.4';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
-  {id:'ecmwf',name:'ECMWF IFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/ecmwf',forecastDays:10,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
+  {id:'ecmwf',name:'ECMWF IFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/ecmwf',forecastDays:15,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
   {id:'gfs',name:'GFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/gfs',forecastDays:16,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
   {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',forecastDays:8,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']}
 ];
@@ -409,11 +409,74 @@ function validateChronology(points){
   }
 }
 
-async function ensureElevation(point){
-  if(Number.isFinite(Number(point.elevation)) && Number(point.elevation)>0) return point;
-  const url=`https://api.open-meteo.com/v1/elevation?latitude=${point.lat}&longitude=${point.lon}`;
-  const r=await proxyFetch(url); if(r.ok){const j=await r.json();const e=Array.isArray(j.elevation)?j.elevation[0]:j.elevation;if(Number.isFinite(Number(e)))point.elevation=Number(e);}
-  return point;
+async function ensureElevations(points){
+  const missing=points.map((p,i)=>({p,i})).filter(x=>!(Number.isFinite(Number(x.p.elevation))&&Number(x.p.elevation)>0));
+  if(!missing.length)return points;
+  try{
+    const q=new URLSearchParams({
+      latitude:missing.map(x=>x.p.lat).join(','),
+      longitude:missing.map(x=>x.p.lon).join(',')
+    });
+    const r=await proxyFetch(`https://api.open-meteo.com/v1/elevation?${q}`);
+    if(!r.ok)return points;
+    const j=await r.json();
+    const values=Array.isArray(j?.elevation)?j.elevation:[j?.elevation];
+    missing.forEach((x,k)=>{const e=Number(values[k]);if(Number.isFinite(e))x.p.elevation=e;});
+  }catch(_e){}
+  return points;
+}
+function daysAhead(date){
+  const base=new Date(`${todayLocal()}T00:00:00+09:00`).getTime();
+  const target=new Date(`${date}T00:00:00+09:00`).getTime();
+  return Math.round((target-base)/86400000);
+}
+function providerEligible(provider,point){const d=daysAhead(point.date);return d>=0&&d<=provider.forecastDays;}
+function extractProviderRow(hourly,point){
+  if(!hourly?.time)return null;
+  const idx=nearestTimeIndex(hourly.time,`${point.date}T${point.time}`);
+  if(idx<0)return null;
+  const get=k=>numberOrNaN(hourly[k]?.[idx]);
+  return {time:hourly.time[idx],temp:get('temperature_2m'),rh:get('relative_humidity_2m'),rain:get('precipitation'),cloud:get('cloud_cover'),wind:get('wind_speed_10m'),gust:get('wind_gusts_10m'),windDir:get('wind_direction_10m'),cape:get('cape'),visibility:get('visibility'),freezing:get('freezing_level_height')};
+}
+async function fetchProviderBatch(provider,points){
+  const eligible=points.map((point,index)=>({point,index})).filter(x=>providerEligible(provider,x.point));
+  if(!eligible.length)return [];
+  const dates=eligible.map(x=>x.point.date).sort();
+  const params=new URLSearchParams({
+    latitude:eligible.map(x=>x.point.lat).join(','),
+    longitude:eligible.map(x=>x.point.lon).join(','),
+    elevation:eligible.map(x=>Number(x.point.elevation)||'nan').join(','),
+    hourly:provider.vars.join(','),timezone:'Asia/Tokyo',start_date:dates[0],end_date:dates[dates.length-1],wind_speed_unit:'ms'
+  });
+  if(provider.model)params.set('models',provider.model);
+  const r=await proxyFetch(`${provider.endpoint}?${params}`);
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const raw=await r.json();
+  const locations=Array.isArray(raw)?raw:[raw];
+  if(locations.length!==eligible.length)throw new Error(`地点数不一致 (${locations.length}/${eligible.length})`);
+  return eligible.map((x,k)=>({index:x.index,row:extractProviderRow(locations[k]?.hourly,x.point)}));
+}
+async function analyzePointsBatch(points){
+  const buckets=points.map(()=>({rows:[],errors:[]}));
+  for(let pi=0;pi<providers.length;pi++){
+    const provider=providers[pi];
+    setStatus(`気象モデル ${pi+1}/${providers.length}：${provider.name} を全地点まとめて取得中…`);
+    try{
+      const fetched=await fetchProviderBatch(provider,points);
+      fetched.forEach(x=>{
+        if(x.row)buckets[x.index].rows.push({provider,row:x.row});
+        else buckets[x.index].errors.push(`${provider.name}: 指定時刻なし`);
+      });
+    }catch(e){
+      points.forEach((point,index)=>{if(providerEligible(provider,point))buckets[index].errors.push(`${provider.name}: ${e?.message||'取得失敗'}`);});
+    }
+  }
+  return points.map((point,index)=>{
+    const rows=buckets[index].rows, errors=buckets[index].errors;
+    if(!rows.length)throw new Error(`${point.name}: 予報データを取得できませんでした。 ${errors.join(' / ')||'対応モデルがありません'}`);
+    const avg=averageRows(rows.map(x=>x.row));
+    return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:assessConfidence(rows.map(x=>x.row)),thunder:thunderLevel(avg)};
+  });
 }
 
 async function analyze(){
@@ -421,69 +484,49 @@ async function analyze(){
   try{
     points=collectPoints(); if(points.length<1)throw new Error('分析する地点を1つ以上選択してください。');
     validateChronology(points);
-    $('analyzeBtn').disabled=true; setStatus(`分析開始：${points.length}地点の気象データを取得しています…`);
-    const results=[];
-    for(let i=0;i<points.length;i++){
-      await ensureElevation(points[i]); setStatus(`${i+1}/${points.length} ${points[i].name}（${points[i].date} ${points[i].time}）を分析中…`);
-      results.push(await analyzePoint(points[i]));
-    }
+    $('analyzeBtn').disabled=true; setStatus(`分析開始：${points.length}地点を一括取得する準備をしています…`);
+    await ensureElevations(points);
+    const results=await analyzePointsBatch(points);
     const stayPoints=points.filter(p=>p.stay);
-    const overnight=[];
-    for(let i=0;i<stayPoints.length;i++){
-      setStatus(`宿泊分析 ${i+1}/${stayPoints.length}：${stayPoints[i].name} の夕方〜翌朝を分析中…`);
-      overnight.push(await analyzeOvernight(stayPoints[i],i+1));
+    let overnight=[];
+    if(stayPoints.length){
+      setStatus(`宿泊分析：${stayPoints.length}泊分をまとめて取得しています…`);
+      overnight=await analyzeOvernightsBatch(stayPoints);
     }
-    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}`);
-    logEvent('weather_analysis',{success:true,duration_ms:performance.now()-started,route_points:points.length,metadata:{provider_count:providers.length,manual_datetime:true}});
+    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}（一括取得）`);
+    logEvent('weather_analysis',{success:true,duration_ms:performance.now()-started,route_points:points.length,metadata:{provider_count:providers.length,manual_datetime:true,batch_weather:true}});
   }catch(e){setStatus(e.message||String(e),true);logEvent('weather_analysis',{success:false,duration_ms:performance.now()-started,route_points:points.length,error_message:e.message||String(e)});}
   finally{$('analyzeBtn').disabled=false;}
 }
-async function analyzePoint(point){
-  // Open-Meteoへの4モデル同時アクセスを避け、429を起こしにくくする。
-  const rows=[]; const errors=[];
-  for(const provider of providers){
-    try{
-      const row=await fetchProvider(provider,point);
-      if(row)rows.push({provider,row});
-    }catch(e){
-      errors.push(`${provider.name}: ${e?.message||'取得失敗'}`);
-    }
-  }
-  if(!rows.length)throw new Error(`${point.name}: 予報データを取得できませんでした。 ${errors.join(' / ')}`);
-  const avg=averageRows(rows.map(x=>x.row));
-  return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:assessConfidence(rows.map(x=>x.row)),thunder:thunderLevel(avg)};
-}
-async function fetchProvider(provider,point){return fetchOpenMeteo(provider,point);}
-async function fetchOpenMeteo(provider,point){
-  const params=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation,hourly:provider.vars.join(','),timezone:'Asia/Tokyo',start_date:point.date,end_date:point.date,wind_speed_unit:'ms'});
-  if(provider.model)params.set('models',provider.model);
-  const r=await proxyFetch(`${provider.endpoint}?${params}`); if(!r.ok)throw new Error(`HTTP ${r.status}`); const j=await r.json(); const h=j.hourly;if(!h?.time)throw new Error('hourly dataなし');
-  const idx=nearestTimeIndex(h.time,`${point.date}T${point.time}`); if(idx<0)throw new Error('指定時刻なし'); const get=k=>numberOrNaN(h[k]?.[idx]);
-  return {time:h.time[idx],temp:get('temperature_2m'),rh:get('relative_humidity_2m'),rain:get('precipitation'),cloud:get('cloud_cover'),wind:get('wind_speed_10m'),gust:get('wind_gusts_10m'),windDir:get('wind_direction_10m'),cape:get('cape'),visibility:get('visibility'),freezing:get('freezing_level_height')};
-}
-async function analyzeOvernight(point,nightNo){
-  const next=addDays(point.date,1);
-  const vars=['temperature_2m','apparent_temperature','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','visibility'];
-  const q=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation||'',hourly:vars.join(','),daily:'sunrise,sunset',timezone:'Asia/Tokyo',start_date:point.date,end_date:next,wind_speed_unit:'ms'});
-  const r=await proxyFetch(`https://api.open-meteo.com/v1/forecast?${q}`); if(!r.ok)throw new Error(`${point.name}: 宿泊予報 HTTP ${r.status}`);
-  const j=await r.json(), h=j.hourly||{}, d=j.daily||{};
-  const sunset=d.sunset?.[0]||`${point.date}T18:00`, sunrise=d.sunrise?.[1]||`${next}T05:00`;
+function analyzeOvernightJson(point,nightNo,j){
+  const next=addDays(point.date,1), h=j?.hourly||{}, d=j?.daily||{};
+  const sunset=d.sunset?.find(x=>String(x).startsWith(point.date))||d.sunset?.[0]||`${point.date}T18:00`;
+  const sunrise=d.sunrise?.find(x=>String(x).startsWith(next))||d.sunrise?.[1]||`${next}T05:00`;
   const allRows=(h.time||[]).map((t,i)=>({time:t,temp:numberOrNaN(h.temperature_2m?.[i]),apparent:numberOrNaN(h.apparent_temperature?.[i]),rh:numberOrNaN(h.relative_humidity_2m?.[i]),rain:numberOrNaN(h.precipitation?.[i]),cloud:numberOrNaN(h.cloud_cover?.[i]),wind:numberOrNaN(h.wind_speed_10m?.[i]),gust:numberOrNaN(h.wind_gusts_10m?.[i]),visibility:numberOrNaN(h.visibility?.[i])}));
-  const startMs=new Date(`${point.date}T${point.time}`).getTime();
-  const endMs=new Date(`${next}T08:00`).getTime();
+  const startMs=new Date(`${point.date}T${point.time}`).getTime(), endMs=new Date(`${next}T08:00`).getTime();
   const rows=allRows.filter(x=>{const t=new Date(x.time).getTime();return t>=startMs&&t<=endMs;});
-  const sunsetRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunset)]||null;
-  const sunriseRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunrise)]||null;
+  const sunsetRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunset)]||null, sunriseRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunrise)]||null;
   const sunsetView=horizonVisibility(sunsetRow), sunriseView=horizonVisibility(sunriseRow);
   const darkStart=new Date(sunset).getTime()+90*60000, darkEnd=new Date(sunrise).getTime()-90*60000;
-  const darkRows=rows.filter(x=>{const t=new Date(x.time).getTime();return t>=darkStart&&t<=darkEnd;});
-  const astroRows=darkRows.length?darkRows:rows;
-  const moon=moonInfo(point.date);
-  const best=astroRows.slice().sort((a,b)=>milkyScore(b,moon)-milkyScore(a,moon))[0]||null;
+  const darkRows=rows.filter(x=>{const t=new Date(x.time).getTime();return t>=darkStart&&t<=darkEnd;}), astroRows=darkRows.length?darkRows:rows;
+  const moon=moonInfo(point.date), best=astroRows.slice().sort((a,b)=>milkyScore(b,moon)-milkyScore(a,moon))[0]||null;
   const minTemp=minFinite(rows.map(x=>x.temp)), minApp=minFinite(rows.map(x=>x.apparent)), maxWind=max(rows.map(x=>x.wind)), maxGust=max(rows.map(x=>x.gust)), maxRain=max(rows.map(x=>x.rain)), avgCloud=mean(rows.map(x=>x.cloud)), maxRh=max(rows.map(x=>x.rh)), minVis=minFinite(rows.map(x=>x.visibility));
   const fogRisk=(maxRh>=97&&avgCloud>=85)||(Number.isFinite(minVis)&&minVis<1000)?'高':(maxRh>=92||avgCloud>=75)?'中':'低';
   const score=best?milkyScore(best,moon):0;
   return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,minApp,maxWind,maxGust,maxRain,avgCloud,maxRh,minVis,fogRisk,moon,best,score,milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
+}
+async function analyzeOvernightsBatch(points){
+  if(!points.length)return [];
+  const vars=['temperature_2m','apparent_temperature','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','visibility'];
+  const starts=points.map(p=>p.date).sort(), ends=points.map(p=>addDays(p.date,1)).sort();
+  const q=new URLSearchParams({
+    latitude:points.map(p=>p.lat).join(','),longitude:points.map(p=>p.lon).join(','),elevation:points.map(p=>Number(p.elevation)||'nan').join(','),
+    hourly:vars.join(','),daily:'sunrise,sunset',timezone:'Asia/Tokyo',start_date:starts[0],end_date:ends[ends.length-1],wind_speed_unit:'ms'
+  });
+  const r=await proxyFetch(`https://api.open-meteo.com/v1/forecast?${q}`); if(!r.ok)throw new Error(`宿泊予報 HTTP ${r.status}`);
+  const raw=await r.json(), locations=Array.isArray(raw)?raw:[raw];
+  if(locations.length!==points.length)throw new Error(`宿泊予報の地点数不一致 (${locations.length}/${points.length})`);
+  return points.map((p,i)=>analyzeOvernightJson(p,i+1,locations[i]));
 }
 function addDays(date,n){const d=new Date(`${date}T12:00:00`);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function minFinite(v){const x=v.filter(Number.isFinite);return x.length?Math.min(...x):NaN;}
