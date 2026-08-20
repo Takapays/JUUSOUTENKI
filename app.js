@@ -1,11 +1,11 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.6.1';
 
 const providers = [
-  {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
-  {id:'ecmwf',name:'ECMWF IFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/ecmwf',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
-  {id:'gfs',name:'GFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/gfs',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
-  {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']}
+  {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
+  {id:'ecmwf',name:'ECMWF IFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/ecmwf',forecastDays:10,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
+  {id:'gfs',name:'GFS',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/gfs',forecastDays:16,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']},
+  {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',forecastDays:8,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']}
 ];
 const TYPE_LABEL={trailhead:'登山口・下山口',peak:'山頂',hut:'山小屋・避難小屋'};
 const MOUNTAIN_PRESETS = {
@@ -442,13 +442,15 @@ async function analyzePoint(point){
   const settled=await Promise.allSettled(providers.map(p=>fetchProvider(p,point)));
   const rows=[]; const errors=[];
   settled.forEach((s,i)=>{if(s.status==='fulfilled'&&s.value)rows.push({provider:providers[i],row:s.value});else errors.push(`${providers[i].name}: ${s.reason?.message||'取得失敗'}`);});
-  if(!rows.length)throw new Error(`${point.name}: 予報データを取得できませんでした。`);
+  if(!rows.length)throw new Error(`${point.name}: 予報データを取得できませんでした。 ${errors.join(' / ')}`);
   const avg=averageRows(rows.map(x=>x.row));
   return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:assessConfidence(rows.map(x=>x.row)),thunder:thunderLevel(avg)};
 }
 async function fetchProvider(provider,point){return fetchOpenMeteo(provider,point);}
 async function fetchOpenMeteo(provider,point){
-  const params=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation,hourly:provider.vars.join(','),timezone:'Asia/Tokyo',start_date:point.date,end_date:point.date,wind_speed_unit:'ms'}); if(provider.model)params.set('models',provider.model);
+  const params=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation,hourly:provider.vars.join(','),timezone:'Asia/Tokyo',start_date:point.date,end_date:point.date,wind_speed_unit:'ms'});
+  if(provider.model)params.set('models',provider.model);
+  if(provider.forecastDays)params.set('forecast_days',String(provider.forecastDays));
   const r=await proxyFetch(`${provider.endpoint}?${params}`); if(!r.ok)throw new Error(`HTTP ${r.status}`); const j=await r.json(); const h=j.hourly;if(!h?.time)throw new Error('hourly dataなし');
   const idx=nearestTimeIndex(h.time,`${point.date}T${point.time}`); if(idx<0)throw new Error('指定時刻なし'); const get=k=>numberOrNaN(h[k]?.[idx]);
   return {time:h.time[idx],temp:get('temperature_2m'),rh:get('relative_humidity_2m'),rain:get('precipitation'),cloud:get('cloud_cover'),wind:get('wind_speed_10m'),gust:get('wind_gusts_10m'),windDir:get('wind_direction_10m'),cape:get('cape'),visibility:get('visibility'),freezing:get('freezing_level_height')};
@@ -456,7 +458,7 @@ async function fetchOpenMeteo(provider,point){
 async function analyzeOvernight(point,nightNo){
   const next=addDays(point.date,1);
   const vars=['temperature_2m','apparent_temperature','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','visibility'];
-  const q=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation||'',hourly:vars.join(','),daily:'sunrise,sunset',timezone:'Asia/Tokyo',start_date:point.date,end_date:next,wind_speed_unit:'ms'});
+  const q=new URLSearchParams({latitude:point.lat,longitude:point.lon,elevation:point.elevation||'',hourly:vars.join(','),daily:'sunrise,sunset',timezone:'Asia/Tokyo',start_date:point.date,end_date:next,wind_speed_unit:'ms',forecast_days:'16'});
   const r=await proxyFetch(`https://api.open-meteo.com/v1/forecast?${q}`); if(!r.ok)throw new Error(`${point.name}: 宿泊予報 HTTP ${r.status}`);
   const j=await r.json(), h=j.hourly||{}, d=j.daily||{};
   const sunset=d.sunset?.[0]||`${point.date}T18:00`, sunrise=d.sunrise?.[1]||`${next}T05:00`;
