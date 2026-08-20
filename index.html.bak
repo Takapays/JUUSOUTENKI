@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b1714">
-  <title>縦走山行判断ツール | V1.6</title>
-  <link rel="stylesheet" href="styles.css?v=1.6">
+  <title>縦走山行判断ツール | V1.5.2</title>
+  <link rel="stylesheet" href="styles.css?v=1.5.2">
 </head>
 <body>
 <header class="hero">
@@ -14,7 +14,7 @@
       <div class="eyebrow">TRAVERSE WEATHER DECISION</div>
       <h1>縦走山行判断ツール</h1>
       <p>山に行くか？やめるか？</p>
-      <span class="version">V1.6</span>
+      <span class="version">V1.5.2</span>
     </div>
     <div class="hero-mark" aria-hidden="true">
       <span class="ridge ridge-back"></span>
@@ -76,23 +76,17 @@
     </section>
 
     <section class="panel">
-      <div class="section-title"><span>03</span><div><h2>縦走気象グラフ</h2><p>地点ごとの変化と危険箇所をひと目で確認</p></div></div>
-      <div id="weatherCharts" class="weather-charts"></div>
-      <div id="riskRibbon" class="risk-ribbon"></div>
-    </section>
-
-    <section class="panel">
-      <div class="section-title"><span>04</span><div><h2>地点別予報</h2><p>入力した通過日時そのものを分析</p></div></div>
+      <div class="section-title"><span>03</span><div><h2>地点別予報</h2><p>入力した通過日時そのものを分析</p></div></div>
       <div id="forecastCards" class="forecast-grid"></div>
     </section>
 
     <section id="overnightSection" class="panel hidden">
-      <div class="section-title"><span>05</span><div><h2>宿泊地点の分析</h2><p>日の入りから翌朝まで。1泊目・2泊目…を個別に確認</p></div></div>
+      <div class="section-title"><span>04</span><div><h2>宿泊地点の分析</h2><p>日の入りから翌朝まで。1泊目・2泊目…を個別に確認</p></div></div>
       <div id="overnightCards" class="overnight-grid"></div>
     </section>
 
     <section class="panel">
-      <div class="section-title"><span>06</span><div><h2>気象モデル詳細</h2><p>JMA / ECMWF / GFS / ICON</p></div></div>
+      <div class="section-title"><span>05</span><div><h2>気象モデル詳細</h2><p>JMA / ECMWF / GFS / ICON</p></div></div>
       <div id="modelDetails"></div>
     </section>
   </section>
@@ -102,6 +96,6 @@
   <strong>縦走山行判断ツール</strong><br>
   Weather via Open-Meteo。予報は登山の安全を保証しません。
 </footer>
-<script src="app.js?v=1.6"></script>
+<script src="app.js?v=1.5.2"></script>
 </body>
 </html>
