@@ -113,3 +113,16 @@ footer{color:#768d82}footer strong{color:#4e675c}
 .point-date:hover,.point-time:hover{border-color:#75b596}
 .point-date::-webkit-calendar-picker-indicator,.point-time::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;width:22px;height:22px;filter:none}
 .point-date::-webkit-datetime-edit,.point-time::-webkit-datetime-edit{color:#183128}
+
+
+/* V1.4 overnight astro cards */
+.astro-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}
+.astro-card{min-height:104px;padding:14px 15px;border-radius:15px;border:1px solid #d9e5df;display:flex;flex-direction:column;justify-content:center;box-shadow:0 8px 22px rgba(24,49,40,.06)}
+.astro-card small{font-size:11px;font-weight:900;letter-spacing:.03em;color:#53685f}
+.astro-card b{display:block;margin:7px 0 5px;font-size:18px;color:#183128;line-height:1.15}
+.astro-card span{font-size:11px;font-weight:800;line-height:1.45;color:#63776e}
+.sunset-card{background:linear-gradient(145deg,#fff7e8,#fff1d8);border-color:#f0d7a7}
+.milky-card{background:linear-gradient(145deg,#f4f0ff,#ece8ff);border-color:#d8cef7}
+.sunrise-card{background:linear-gradient(145deg,#fff5ed,#ffe8da);border-color:#efcdb9}
+.milky-card b{color:#6249a6}.sunset-card b{color:#9b5c0d}.sunrise-card b{color:#aa4f2a}
+@media(max-width:620px){.astro-cards{grid-template-columns:1fr}.astro-card{min-height:auto}}
