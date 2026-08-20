@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -234,11 +234,56 @@ function addPointRow(type='peak',selected='',roleLabel=''){
   const typeSel=row.querySelector('.point-type'), pointSel=row.querySelector('.point-select'), stay=row.querySelector('.stay-option');
   typeSel.addEventListener('change',()=>{pointSel.innerHTML=candidateOptions(typeSel.value); stay.classList.toggle('hidden',typeSel.value!=='hut'); if(typeSel.value!=='hut')row.querySelector('.point-stay').checked=false; updateMeta(row);});
   pointSel.addEventListener('change',()=>updateMeta(row));
+  const dateInput=row.querySelector('.point-date'), timeInput=row.querySelector('.point-time');
+  [dateInput,timeInput].forEach(input=>{
+    input.addEventListener('focus',()=>{ row.dataset.datetimeBefore = rowDateTimeValue(row) || ''; });
+    input.addEventListener('change',()=>{
+      const before=row.dataset.datetimeBefore || '';
+      const after=rowDateTimeValue(row) || '';
+      if(before && after && before!==after) shiftFollowingPointTimes(row,before,after);
+      row.dataset.datetimeBefore=after;
+    });
+  });
   row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();});
   row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();});
   row.querySelector('.down').addEventListener('click',()=>{const n=row.nextElementSibling;if(n)row.parentNode.insertBefore(n,row);renumber();});
 }
 function renumber(){[...$('points').children].forEach((r,i)=>r.querySelector('.point-no').textContent=String(i+1).padStart(2,'0'));}
+function rowDateTimeValue(row){
+  const date=row.querySelector('.point-date')?.value, time=row.querySelector('.point-time')?.value;
+  return date&&time?`${date}T${time}:00+09:00`:'';
+}
+function formatJstInput(ms){
+  const d=new Date(ms+9*60*60*1000);
+  const pad=n=>String(n).padStart(2,'0');
+  return {date:`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`,time:`${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`};
+}
+function shiftFollowingPointTimes(row,beforeIso,afterIso){
+  const beforeMs=new Date(beforeIso).getTime(), afterMs=new Date(afterIso).getTime();
+  if(!Number.isFinite(beforeMs)||!Number.isFinite(afterMs)) return;
+  const delta=afterMs-beforeMs;
+  if(!delta) return;
+  let next=row.nextElementSibling;
+  while(next){
+    const iso=rowDateTimeValue(next);
+    if(iso){
+      const oldMs=new Date(iso).getTime();
+      if(Number.isFinite(oldMs)){
+        const shifted=formatJstInput(oldMs+delta);
+        next.querySelector('.point-date').value=shifted.date;
+        next.querySelector('.point-time').value=shifted.time;
+        next.dataset.datetimeBefore=`${shifted.date}T${shifted.time}:00+09:00`;
+      }
+    }
+    next=next.nextElementSibling;
+  }
+  setStatus(`後続ポイントの通過日時を ${formatShift(delta)} ずらしました。`);
+}
+function formatShift(ms){
+  const sign=ms>=0?'+':'−', mins=Math.round(Math.abs(ms)/60000), days=Math.floor(mins/1440), hrs=Math.floor((mins%1440)/60), rem=mins%60;
+  const parts=[]; if(days)parts.push(`${days}日`); if(hrs)parts.push(`${hrs}時間`); if(rem||!parts.length)parts.push(`${rem}分`);
+  return `${sign}${parts.join('')}`;
+}
 function selectedCandidate(id){return candidates.find(p=>String(p.id)===String(id));}
 function updateMeta(row){const p=selectedCandidate(row.querySelector('.point-select').value); row.querySelector('.point-meta').textContent=p?`${p.name} / ${p.elevation||'標高自動'}m / ${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)}`:'地点を選択してください';}
 function collectPoints(){
