@@ -135,3 +135,12 @@ footer{color:#768d82}footer strong{color:#4e675c}
 .point-date{min-width:170px;font-variant-numeric:tabular-nums;padding-left:14px;padding-right:42px}
 .point-date::-webkit-datetime-edit{padding:0 2px;min-width:112px}
 .point-date::-webkit-datetime-edit-year-field,.point-date::-webkit-datetime-edit-month-field,.point-date::-webkit-datetime-edit-day-field{padding:0 1px}
+
+/* V1.4.2: mobile passage date/time layout */
+@media(max-width:700px){
+  .datetime-label{grid-column:2/-1;min-width:0;width:100%}
+  .point-date,.point-time{min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+}
+@media(max-width:520px){
+  .datetime-label{grid-column:2/4}
+}
