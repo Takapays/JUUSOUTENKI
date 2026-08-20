@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.3';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -439,9 +439,16 @@ async function analyze(){
   finally{$('analyzeBtn').disabled=false;}
 }
 async function analyzePoint(point){
-  const settled=await Promise.allSettled(providers.map(p=>fetchProvider(p,point)));
+  // Open-Meteoへの4モデル同時アクセスを避け、429を起こしにくくする。
   const rows=[]; const errors=[];
-  settled.forEach((s,i)=>{if(s.status==='fulfilled'&&s.value)rows.push({provider:providers[i],row:s.value});else errors.push(`${providers[i].name}: ${s.reason?.message||'取得失敗'}`);});
+  for(const provider of providers){
+    try{
+      const row=await fetchProvider(provider,point);
+      if(row)rows.push({provider,row});
+    }catch(e){
+      errors.push(`${provider.name}: ${e?.message||'取得失敗'}`);
+    }
+  }
   if(!rows.length)throw new Error(`${point.name}: 予報データを取得できませんでした。 ${errors.join(' / ')}`);
   const avg=averageRows(rows.map(x=>x.row));
   return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:assessConfidence(rows.map(x=>x.row)),thunder:thunderLevel(avg)};

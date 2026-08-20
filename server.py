@@ -24,11 +24,11 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "1.6.2"
+APP_VERSION = "1.6.3"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
-CACHE_TTL = int(os.environ.get("CACHE_TTL", "120"))
+CACHE_TTL = int(os.environ.get("CACHE_TTL", "900"))
 OVERPASS_CACHE_TTL = int(os.environ.get("OVERPASS_CACHE_TTL", "86400"))
 CACHE_MAX_ITEMS = int(os.environ.get("CACHE_MAX_ITEMS", "256"))
 MAX_OVERPASS_BYTES = int(os.environ.get("MAX_OVERPASS_BYTES", str(512 * 1024)))
@@ -70,7 +70,7 @@ OVERPASS_ENDPOINTS = [
 
 UA = os.environ.get(
     "UPSTREAM_USER_AGENT",
-    "TraverseWeatherDecision/1.6.2",
+    "TraverseWeatherDecision/1.6.3",
 )
 
 app = Flask(__name__, static_folder=None)
@@ -78,6 +78,14 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_OVERPASS_BYTES
 
 _cache: "OrderedDict[str, tuple[float, int, str, bytes]]" = OrderedDict()
 _cache_lock = threading.Lock()
+
+# Open-Meteo free endpoints can return HTTP 429 when several model requests
+# arrive in a burst. Serialize those calls, keep a small gap between them, and
+# retry briefly when the upstream asks us to slow down.
+_openmeteo_lock = threading.Lock()
+_openmeteo_last_request = 0.0
+OPENMETEO_MIN_INTERVAL = float(os.environ.get("OPENMETEO_MIN_INTERVAL", "0.9"))
+OPENMETEO_MAX_RETRIES = int(os.environ.get("OPENMETEO_MAX_RETRIES", "2"))
 
 TRAIL_DATA_DIR = os.path.join(BASE, "trail_data")
 TRAIL_GRAPH_CACHE_MAX = int(os.environ.get("TRAIL_GRAPH_CACHE_MAX", "2"))
@@ -314,12 +322,48 @@ def _cache_put(key: str, status: int, ctype: str, body: bytes, ttl: int | None =
 
 
 def _request_url(url: str, timeout: int = UPSTREAM_TIMEOUT):
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": UA, "Accept": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.status, resp.headers.get("Content-Type", "application/json"), resp.read()
+    global _openmeteo_last_request
+    host = urllib.parse.urlparse(url).hostname or ""
+    is_openmeteo = host.endswith("open-meteo.com")
+    attempts = OPENMETEO_MAX_RETRIES + 1 if is_openmeteo else 1
+
+    for attempt in range(attempts):
+        try:
+            if is_openmeteo:
+                with _openmeteo_lock:
+                    wait = OPENMETEO_MIN_INTERVAL - (time.monotonic() - _openmeteo_last_request)
+                    if wait > 0:
+                        time.sleep(wait)
+                    req = urllib.request.Request(
+                        url,
+                        headers={"User-Agent": UA, "Accept": "application/json"},
+                    )
+                    try:
+                        with urllib.request.urlopen(req, timeout=timeout) as resp:
+                            result = (resp.status, resp.headers.get("Content-Type", "application/json"), resp.read())
+                    finally:
+                        _openmeteo_last_request = time.monotonic()
+                    return result
+
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": UA, "Accept": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.status, resp.headers.get("Content-Type", "application/json"), resp.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code != 429 or attempt >= attempts - 1:
+                raise
+            retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            try:
+                delay = float(retry_after) if retry_after else 0.0
+            except (TypeError, ValueError):
+                delay = 0.0
+            # Keep retries short enough for Render/Gunicorn request timeouts.
+            delay = max(delay, 1.5 * (2 ** attempt))
+            time.sleep(min(delay, 6.0))
+
+    raise RuntimeError("upstream request failed")
 
 
 def _request_overpass(endpoint: str, query: str, timeout: int = OVERPASS_TIMEOUT):
