@@ -144,3 +144,29 @@ footer{color:#768d82}footer strong{color:#4e675c}
 @media(max-width:520px){
   .datetime-label{grid-column:2/4}
 }
+
+
+/* V1.4.3: hard mobile fix - date/time on separate full-width rows */
+@media(max-width:700px){
+  .point-row .datetime-label.date-label,
+  .point-row .datetime-label.time-label{
+    grid-column:2/-1 !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+  .point-row .datetime-label.date-label{grid-row:auto}
+  .point-row .datetime-label.time-label{grid-row:auto}
+  .point-row .point-date,
+  .point-row .point-time{
+    display:block;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+}
+@media(max-width:520px){
+  .point-row .datetime-label.date-label,
+  .point-row .datetime-label.time-label{grid-column:2/4 !important}
+}

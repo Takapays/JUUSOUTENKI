@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.4.2';
+const APP_VERSION = '1.4.3';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -225,8 +225,8 @@ function addPointRow(type='peak',selected='',roleLabel=''){
     <div class="role-chip">${esc(roleLabel||'経由')}</div>
     <label>種類<select class="point-type">${typeOptions(type)}</select></label>
     <label class="point-name-label">地点<select class="point-select">${candidateOptions(type,selected)}</select></label>
-    <label class="datetime-label"><span class="field-caption">📅 通過日</span><input class="point-date" type="date" value="${todayLocal()}"></label>
-    <label class="datetime-label"><span class="field-caption">🕒 通過時刻</span><input class="point-time" type="time" value="06:00"></label>
+    <label class="datetime-label date-label"><span class="field-caption">📅 通過日</span><input class="point-date" type="date" value="${todayLocal()}"></label>
+    <label class="datetime-label time-label"><span class="field-caption">🕒 通過時刻</span><input class="point-time" type="time" value="06:00"></label>
     <label class="stay-option ${type==='hut'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b>ここに泊まる</b></span></label>
     <button class="move up" type="button" title="上へ">↑</button><button class="move down" type="button" title="下へ">↓</button><button class="remove" type="button" title="削除">×</button>
     <div class="point-meta">地点を選択してください</div>`;
