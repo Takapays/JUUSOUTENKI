@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.6.4';
+const APP_VERSION = '1.6.5';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -456,6 +456,48 @@ async function fetchProviderBatch(provider,points){
   if(locations.length!==eligible.length)throw new Error(`地点数不一致 (${locations.length}/${eligible.length})`);
   return eligible.map((x,k)=>({index:x.index,row:extractProviderRow(locations[k]?.hourly,x.point)}));
 }
+function extractMetNoRow(payload,point){
+  const ts=payload?.properties?.timeseries;
+  if(!Array.isArray(ts)||!ts.length)return null;
+  const targetMs=new Date(`${point.date}T${point.time}:00+09:00`).getTime();
+  let best=null, bestDiff=Infinity;
+  for(const item of ts){
+    const ms=new Date(item?.time||'').getTime();
+    if(!Number.isFinite(ms))continue;
+    const diff=Math.abs(ms-targetMs);
+    if(diff<bestDiff){bestDiff=diff;best=item;}
+  }
+  // MET Norway Locationforecast is a short/medium-range fallback. Avoid
+  // silently substituting a forecast that is more than 3 hours away.
+  if(!best || bestDiff>3*3600000)return null;
+  const d=best?.data?.instant?.details||{};
+  const next1=best?.data?.next_1_hours?.details||{};
+  return {
+    time:best.time,
+    temp:numberOrNaN(d.air_temperature),
+    rh:numberOrNaN(d.relative_humidity),
+    rain:numberOrNaN(next1.precipitation_amount),
+    cloud:numberOrNaN(d.cloud_area_fraction),
+    wind:numberOrNaN(d.wind_speed),
+    gust:numberOrNaN(d.wind_speed_of_gust),
+    windDir:numberOrNaN(d.wind_from_direction),
+    cape:NaN,visibility:NaN,freezing:NaN
+  };
+}
+async function fetchMetNoFallback(point){
+  // Locationforecast currently covers roughly nine days. It is used only
+  // when Open-Meteo has returned HTTP 429 for this point.
+  if(daysAhead(point.date)>9)return null;
+  const q=new URLSearchParams({
+    lat:String(Number(point.lat).toFixed(4)),
+    lon:String(Number(point.lon).toFixed(4))
+  });
+  if(Number.isFinite(Number(point.elevation))&&Number(point.elevation)>0)q.set('altitude',String(Math.round(Number(point.elevation))));
+  const r=await proxyFetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?${q}`);
+  if(!r.ok)throw new Error(`MET Norway HTTP ${r.status}`);
+  return extractMetNoRow(await r.json(),point);
+}
+
 async function analyzePointsBatch(points){
   const buckets=points.map(()=>({rows:[],errors:[]}));
   for(let pi=0;pi<providers.length;pi++){
@@ -471,11 +513,31 @@ async function analyzePointsBatch(points){
       points.forEach((point,index)=>{if(providerEligible(provider,point))buckets[index].errors.push(`${provider.name}: ${e?.message||'取得失敗'}`);});
     }
   }
+  // If a point has no Open-Meteo result and the eligible model calls were
+  // rate-limited, fall back to MET Norway Locationforecast so the plan can
+  // still be evaluated. This is a single-source fallback, not a 4-model vote.
+  const fallbackProvider={id:'metno',name:'MET Norway（予備）',kind:'fallback'};
+  for(let index=0;index<points.length;index++){
+    const bucket=buckets[index];
+    if(bucket.rows.length)continue;
+    const rateLimited=bucket.errors.some(x=>x.includes('HTTP 429'));
+    if(!rateLimited)continue;
+    setStatus(`Open-Meteoが混雑中：${points[index].name} を予備APIで取得しています…`);
+    try{
+      const row=await fetchMetNoFallback(points[index]);
+      if(row){
+        bucket.rows.push({provider:fallbackProvider,row});
+        bucket.errors.push('Open-Meteo: HTTP 429 → MET Norway予備APIへ切替');
+      }else{
+        bucket.errors.push('MET Norway: 指定時刻の予報なし（約9日先まで）');
+      }
+    }catch(e){bucket.errors.push(e?.message||'MET Norway取得失敗');}
+  }
   return points.map((point,index)=>{
     const rows=buckets[index].rows, errors=buckets[index].errors;
     if(!rows.length)throw new Error(`${point.name}: 予報データを取得できませんでした。 ${errors.join(' / ')||'対応モデルがありません'}`);
     const avg=averageRows(rows.map(x=>x.row));
-    return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:assessConfidence(rows.map(x=>x.row)),thunder:thunderLevel(avg)};
+    return {point,providerRows:rows,errors,...avg,grade:assessGrade(avg),confidence:(rows.length===1&&rows[0].provider?.id==='metno'?'FALLBACK':assessConfidence(rows.map(x=>x.row))),thunder:thunderLevel(avg)};
   });
 }
 
@@ -489,11 +551,12 @@ async function analyze(){
     const results=await analyzePointsBatch(points);
     const stayPoints=points.filter(p=>p.stay);
     let overnight=[];
+    let overnightWarning='';
     if(stayPoints.length){
       setStatus(`宿泊分析：${stayPoints.length}泊分をまとめて取得しています…`);
-      overnight=await analyzeOvernightsBatch(stayPoints);
+      try{overnight=await analyzeOvernightsBatch(stayPoints);}catch(e){overnightWarning=` / 宿泊詳細は取得できませんでした（${e?.message||'取得失敗'}）`;}
     }
-    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}（一括取得）`);
+    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}${overnightWarning}（一括取得）`,false);
     logEvent('weather_analysis',{success:true,duration_ms:performance.now()-started,route_points:points.length,metadata:{provider_count:providers.length,manual_datetime:true,batch_weather:true}});
   }catch(e){setStatus(e.message||String(e),true);logEvent('weather_analysis',{success:false,duration_ms:performance.now()-started,route_points:points.length,error_message:e.message||String(e)});}
   finally{$('analyzeBtn').disabled=false;}

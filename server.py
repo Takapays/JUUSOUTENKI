@@ -24,7 +24,7 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "1.6.4"
+APP_VERSION = "1.6.5"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
@@ -54,6 +54,7 @@ ALLOWED_HOSTS = {
     "api.open-meteo.com",
     "geocoding-api.open-meteo.com",
     "nominatim.openstreetmap.org",
+    "api.met.no",
 }
 
 OVERPASS_ENDPOINTS = [
@@ -70,7 +71,12 @@ OVERPASS_ENDPOINTS = [
 
 UA = os.environ.get(
     "UPSTREAM_USER_AGENT",
-    "TraverseWeatherDecision/1.6.4",
+    "TraverseWeatherDecision/1.6.5",
+)
+
+METNO_USER_AGENT = os.environ.get(
+    "METNO_USER_AGENT",
+    "JUUSOUTENKI/1.6.5 https://juusoutenki.onrender.com",
 )
 
 app = Flask(__name__, static_folder=None)
@@ -347,7 +353,7 @@ def _request_url(url: str, timeout: int = UPSTREAM_TIMEOUT):
 
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": UA, "Accept": "application/json"},
+                headers={"User-Agent": (METNO_USER_AGENT if host == "api.met.no" else UA), "Accept": "application/json"},
             )
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.status, resp.headers.get("Content-Type", "application/json"), resp.read()
