@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1714">
+  <title>縦走判断ツール | V1.1</title>
+  <link rel="stylesheet" href="styles.css?v=1.1">
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="eyebrow">TRAVERSE WEATHER DECISION</div>
+      <h1>縦走判断ツール</h1>
+      <p>山に行くか？やめるか？</p>
+      <span class="version">V1.1</span>
+    </div>
+    <div class="hero-mark" aria-hidden="true">
+      <span class="ridge ridge-back"></span>
+      <span class="ridge ridge-front"></span>
+      <span class="sun"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="panel plan-panel">
+    <div class="section-title">
+      <span>01</span>
+      <div><h2>山と通過予定地点</h2></div>
+    </div>
+
+    <div class="mountain-row">
+      <label>山<select id="mountainPreset"></select></label>
+      <button id="loadPoiBtn" class="secondary" type="button">この山のルート候補を読み込む</button>
+      <div id="candidateState" class="state"></div>
+    </div>
+
+    <div class="points-head">
+      <div><h3>通過ポイント</h3><small>登山口・山頂・山小屋・下山口を最初から表示</small></div>
+      <button id="addPointBtn" class="secondary compact" type="button">＋ 地点を追加</button>
+    </div>
+    <div id="points" class="points"></div>
+
+    <div class="actions">
+      <button id="analyzeBtn" class="primary" type="button"><span>この計画を分析開始</span><b>→</b></button>
+    </div>
+  </section>
+
+  <section id="status" class="status hidden"></section>
+
+  <section id="results" class="hidden">
+    <section class="panel result-panel">
+      <div class="section-title"><span>02</span><div><h2>総合判断</h2><p id="updatedAt"></p></div></div>
+      <div class="summary">
+        <article class="summary-main"><small>総合評価</small><div id="grade" class="big-grade">–</div><b id="verdict">–</b></article>
+        <article><small>比較的よい地点</small><b id="bestWindow">–</b></article>
+        <article><small>最大風速</small><b id="maxWind">–</b></article>
+        <article><small>最大降水</small><b id="maxRain">–</b></article>
+        <article><small>雷リスク</small><b id="thunderRisk">–</b></article>
+        <article><small>モデル一致度</small><b id="confidence">–</b></article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title"><span>03</span><div><h2>地点別予報</h2><p>入力した通過日時そのものを分析</p></div></div>
+      <div id="forecastCards" class="forecast-grid"></div>
+    </section>
+
+    <section id="overnightSection" class="panel hidden">
+      <div class="section-title"><span>04</span><div><h2>宿泊地点の分析</h2><p>日の入りから翌朝まで。1泊目・2泊目…を個別に確認</p></div></div>
+      <div id="overnightCards" class="overnight-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title"><span>05</span><div><h2>気象モデル詳細</h2><p>JMA / ECMWF / GFS / ICON / meteoblue</p></div></div>
+      <div id="modelDetails"></div>
+    </section>
+  </section>
+</main>
+
+<footer>
+  <strong>縦走判断ツール</strong><br>
+  Weather via Open-Meteo + meteoblue（APIキー設定時）。予報は登山の安全を保証しません。<br>
+  <small>meteoblue APIキーはサーバー側環境変数に保存し、ブラウザには公開しません。</small>
+</footer>
+<script src="app.js?v=1.1"></script>
+</body>
+</html>

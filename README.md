@@ -1,0 +1,34 @@
+# 縦走判断ツール V1.1
+
+## V1.1
+- 登山道検索を廃止
+- 距離・累積標高・コースタイム計算を廃止
+- 「この山のルート候補を読み込む」は維持（内蔵候補を即時表示）
+- 登山口・山小屋・テント場・峠・山頂・下山口を手動選択
+- 各地点の**通過日と通過時刻を手動入力**
+- 「この計画を分析開始」で即気象分析
+- JMA / ECMWF / GFS / ICON に加えて meteoblue を追加
+
+## meteoblue設定
+meteoblue Forecast API はAPIキーが必要です。Renderの Environment に次を追加してください。
+
+`METEOBLUE_API_KEY=あなたのAPIキー`
+
+未設定でもJMA/ECMWF/GFS/ICONの4モデルで分析は継続します。meteoblueだけ取得エラーとして表示されます。
+
+## Render
+Build Command は以前のV5.5系のままでも動くよう `build_trail_graphs.py` を残していますが、V1.0では登山道データを使いません。推奨は:
+
+`pip install -r requirements.txt`
+
+Start Command:
+
+`gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 server:app`
+
+
+### V1.1 追加
+- 候補読込後、登山口・山頂・山小屋・下山口の4行を最初から表示
+- 山小屋・テント場で「ここに泊まる」チェックを表示
+- 宿泊地点を1泊目・2泊目…として自動分析
+- 日の入り・日の出・夜間最低気温・体感温度・風・突風・降水・雲量・ガス/霧リスクを表示
+- 天の川の見えやすさ目安（雲量・降水・視程・湿度・月明かり）と夜間ベスト時刻を表示
