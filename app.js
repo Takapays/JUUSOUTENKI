@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.45';
+const APP_VERSION = '1.12.46';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -8,6 +8,8 @@ const providers = [
   {id:'icon',name:'ICON',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/dwd-icon',forecastDays:8,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','wind_direction_10m','cape','visibility','freezing_level_height']}
 ];
 const TYPE_LABEL={trailhead:'登山口・下山口',peak:'山頂',hut:'山小屋・避難小屋'};
+const ROUTE_MAP_DEFAULT_VIEW=[36.2,138.2];
+const routeMapViews={};
 const MOUNTAIN_PRESETS = {
   '槍ヶ岳': {latitude:36.3419, longitude:137.6476},
   '奥穂高岳': {latitude:36.2892, longitude:137.6480},
@@ -2662,6 +2664,7 @@ function init(){
     $('candidateState').textContent=selected?'「この山のルート候補を読み込む」を押してください':'';
     updateLoadButtonAppearance(false);
     updateForecastHorizon();
+    renderRouteMaps();
   };
   area.addEventListener('change',()=>{
     const current=select.value;
@@ -2760,6 +2763,7 @@ function renderCandidateRows(label,center,{resetPoints=false}={}){
     if(hasHut)addPointRow('hut','','山小屋・避難小屋');
     if(hasTrail)addPointRow('trailhead','','下山口');
     updateForecastHorizon();
+    renderRouteMaps();
   }
 }
 
@@ -3077,12 +3081,14 @@ async function ensureCandidateCoordinateForRow(row,{manual=false}={}){
     refreshPointCandidateOptions();
     updateMeta(row);
     setStatus(`${p.name} の座標を取得しました。`);
+    renderRouteMaps();
     return true;
   }
   if(meta)meta.innerHTML=`<span>${esc(p.name)} / 固定候補・座標未確定</span><button class="coord-retry-btn" type="button">座標を再取得</button>`;
   const retry=meta?.querySelector('.coord-retry-btn');
   retry?.addEventListener('click',()=>ensureCandidateCoordinateForRow(row,{manual:true}));
   if(manual)setStatus(`${p.name} の座標を取得できませんでした。時間をおいて再試行するか、別の候補を選択してください。`,true);
+  renderRouteMaps();
   return false;
 }
 
@@ -3117,15 +3123,19 @@ function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
       syncNextPointInitialTime(row);
       row.dataset.datetimeBefore=rowDateTimeValue(row)||'';
       updateForecastHorizon();
+      renderRouteMaps();
     });
   });
   row.querySelector('.point-stay').addEventListener('change',()=>{
     syncNextPointInitialTime(row);
     updateForecastHorizon();
+    renderRouteMaps();
   });
-  row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();updateForecastHorizon();});
-  row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();});
-  row.querySelector('.down').addEventListener('click',()=>{const n=row.nextElementSibling;if(n)row.parentNode.insertBefore(n,row);renumber();});
+  row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();updateForecastHorizon();renderRouteMaps();});
+  row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();renderRouteMaps();});
+  row.querySelector('.down').addEventListener('click',()=>{const n=row.nextElementSibling;if(n)row.parentNode.insertBefore(n,row);renumber();renderRouteMaps();});
+  updateMeta(row);
+  renderRouteMaps();
 }
 function renumber(){[...$('points').children].forEach((r,i)=>r.querySelector('.point-no').textContent=String(i+1).padStart(2,'0'));}
 function rowDateTimeValue(row){
@@ -3180,13 +3190,15 @@ function selectedCandidate(id){return candidates.find(p=>String(p.id)===String(i
 function updateMeta(row){
   const p=selectedCandidate(row.querySelector('.point-select').value);
   const meta=row.querySelector('.point-meta');
-  if(!p){meta.textContent='地点を選択してください';return;}
+  if(!p){meta.textContent='地点を選択してください';renderRouteMaps();return;}
   if(hasResolvedCoord(p)){
     meta.textContent=`${p.name} / ${p.elevation||'標高自動'}m / ${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)}`;
+    renderRouteMaps();
     return;
   }
   meta.innerHTML=`<span>${esc(p.name)} / 固定候補・座標未確定</span><button class="coord-retry-btn" type="button">座標を再取得</button>`;
   meta.querySelector('.coord-retry-btn')?.addEventListener('click',()=>ensureCandidateCoordinateForRow(row,{manual:true}));
+  renderRouteMaps();
 }
 function collectPoints(){
   return [...$('points').children].map((row,i)=>{
@@ -3645,6 +3657,119 @@ function renderWeatherCharts(points){
   const ribbon=$('riskRibbon'); if(ribbon)ribbon.innerHTML=`<div class="risk-ribbon-head"><b>地点別リスク</b><small>番号はグラフのポイント番号と対応しています</small></div><div class="risk-ribbon-track">${points.map((p,i)=>`<div class="risk-stop g-${p.grade}"><span>${String(i+1).padStart(2,'0')}</span><b>${p.grade}</b><small>${esc(p.point.name)}</small><em>${esc(p.point.time||'')}</em></div>`).join('')}</div>`;
 }
 
+function routeTypeBadgeLabel(type){return TYPE_LABEL[type]||'地点';}
+function routePointDateTime(point){
+  const date=String(point?.date||'').trim();
+  const time=String(point?.time||'').trim();
+  if(date&&time)return `${date} ${time}`;
+  return date||time||'日時未設定';
+}
+function routePointBase(source){return source&&source.point?source.point:source;}
+function normalizeRouteMapPoint(source,index){
+  const point=routePointBase(source);
+  if(!point)return null;
+  const lat=Number(point.lat), lon=Number(point.lon);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+  return {...point,lat,lon,order:index+1};
+}
+function collectRouteMapPointsFromForm(){
+  const rows=[...($('points')?.children||[])];
+  return rows.map((row,index)=>{
+    const candidate=selectedCandidate(row.querySelector('.point-select')?.value);
+    if(!candidate||!hasResolvedCoord(candidate))return null;
+    return normalizeRouteMapPoint({
+      ...candidate,
+      type:row.querySelector('.point-type')?.value||candidate.type||'peak',
+      date:row.querySelector('.point-date')?.value||'',
+      time:row.querySelector('.point-time')?.value||'',
+      stay:!!row.querySelector('.point-stay')?.checked,
+      role:row.dataset.role||''
+    },index);
+  }).filter(Boolean);
+}
+function routeMapListHtml(points){
+  return points.map(point=>`<span class="route-point-pill type-${esc(point.type||'peak')}"><b>${String(point.order).padStart(2,'0')}</b><strong>${esc(point.name||'地点')}</strong><small>${esc(routeTypeBadgeLabel(point.type))} / ${esc(routePointDateTime(point))}</small></span>`).join('');
+}
+function routeMapPopupHtml(point){
+  const role=point.role?`<div>${esc(point.role)}</div>`:'';
+  const stay=point.stay?'<div>宿泊地点</div>':'';
+  return `<div class="route-popup"><strong>${String(point.order).padStart(2,'0')} / ${esc(point.name||'地点')}</strong><div>${esc(routeTypeBadgeLabel(point.type))}</div><div>${esc(routePointDateTime(point))}</div>${role}${stay}</div>`;
+}
+function routeMapIcon(point){
+  if(!window.L)return null;
+  return L.divIcon({
+    className:'route-map-marker-wrap',
+    html:`<div class="route-map-marker type-${esc(point.type||'peak')}"><span>${String(point.order).padStart(2,'0')}</span></div>`,
+    iconSize:[34,34],
+    iconAnchor:[17,17],
+    popupAnchor:[0,-18]
+  });
+}
+function ensureRouteMap(mapId){
+  if(!window.L)return null;
+  const host=$(mapId);
+  if(!host)return null;
+  let state=routeMapViews[mapId];
+  if(state)return state;
+  const map=L.map(host,{zoomControl:false,scrollWheelZoom:false,attributionControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:18,
+    attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  state={map,markers:L.layerGroup().addTo(map),lines:L.layerGroup().addTo(map)};
+  routeMapViews[mapId]=state;
+  return state;
+}
+function invalidateRouteMap(state){
+  if(!state?.map)return;
+  requestAnimationFrame(()=>{try{state.map.invalidateSize();}catch(_){}});
+}
+function renderSingleRouteMap({mapId,emptyId,listId},points){
+  const emptyEl=$(emptyId), mapEl=$(mapId), listEl=$(listId);
+  if(listEl)listEl.innerHTML=points.length?routeMapListHtml(points):'';
+  if(!mapEl)return;
+  const state=ensureRouteMap(mapId);
+  const showMap=!!state&&points.length>0;
+  mapEl.classList.toggle('hidden',!showMap);
+  if(emptyEl){
+    emptyEl.classList.toggle('hidden',showMap);
+    if(points.length&&!state)emptyEl.textContent='地図ライブラリを読み込めなかったため、地点一覧のみ表示しています。';
+  }
+  if(!state)return;
+  state.markers.clearLayers();
+  state.lines.clearLayers();
+  if(!points.length){
+    try{state.map.setView(ROUTE_MAP_DEFAULT_VIEW,5);}catch(_){ }
+    invalidateRouteMap(state);
+    return;
+  }
+  const latlngs=points.map(point=>[point.lat,point.lon]);
+  if(points.length>=2){
+    L.polyline(latlngs,{color:'#1f7fbd',weight:4,opacity:.95}).addTo(state.lines);
+  }
+  points.forEach(point=>{
+    const marker=L.marker([point.lat,point.lon],{icon:routeMapIcon(point)}).addTo(state.markers);
+    marker.bindPopup(routeMapPopupHtml(point));
+  });
+  if(points.length===1){
+    state.map.setView(latlngs[0],12);
+  }else{
+    state.map.fitBounds(L.latLngBounds(latlngs).pad(0.22));
+  }
+  invalidateRouteMap(state);
+}
+function renderRouteMaps(points=null){
+  const normalized=(Array.isArray(points)?points:collectRouteMapPointsFromForm())
+    .map((source,index)=>normalizeRouteMapPoint(source,index))
+    .filter(Boolean);
+  const configs=[
+    {mapId:'routeMapPreview',emptyId:'routeMapPreviewEmpty',listId:'routeMapPreviewList'},
+    {mapId:'routeMapResults',emptyId:'routeMapResultsEmpty',listId:'routeMapResultsList'}
+  ];
+  configs.forEach(config=>renderSingleRouteMap(config,normalized));
+}
+
 function thunderBadge(level){
   const lv=String(level||'LOW').toUpperCase();
   if(lv==='EXTREME')return `<span class="thunder-badge extreme">⚡⚡ EXTREME</span>`;
@@ -3654,7 +3779,7 @@ function thunderBadge(level){
 }
 function renderAll(points,overnight=[]){
 
-  $('results').classList.remove('hidden'); renderWeatherCharts(points); renderRouteAlerts(points); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]); const best=points.reduce((a,b)=>gradeRank(b.grade)<gradeRank(a.grade)?b:a,points[0]);
+  $('results').classList.remove('hidden'); renderWeatherCharts(points); renderRouteAlerts(points); renderRouteMaps(points.map(x=>x.point)); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]); const best=points.reduce((a,b)=>gradeRank(b.grade)<gradeRank(a.grade)?b:a,points[0]);
   $('grade').textContent=worst.grade; $('verdict').textContent=verdict(worst.grade); $('bestWindow').textContent=`${best.point.date} ${best.point.time} ${best.point.name}`; $('maxWind').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.wind))))} m/s`; $('maxRain').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.rain))))} mm/h`; $('thunderRisk').innerHTML=thunderBadge(maxThunder(points.map(x=>x.thunder))); $('confidence').textContent=overallConfidence(points.map(x=>x.confidence));
   $('forecastCards').innerHTML=points.map((r,i)=>{const hz=Object.fromEntries((r.hazards||[]).map(h=>[h.type,h]));const active=(r.hazards||[]).filter(h=>h.level!=='NONE');return `<article class="forecast-card"><div class="card-head"><div><span>${String(i+1).padStart(2,'0')} / ${TYPE_LABEL[r.point.type]}</span><h3>${esc(r.point.name)}</h3><small>${r.point.date} ${r.point.time} / ${Math.round(r.point.elevation||0)}m</small></div><b class="grade g-${r.grade}">${r.grade}</b></div>${active.length?`<div class="hazard-strip">${active.map(h=>hazardBadge(h)).join('')}</div>`:''}<div class="metrics"><span class="${hazardMetricClass(hz.temp)}">気温 <b>${num(r.temp)}℃</b>${hazardBadge(hz.temp)}</span><span class="${hazardMetricClass(hz.wind)}">風 <b>${num(r.wind)}m/s</b>${hazardBadge(hz.wind)}</span><span class="${hazardMetricClass(hz.wind)}">突風 <b>${num(r.gust)}m/s</b></span><span class="${hazardMetricClass(hz.rain)}">雨 <b>${num(r.rain)}mm/h</b>${hazardBadge(hz.rain)}</span><span class="${hazardMetricClass(hz.visibility)}">視程 <b>${Number.isFinite(r.visibility)?Math.round(r.visibility)+'m':'–'}</b>${hazardBadge(hz.visibility)}</span><span class="thunder-metric thunder-${String(r.thunder).toLowerCase()}${hazardMetricClass(hz.thunder)}">雷 <b>${thunderBadge(r.thunder)}</b>${hz.thunder?.level&&hz.thunder.level!=='NONE'?hazardBadge(hz.thunder):''}</span></div><div class="model-note">取得 ${r.providerRows.length}/${providers.length}モデル / 一致度 ${r.confidence}${r.errors.length?`<br><small>${esc(r.errors.join(' / '))}</small>`:''}</div></article>`;}).join('');
   const overnightWithArrival=overnight.map(o=>{const match=points.find(r=>r.point===o.point||(r.point.name===o.point.name&&r.point.date===o.point.date&&r.point.time===o.point.time));return {...o,arrivalTemp:match?.temp};});
