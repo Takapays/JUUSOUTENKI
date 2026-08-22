@@ -7,28 +7,35 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="トラテン">
-  <link rel="apple-touch-icon" sizes="180x180" href="traten-icon-180.png?v=1.12.41">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.12.41">
-  <link rel="manifest" href="manifest.json?v=1.12.41">
-  <title>トラテン｜トラバース天気 | V1.12.41</title>
-  <link rel="stylesheet" href="styles.css?v=1.12.41">
+  <link rel="apple-touch-icon" sizes="180x180" href="traten-icon-180.png?v=1.12.43">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.12.43">
+  <link rel="manifest" href="manifest.json?v=1.12.43">
+  <title>トラテン｜トラバース天気 | V1.12.43</title>
+  <link rel="stylesheet" href="styles.css?v=1.12.43">
 </head>
 <body>
 <header class="app-topbar">
   <div class="topbar-inner">
     <div class="brand-lockup">
-      <img src="traten-icon-192.png?v=1.12.41" alt="トラテン">
+      <img src="traten-icon-192.png?v=1.12.43" alt="トラテン">
       <div class="brand-copy">
         <strong>トラテン</strong>
         <span>トラバース天気</span>
         <small>山行ルートの地点・時刻別予報</small>
       </div>
     </div>
-    <div class="topbar-badges">
-      <span>V1.12.41</span>
-      <span>日本三百名山 300座</span>
-      <span>5系統アラート</span>
+    <div class="topbar-center">
+      <h1>その時、その場所の空を読む。</h1>
+      <div class="topbar-badges">
+        <span>V1.12.43</span>
+        <span>日本三百名山 300座</span>
+        <span>5系統アラート</span>
+      </div>
     </div>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="traten-logo.png?v=1.12.43" alt="トラテン｜トラバース天気">
+    </div>
+    <span class="mobile-topbar-version">V1.12.43</span>
   </div>
 </header>
 
@@ -59,19 +66,6 @@
         <div id="candidateState" class="state"></div>
       </div>
 
-      <div class="forecast-horizon" id="forecastHorizon">
-        <div class="forecast-horizon-head">
-          <div><strong>予報期間の目安</strong><small id="forecastHorizonCurrent">選択中：0〜4日先 / 4モデル比較 ◎</small></div>
-        </div>
-        <div class="forecast-horizon-grid">
-          <span class="horizon-chip best"><b>0〜4日先</b><small>4モデル比較 ◎</small></span>
-          <span class="horizon-chip good"><b>5〜7日先</b><small>3モデル程度 ○</small></span>
-          <span class="horizon-chip caution"><b>8〜15日先</b><small>ECMWF / GFS中心 △</small></span>
-          <span class="horizon-chip out"><b>16日以降</b><small>予報対象外</small></span>
-        </div>
-        <div class="forecast-horizon-note">※混雑時は予備モデルのみの分析となります</div>
-      </div>
-
       <div class="points-head">
         <div><h3>通過ポイント</h3><small>登山口・山頂・山小屋・下山口</small></div>
       </div>
@@ -88,15 +82,17 @@
     <section id="status" class="status hidden"></section>
 
     <section class="dashboard-welcome" aria-label="トラテンの分析内容">
-      <div class="welcome-hero">
-        <div>
-          <span class="welcome-kicker">TRAVERSE WEATHER DASHBOARD</span>
-          <h1>その時、その場所の空を読む。</h1>
-          <p>山行計画の通過地点と時刻を重ね、風・雨・雷・気温・視界をルート全体で確認します。</p>
+      <div class="forecast-horizon dashboard-horizon" id="forecastHorizon">
+        <div class="forecast-horizon-head">
+          <div><strong>予報期間の目安</strong><small id="forecastHorizonCurrent">選択中：0〜4日先 / 4モデル比較 ◎</small></div>
         </div>
-        <div class="welcome-mark" aria-hidden="true">
-          <span>⛰</span><span>→</span><span>☀</span>
+        <div class="forecast-horizon-grid">
+          <span class="horizon-chip best"><b>0〜4日先</b><small>4モデル比較 ◎</small></span>
+          <span class="horizon-chip good"><b>5〜7日先</b><small>3モデル程度 ○</small></span>
+          <span class="horizon-chip caution"><b>8〜15日先</b><small>ECMWF / GFS中心 △</small></span>
+          <span class="horizon-chip out"><b>16日以降</b><small>予報対象外</small></span>
         </div>
+        <div class="forecast-horizon-note">※混雑時は予備モデルのみの分析となります</div>
       </div>
 
       <div class="welcome-risk-grid">
@@ -166,6 +162,6 @@
   <strong>トラテン｜トラバース天気</strong><br>
   Weather via Open-Meteo。予報は登山の安全を保証しません。
 </footer>
-<script src="app.js?v=1.12.41"></script>
+<script src="app.js?v=1.12.43"></script>
 </body>
 </html>
