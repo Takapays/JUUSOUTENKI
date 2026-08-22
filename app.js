@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.54';
+const APP_VERSION = '1.12.55';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -34,7 +34,7 @@ const MOUNTAIN_PRESETS = {
   '赤岳': {latitude:35.970833, longitude:138.370000},
   '谷川岳': {latitude:36.8370, longitude:138.9300},
   '木曽駒ヶ岳': {latitude:35.7895, longitude:137.8047},
-  // V1.12.54 中央アルプス木曽駒〜空木縦走主要ピーク
+  // V1.12.55 中央アルプス木曽駒〜空木縦走主要ピーク
   '宝剣岳': {latitude:35.781389, longitude:137.809167},
   '檜尾岳': {latitude:35.751944, longitude:137.813333},
   '熊沢岳': {latitude:35.739167, longitude:137.803333},
@@ -812,7 +812,7 @@ const REGIONAL_CATALOG = {
   ]
 };
 
-// V1.12.54: 中央アルプス 木曽駒ヶ岳〜空木岳の縦走回廊。
+// V1.12.55: 中央アルプス 木曽駒ヶ岳〜空木岳の縦走回廊。
 // 国土地理院の主要山頂座標と公開情報で確認済みの山小屋座標のみを固定候補として使用。
 Object.assign(REGIONAL_CATALOG, {
   central_kisokoma_utsugi: [
@@ -1790,7 +1790,7 @@ const MOUNTAIN_REGION = {
   '爺ヶ岳':'ushirotateyama','鹿島槍ヶ岳':'ushirotateyama','五竜岳':'ushirotateyama',
   '立山':'tateyama_tsurugi','剱岳':'tateyama_tsurugi','奥大日岳':'tateyama_tsurugi',
   '薬師岳':'yakushi_kurobe','黒部五郎岳':'yakushi_kurobe',
-  // V1.12.54 中央アルプス縦走回廊
+  // V1.12.55 中央アルプス縦走回廊
   '木曽駒ヶ岳':'central_kisokoma_utsugi','宝剣岳':'central_kisokoma_utsugi','檜尾岳':'central_kisokoma_utsugi',
   '熊沢岳':'central_kisokoma_utsugi','東川岳':'central_kisokoma_utsugi','空木岳':'central_kisokoma_utsugi'
 };
@@ -1973,7 +1973,7 @@ function regionalCandidates(mountain){
     return mergeRegionalCatalogs('hakuba_asahi','ushirotateyama','harinoki_funakubo');
   }
 
-  // V1.12.54 木曽駒ヶ岳〜宝剣岳〜檜尾岳〜熊沢岳〜東川岳〜空木岳を同一回廊として提示。
+  // V1.12.55 木曽駒ヶ岳〜宝剣岳〜檜尾岳〜熊沢岳〜東川岳〜空木岳を同一回廊として提示。
   if(['木曽駒ヶ岳','宝剣岳','檜尾岳','熊沢岳','東川岳','空木岳'].includes(mountain)){
     return mergeRegionalCatalogs('central_kisokoma_utsugi');
   }
@@ -3829,11 +3829,93 @@ function thunderBadge(level){
   if(lv==='MEDIUM')return `<span class="thunder-badge medium">⚡ MEDIUM</span>`;
   return `<span class="thunder-badge low">LOW</span>`;
 }
+function weatherVisual(r){
+  const cloud=Number.isFinite(r.cloud)?r.cloud:NaN;
+  const rain=Number.isFinite(r.rain)?r.rain:NaN;
+  const thunder=String(r.thunder||'LOW').toUpperCase();
+  if(thunder==='EXTREME'||thunder==='HIGH') return {icon:'⛈️',label:'雷雨',cls:'storm'};
+  if(Number.isFinite(rain)&&rain>=3) return {icon:'🌧️',label:'雨',cls:'rain'};
+  if(Number.isFinite(rain)&&rain>=0.5) return {icon:'🌦️',label:(Number.isFinite(cloud)&&cloud>=70)?'雨時々くもり':'にわか雨',cls:'shower'};
+  if(Number.isFinite(cloud)&&cloud>=85) return {icon:'☁️',label:'くもり',cls:'cloud'};
+  if(Number.isFinite(cloud)&&cloud>=55) return {icon:'⛅',label:'晴れ時々くもり',cls:'partly'};
+  return {icon:'☀️',label:'晴れ',cls:'sun'};
+}
+function windDirectionLabel(deg){
+  if(!Number.isFinite(deg)) return '–';
+  const dirs=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+  const idx=Math.round((((deg%360)+360)%360)/22.5)%16;
+  return dirs[idx];
+}
+function windDirectionArrow(deg){
+  if(!Number.isFinite(deg)) return '•';
+  const arrows=['↑','↗','↗','↗','→','↘','↘','↘','↓','↙','↙','↙','←','↖','↖','↖'];
+  const idx=Math.round((((deg%360)+360)%360)/22.5)%16;
+  return arrows[idx];
+}
+function visibilityShort(v){
+  if(!Number.isFinite(v)) return '–';
+  if(v>=10000) return `${Math.round(v/1000)}`;
+  if(v>=1000) return `${(v/1000).toFixed(1)}`;
+  return `${Math.round(v)}`;
+}
+function pointForecastRow(r,i,total){
+  const hz=Object.fromEntries((r.hazards||[]).map(h=>[h.type,h]));
+  const wx=weatherVisual(r);
+  const typeLabel=TYPE_LABEL[r.point.type]||r.point.type||'地点';
+  const elev=Math.round(r.point.elevation||0);
+  const visUnit=Number.isFinite(r.visibility)?(r.visibility>=1000?'km':'m'):' ';
+  const isLast=i===total-1;
+  const topLine=i===0?' hidden':'';
+  const bottomLine=isLast?' hidden':'';
+  return `<article class="route-forecast-row${isLast?' is-last':''}">
+    <div class="rf-track" aria-hidden="true">
+      <span class="rf-line top${topLine}"></span>
+      <span class="rf-dot"></span>
+      <span class="rf-line bottom${bottomLine}"></span>
+    </div>
+    <div class="rf-place">
+      <b>${esc(r.point.name)}</b>
+      <small>${esc(typeLabel)} / 標高 ${elev.toLocaleString('ja-JP')}m</small>
+    </div>
+    <div class="rf-time">${esc(r.point.time||'--:--')}</div>
+    <div class="rf-weather ${wx.cls}">
+      <span class="rf-weather-icon" aria-hidden="true">${wx.icon}</span>
+      <small>${wx.label}</small>
+    </div>
+    <div class="rf-metric temp${hazardMetricClass(hz.temp)}"><strong>${num(r.temp,0)}</strong><small>℃</small></div>
+    <div class="rf-metric wind${hazardMetricClass(hz.wind)}"><strong>${num(r.wind,0)}</strong><small>m/s</small></div>
+    <div class="rf-metric rain${hazardMetricClass(hz.rain)}"><strong>${num(r.rain,1)}</strong><small>mm/h</small></div>
+    <div class="rf-direction">
+      <strong>${windDirectionArrow(r.providerRows?.[0]?.row?.windDir ?? NaN)}</strong>
+      <small>${windDirectionLabel(r.providerRows?.[0]?.row?.windDir ?? NaN)}</small>
+    </div>
+    <div class="rf-metric vis${hazardMetricClass(hz.visibility)}"><strong>${visibilityShort(r.visibility)}</strong><small>${visUnit}</small></div>
+  </article>`;
+}
+function renderPointForecastTimeline(points){
+  const el=$('forecastCards');
+  if(!el) return;
+  el.innerHTML=`<div class="route-forecast-board">
+    <div class="route-forecast-head">
+      <span class="rf-col-place">地点</span>
+      <span class="rf-col-time">時刻</span>
+      <span class="rf-col-weather">天気</span>
+      <span>気温</span>
+      <span>風</span>
+      <span>雨</span>
+      <span>風向</span>
+      <span>視界</span>
+    </div>
+    <div class="route-forecast-list">${points.map((r,i)=>pointForecastRow(r,i,points.length)).join('')}</div>
+    <div class="route-forecast-foot">※ 各地点の通過時刻に対する代表予報値です。詳細なモデル比較は「06 気象モデル詳細」を参照してください。</div>
+  </div>`;
+}
+
 function renderAll(points,overnight=[]){
 
   $('results').classList.remove('hidden'); renderWeatherCharts(points); renderRouteAlerts(points); renderRouteMaps(points.map(x=>x.point)); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]); const best=points.reduce((a,b)=>gradeRank(b.grade)<gradeRank(a.grade)?b:a,points[0]);
   $('grade').textContent=worst.grade; $('verdict').textContent=verdict(worst.grade); $('bestWindow').textContent=`${best.point.date} ${best.point.time} ${best.point.name}`; $('maxWind').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.wind))))} m/s`; $('maxRain').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.rain))))} mm/h`; $('thunderRisk').innerHTML=thunderBadge(maxThunder(points.map(x=>x.thunder))); $('confidence').textContent=overallConfidence(points.map(x=>x.confidence));
-  $('forecastCards').innerHTML=points.map((r,i)=>{const hz=Object.fromEntries((r.hazards||[]).map(h=>[h.type,h]));const active=(r.hazards||[]).filter(h=>h.level!=='NONE');return `<article class="forecast-card"><div class="card-head"><div><span>${String(i+1).padStart(2,'0')} / ${TYPE_LABEL[r.point.type]}</span><h3>${esc(r.point.name)}</h3><small>${r.point.date} ${r.point.time} / ${Math.round(r.point.elevation||0)}m</small></div><b class="grade g-${r.grade}">${r.grade}</b></div>${active.length?`<div class="hazard-strip">${active.map(h=>hazardBadge(h)).join('')}</div>`:''}<div class="metrics"><span class="${hazardMetricClass(hz.temp)}">気温 <b>${num(r.temp)}℃</b>${hazardBadge(hz.temp)}</span><span class="${hazardMetricClass(hz.wind)}">風 <b>${num(r.wind)}m/s</b>${hazardBadge(hz.wind)}</span><span class="${hazardMetricClass(hz.wind)}">突風 <b>${num(r.gust)}m/s</b></span><span class="${hazardMetricClass(hz.rain)}">雨 <b>${num(r.rain)}mm/h</b>${hazardBadge(hz.rain)}</span><span class="${hazardMetricClass(hz.visibility)}">視程 <b>${Number.isFinite(r.visibility)?Math.round(r.visibility)+'m':'–'}</b>${hazardBadge(hz.visibility)}</span><span class="thunder-metric thunder-${String(r.thunder).toLowerCase()}${hazardMetricClass(hz.thunder)}">雷 <b>${thunderBadge(r.thunder)}</b>${hz.thunder?.level&&hz.thunder.level!=='NONE'?hazardBadge(hz.thunder):''}</span></div><div class="model-note">取得 ${r.providerRows.length}/${providers.length}モデル / 一致度 ${r.confidence}${r.errors.length?`<br><small>${esc(r.errors.join(' / '))}</small>`:''}</div></article>`;}).join('');
+  renderPointForecastTimeline(points);
   const overnightWithArrival=overnight.map(o=>{const match=points.find(r=>r.point===o.point||(r.point.name===o.point.name&&r.point.date===o.point.date&&r.point.time===o.point.time));return {...o,arrivalTemp:match?.temp};});
   renderOvernights(overnightWithArrival);
   $('modelDetails').innerHTML=points.map(r=>`<article class="model-block"><h3>${esc(r.point.name)} <small>${r.point.date} ${r.point.time}</small></h3><div class="table-wrap"><table><thead><tr><th>モデル</th><th>気温</th><th>風</th><th>突風</th><th>雨</th><th>雲</th><th>大気不安定度</th><th>視程</th></tr></thead><tbody>${r.providerRows.map(x=>`<tr><td>${x.provider.name}</td><td>${num(x.row.temp)}℃</td><td>${num(x.row.wind)}m/s</td><td>${num(x.row.gust)}m/s</td><td>${num(x.row.rain)}mm</td><td>${num(x.row.cloud,0)}%</td><td>${num(x.row.cape,0)} J/kg</td><td>${Number.isFinite(x.row.visibility)?Math.round(x.row.visibility)+'m':'–'}</td></tr>`).join('')}</tbody></table></div></article>`).join('');
