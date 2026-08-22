@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.50';
+const APP_VERSION = '1.12.51';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3100,10 +3100,10 @@ function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
   pointSeq++;
   const row=document.createElement('div'); row.className='point-row'; row.dataset.id=String(pointSeq); row.dataset.role=roleLabel||'';
   row.innerHTML=`<div class="point-no"></div>
-    <label>種類<select class="point-type">${typeOptions(type)}</select></label>
-    <label class="point-name-label">地点<select class="point-select">${candidateOptions(type,selected)}</select></label>
-    <label class="datetime-label date-label"><span class="field-caption">📅 通過日</span><span class="date-control"><input class="point-date" type="date" value="${initialDateTime?.date||todayLocal()}"><button class="date-picker-btn" type="button" title="カレンダーを開く" aria-label="カレンダーを開く">📅</button></span></label>
-    <label class="datetime-label time-label"><span class="field-caption">🕒 通過時刻</span><input class="point-time" type="time" value="${initialDateTime?.time||'06:00'}"></label>
+    <label class="point-type-label"><span class="field-caption">種類</span><select class="point-type">${typeOptions(type)}</select></label>
+    <label class="point-name-label"><span class="field-caption">地点</span><select class="point-select">${candidateOptions(type,selected)}</select></label>
+    <label class="datetime-label date-label"><span class="field-caption">通過日</span><span class="date-control"><input class="point-date" type="date" value="${initialDateTime?.date||todayLocal()}"><button class="date-picker-btn" type="button" title="カレンダーを開く" aria-label="カレンダーを開く">📅</button></span></label>
+    <label class="datetime-label time-label"><span class="field-caption">通過時刻</span><input class="point-time" type="time" value="${initialDateTime?.time||'06:00'}"></label>
     <label class="stay-option ${type==='hut'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b>ここに泊まる</b></span></label>
     <button class="move up" type="button" title="上へ">↑</button><button class="move down" type="button" title="下へ">↓</button><button class="remove" type="button" title="削除">×</button>
     <div class="point-meta">地点を選択してください</div>`;
@@ -3804,7 +3804,7 @@ function renderAll(points,overnight=[]){
   $('updatedAt').textContent=new Date().toLocaleString('ja-JP');
 }
 async function proxyFetch(url){return fetch(`/api/proxy?url=${encodeURIComponent(url)}`);}
-function setStatus(t,e=false){$('status').textContent=t;$('status').classList.remove('hidden');$('status').classList.toggle('error',e);}
+function setStatus(t,e=false){const el=$('status');if(!el){console.warn('status element missing:',t);return;}el.textContent=t;el.classList.remove('hidden');el.classList.toggle('error',e);}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 function todayLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
 function logEvent(event_name,details={}){fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,app_version:APP_VERSION,event_name,...details})}).catch(()=>{});}
