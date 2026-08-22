@@ -1129,3 +1129,51 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
   .status-mobile{font-size:13px;padding:11px 12px}
   .planner-rail .stay-toggle b{font-size:12px !important}
 }
+
+
+/* V1.12.58 PC forecast fit + mobile labels/stay positioning */
+@media(min-width:901px){
+  /* PC header logo: 70% of the previous 420px target. */
+  .brand-lockup img{width:min(100%,294px) !important}
+  .topbar-inner{grid-template-columns:minmax(245px,310px) minmax(0,1fr) !important}
+
+  /* Keep every point-forecast column visible inside the result panel. */
+  .route-forecast-board{width:100%;max-width:100%;min-width:0;overflow:hidden}
+  .route-forecast-head{box-sizing:border-box;width:100%;grid-template-columns:minmax(0,2.05fr) minmax(0,.92fr) minmax(0,.95fr) repeat(3,minmax(0,.62fr)) minmax(0,.68fr) minmax(0,.62fr) !important;padding:11px 8px 10px 38px !important;font-size:11px}
+  .route-forecast-row{box-sizing:border-box;width:100%;grid-template-columns:30px minmax(0,2.05fr) minmax(0,.92fr) minmax(0,.95fr) repeat(3,minmax(0,.62fr)) minmax(0,.68fr) minmax(0,.62fr) !important;padding:0 8px !important}
+  .rf-place{padding-right:6px}
+  .rf-place b{font-size:13px}
+  .rf-place small{font-size:10px}
+  .rf-time strong{font-size:18px}
+  .rf-time small{font-size:9px}
+  .rf-weather{padding-left:2px;padding-right:2px}
+  .rf-weather-icon{font-size:23px}
+  .rf-weather small{font-size:9px}
+  .rf-metric,.rf-direction{padding-left:2px;padding-right:2px}
+  .rf-metric strong{font-size:19px}
+  .rf-direction strong{font-size:17px}
+  .rf-metric small,.rf-direction small{font-size:9px}
+}
+
+@media(max-width:900px){
+  /* Explicit mobile metric labels so values are self-explanatory. */
+  .rf-metric,.rf-direction{position:relative;padding-top:22px !important}
+  .rf-metric::before,.rf-direction::before{content:attr(data-label);position:absolute;top:5px;left:7px;font-size:10px;line-height:1;color:#71877d;font-weight:900;letter-spacing:.02em}
+
+  /* Give the stay checkbox its own narrow column; the time input cannot overlap it. */
+  .planner-rail .point-row{grid-template-columns:34px 68px minmax(0,1fr) 86px !important}
+  .planner-rail .time-label{grid-column:2 / 4 !important;width:100%;min-width:0 !important}
+  .planner-rail .time-label .point-time{box-sizing:border-box;width:100% !important;max-width:100% !important;min-width:0 !important;padding-right:10px !important}
+  .planner-rail .stay-option{grid-column:4 !important;width:86px !important;min-width:86px !important;max-width:86px !important;justify-self:end;overflow:visible}
+  .planner-rail .stay-toggle{box-sizing:border-box;width:86px !important;min-width:86px !important;max-width:86px !important;padding:0 5px !important;gap:4px !important}
+  .planner-rail .stay-toggle input{width:18px !important;height:18px !important;min-width:18px !important;flex:0 0 18px !important;margin:0}
+  .planner-rail .stay-toggle b{font-size:12px !important;line-height:1;white-space:nowrap}
+}
+@media(max-width:430px){
+  .planner-rail .point-row{grid-template-columns:32px 62px minmax(0,1fr) 78px !important}
+  .planner-rail .stay-option{width:78px !important;min-width:78px !important;max-width:78px !important}
+  .planner-rail .stay-toggle{width:78px !important;min-width:78px !important;max-width:78px !important;padding:0 4px !important;gap:3px !important}
+  .planner-rail .stay-toggle input{width:17px !important;height:17px !important;min-width:17px !important;flex-basis:17px !important}
+  .planner-rail .stay-toggle b{font-size:11px !important}
+  .rf-metric::before,.rf-direction::before{font-size:9px}
+}

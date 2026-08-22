@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.57';
+const APP_VERSION = '1.12.58';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3882,14 +3882,14 @@ function pointForecastRow(r,i,total){
       <span class="rf-weather-icon" aria-hidden="true">${wx.icon}</span>
       <small>${wx.label}</small>
     </div>
-    <div class="rf-metric temp${hazardMetricClass(hz.temp)}"><strong>${num(r.temp,0)}</strong><small>℃</small></div>
-    <div class="rf-metric wind${hazardMetricClass(hz.wind)}"><strong>${num(r.wind,0)}</strong><small>m/s</small></div>
-    <div class="rf-metric rain${hazardMetricClass(hz.rain)}"><strong>${num(r.rain,1)}</strong><small>mm/h</small></div>
-    <div class="rf-direction">
+    <div class="rf-metric temp${hazardMetricClass(hz.temp)}" data-label="気温"><strong>${num(r.temp,0)}</strong><small>℃</small></div>
+    <div class="rf-metric wind${hazardMetricClass(hz.wind)}" data-label="風"><strong>${num(r.wind,0)}</strong><small>m/s</small></div>
+    <div class="rf-metric rain${hazardMetricClass(hz.rain)}" data-label="雨"><strong>${num(r.rain,1)}</strong><small>mm/h</small></div>
+    <div class="rf-direction" data-label="風向">
       <strong>${windDirectionArrow(r.providerRows?.[0]?.row?.windDir ?? NaN)}</strong>
       <small>${windDirectionLabel(r.providerRows?.[0]?.row?.windDir ?? NaN)}</small>
     </div>
-    <div class="rf-metric vis${hazardMetricClass(hz.visibility)}"><strong>${visibilityShort(r.visibility)}</strong><small>${visUnit}</small></div>
+    <div class="rf-metric vis${hazardMetricClass(hz.visibility)}" data-label="視界"><strong>${visibilityShort(r.visibility)}</strong><small>${visUnit}</small></div>
   </article>`;
 }
 function renderPointForecastTimeline(points){
