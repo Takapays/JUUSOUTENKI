@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.55';
+const APP_VERSION = '1.12.57';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -34,7 +34,7 @@ const MOUNTAIN_PRESETS = {
   '赤岳': {latitude:35.970833, longitude:138.370000},
   '谷川岳': {latitude:36.8370, longitude:138.9300},
   '木曽駒ヶ岳': {latitude:35.7895, longitude:137.8047},
-  // V1.12.55 中央アルプス木曽駒〜空木縦走主要ピーク
+  // V1.12.56 中央アルプス木曽駒〜空木縦走主要ピーク
   '宝剣岳': {latitude:35.781389, longitude:137.809167},
   '檜尾岳': {latitude:35.751944, longitude:137.813333},
   '熊沢岳': {latitude:35.739167, longitude:137.803333},
@@ -812,7 +812,7 @@ const REGIONAL_CATALOG = {
   ]
 };
 
-// V1.12.55: 中央アルプス 木曽駒ヶ岳〜空木岳の縦走回廊。
+// V1.12.56: 中央アルプス 木曽駒ヶ岳〜空木岳の縦走回廊。
 // 国土地理院の主要山頂座標と公開情報で確認済みの山小屋座標のみを固定候補として使用。
 Object.assign(REGIONAL_CATALOG, {
   central_kisokoma_utsugi: [
@@ -1790,7 +1790,7 @@ const MOUNTAIN_REGION = {
   '爺ヶ岳':'ushirotateyama','鹿島槍ヶ岳':'ushirotateyama','五竜岳':'ushirotateyama',
   '立山':'tateyama_tsurugi','剱岳':'tateyama_tsurugi','奥大日岳':'tateyama_tsurugi',
   '薬師岳':'yakushi_kurobe','黒部五郎岳':'yakushi_kurobe',
-  // V1.12.55 中央アルプス縦走回廊
+  // V1.12.56 中央アルプス縦走回廊
   '木曽駒ヶ岳':'central_kisokoma_utsugi','宝剣岳':'central_kisokoma_utsugi','檜尾岳':'central_kisokoma_utsugi',
   '熊沢岳':'central_kisokoma_utsugi','東川岳':'central_kisokoma_utsugi','空木岳':'central_kisokoma_utsugi'
 };
@@ -1973,7 +1973,7 @@ function regionalCandidates(mountain){
     return mergeRegionalCatalogs('hakuba_asahi','ushirotateyama','harinoki_funakubo');
   }
 
-  // V1.12.55 木曽駒ヶ岳〜宝剣岳〜檜尾岳〜熊沢岳〜東川岳〜空木岳を同一回廊として提示。
+  // V1.12.56 木曽駒ヶ岳〜宝剣岳〜檜尾岳〜熊沢岳〜東川岳〜空木岳を同一回廊として提示。
   if(['木曽駒ヶ岳','宝剣岳','檜尾岳','熊沢岳','東川岳','空木岳'].includes(mountain)){
     return mergeRegionalCatalogs('central_kisokoma_utsugi');
   }
@@ -3140,7 +3140,7 @@ function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
     <label class="point-name-label"><span class="field-caption">地点</span><select class="point-select">${candidateOptions(type,selected)}</select></label>
     <label class="datetime-label date-label"><span class="field-caption">通過日</span><span class="date-control"><input class="point-date" type="date" value="${initialDateTime?.date||todayLocal()}"><button class="date-picker-btn" type="button" title="カレンダーを開く" aria-label="カレンダーを開く">📅</button></span></label>
     <label class="datetime-label time-label"><span class="field-caption">通過時刻</span><input class="point-time" type="time" value="${initialDateTime?.time||'06:00'}"></label>
-    <label class="stay-option ${type==='hut'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b>ここに泊まる</b></span></label>
+    <label class="stay-option ${type==='hut'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b><span class="stay-label-desktop">ここに泊まる</span><span class="stay-label-mobile">泊まる</span></b></span></label>
     <button class="move up" type="button" title="上へ">↑</button><button class="move down" type="button" title="下へ">↓</button><button class="remove" type="button" title="削除">×</button>
     <div class="point-meta">地点を選択してください</div>`;
   $('points').appendChild(row); renumber();
@@ -3877,7 +3877,7 @@ function pointForecastRow(r,i,total){
       <b>${esc(r.point.name)}</b>
       <small>${esc(typeLabel)} / 標高 ${elev.toLocaleString('ja-JP')}m</small>
     </div>
-    <div class="rf-time">${esc(r.point.time||'--:--')}</div>
+    <div class="rf-time"><small>${esc(r.point.date||'----/--/--')}</small><strong>${esc(r.point.time||'--:--')}</strong></div>
     <div class="rf-weather ${wx.cls}">
       <span class="rf-weather-icon" aria-hidden="true">${wx.icon}</span>
       <small>${wx.label}</small>
@@ -3898,7 +3898,7 @@ function renderPointForecastTimeline(points){
   el.innerHTML=`<div class="route-forecast-board">
     <div class="route-forecast-head">
       <span class="rf-col-place">地点</span>
-      <span class="rf-col-time">時刻</span>
+      <span class="rf-col-time">日時</span>
       <span class="rf-col-weather">天気</span>
       <span>気温</span>
       <span>風</span>
@@ -3922,7 +3922,7 @@ function renderAll(points,overnight=[]){
   $('updatedAt').textContent=new Date().toLocaleString('ja-JP');
 }
 async function proxyFetch(url){return fetch(`/api/proxy?url=${encodeURIComponent(url)}`);}
-function setStatus(t,e=false){const el=$('status');if(!el){console.warn('status element missing:',t);return;}el.textContent=t;el.classList.remove('hidden');el.classList.toggle('error',e);}
+function setStatus(t,e=false){const els=[$('statusDesktop'),$('statusMobile')].filter(Boolean);if(!els.length){console.warn('status elements missing:',t);return;}els.forEach(el=>{el.textContent=t;el.classList.remove('hidden');el.classList.toggle('error',e);});}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 function todayLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
 function logEvent(event_name,details={}){fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,app_version:APP_VERSION,event_name,...details})}).catch(()=>{});}
