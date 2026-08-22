@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.64';
+const APP_VERSION = '1.12.65';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3458,9 +3458,8 @@ function analyzeOvernightJson(point,nightNo,j){
   const score=best?milkyScore(best,moon):0;
   const dawnTarget=`${next}T05:00`;
   const dawnRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),dawnTarget)]||morningRows[0]||null;
-  const dawnVisual=dawnRow?weatherVisual({cloud:dawnRow.cloud,rain:dawnRow.rain,thunder:'LOW'}):{icon:'🌤️',label:'--',cls:'partly'};
-  const comfort=overnightComfort({minApp,maxWind,maxRain,avgCloud,fogRisk});
-  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis,fogRisk,moon,best,score,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,icon:dawnVisual.icon,label:dawnVisual.label,cls:dawnVisual.cls},comfort,milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
+  const dawnVisual=dawnRow?weatherVisual({cloud:dawnRow.cloud,rain:dawnRow.rain,thunder:'LOW'}):{icon:'',label:'--',cls:'partly'};
+  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis,fogRisk,moon,best,score,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,label:dawnVisual.label,cls:dawnVisual.cls},milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
 }
 function metNoRows(payload){
   const ts=payload?.properties?.timeseries;
@@ -3511,9 +3510,8 @@ function analyzeOvernightMetNo(point,nightNo,payload){
   const fogRisk=(maxRh>=97&&avgCloud>=85)?'高':(maxRh>=92||avgCloud>=75)?'中':'低', score=best?milkyScore(best,moon):0;
   const dawnTarget=`${next}T05:00:00+09:00`;
   const dawnRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),dawnTarget)]||morningRows[0]||null;
-  const dawnVisual=dawnRow?weatherVisual({cloud:dawnRow.cloud,rain:dawnRow.rain,thunder:'LOW'}):{icon:'🌤️',label:'--',cls:'partly'};
-  const comfort=overnightComfort({minApp,maxWind,maxRain,avgCloud,fogRisk});
-  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis:NaN,fogRisk,moon,best,score,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,icon:dawnVisual.icon,label:dawnVisual.label,cls:dawnVisual.cls},comfort,milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい',source:'MET Norway（予備）'};
+  const dawnVisual=dawnRow?weatherVisual({cloud:dawnRow.cloud,rain:dawnRow.rain,thunder:'LOW'}):{icon:'',label:'--',cls:'partly'};
+  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis:NaN,fogRisk,moon,best,score,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,label:dawnVisual.label,cls:dawnVisual.cls},milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい',source:'MET Norway（予備）'};
 }
 async function analyzeOvernightsMetNo(points){
   const out=[];
@@ -3583,125 +3581,83 @@ function milkyScore(row,moon){
   s-=moon.illum*.22;
   return Math.max(0,Math.min(100,s));
 }
-function formatDateJa(dateStr){
-  if(!dateStr)return '----/--/--';
+function overnightIcon(name){
+  const common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const paths={
+    sunset:'<circle cx="24" cy="18" r="7"/><path d="M7 32h34M12 27h24M24 4v5M8 18h5M35 18h5M12.5 8.5l3.5 3.5M32 12l3.5-3.5"/>',
+    sunrise:'<path d="M7 32h34M12 27h24"/><path d="M17 27a7 7 0 0 1 14 0"/><path d="M24 8v6M10 20h5M33 20h5M14 11l4 4M30 15l4-4"/>',
+    milky:'<path d="M10 35c8-11 15-15 28-22"/><path d="M12 29c9-8 16-11 26-15"/><path d="M11 14l1.5 3.5L16 19l-3.5 1.5L11 24l-1.5-3.5L6 19l3.5-1.5L11 14zM35 27l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5z"/>',
+    clock:'<circle cx="24" cy="24" r="17"/><path d="M24 14v11l8 5"/>',
+    thermometer:'<path d="M20 9a4 4 0 0 1 8 0v20.5a8 8 0 1 1-8 0V9z"/><path d="M24 15v19"/>',
+    wind:'<path d="M5 17h24c5 0 5-8 0-8-3 0-4 2-4 4M5 25h31c6 0 6 10 0 10-3 0-5-2-5-4M5 33h17"/>',
+    rain:'<path d="M14 28h20a8 8 0 0 0 0-16 11 11 0 0 0-21 3 7 7 0 0 0 1 13z"/><path d="M17 34l-2 5M25 34l-2 5M33 34l-2 5"/>',
+    cloud:'<path d="M10 32h27a8 8 0 0 0 0-16 11 11 0 0 0-21 3 7 7 0 0 0-6 13z"/>',
+    fog:'<path d="M9 16h27M5 24h31M10 32h27M18 40h17"/>',
+    moon:'<path d="M34 32A15 15 0 1 1 21 8a14 14 0 0 0 13 24z"/><path d="M36 9l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/>',
+    shield:'<path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11l15-6z"/><path d="M17 24l5 5 10-11"/>'
+  };
+  return `<svg ${common}>${paths[name]||paths.cloud}</svg>`;
+}
+function formatOvernightDate(dateStr){
+  if(!dateStr)return '';
   const d=new Date(`${dateStr}T00:00:00+09:00`);
-  if(Number.isNaN(d.getTime()))return dateStr;
-  const wd=['日','月','火','水','木','金','土'][d.getDay()];
-  return `${dateStr}（${wd}）`;
+  const wd=['日','月','火','水','木','金','土'];
+  return Number.isNaN(d.getTime())?dateStr:`${dateStr}（${wd[d.getDay()]}）`;
 }
-function overnightComfort(x){
+function overnightComfort(o){
   let score=5;
-  if(Number.isFinite(x.minApp)){
-    if(x.minApp<=0)score-=2;
-    else if(x.minApp<=5)score-=1;
-  }
-  if(Number.isFinite(x.maxWind)){
-    if(x.maxWind>=12)score-=2;
-    else if(x.maxWind>=8)score-=1;
-  }
-  if(Number.isFinite(x.maxRain)){
-    if(x.maxRain>=4)score-=2;
-    else if(x.maxRain>=1)score-=1;
-  }
-  if(Number.isFinite(x.avgCloud)&&x.avgCloud>=85)score-=1;
-  if(x.fogRisk==='高')score-=1;
-  else if(x.fogRisk==='中')score-=0.5;
-  score=Math.max(1,Math.min(5,Math.round(score)));
-  const label=score>=5?'かなり快適':score===4?'比較的快適':score===3?'注意':score===2?'やや厳しい':'防寒必須';
-  const note=score>=5?'快適に過ごせる見込みです。':score===4?'大きな荒れは少ない見込みです。':score===3?'防寒と天候変化に注意。':score===2?'風と冷え込みへの備えが必要です。':'防寒必須。荒天時は早めに行動判断を。';
-  return {score,label,note};
+  if(Number.isFinite(o.minApp)&&o.minApp<=0)score-=2; else if(Number.isFinite(o.minApp)&&o.minApp<=5)score-=1;
+  if(Number.isFinite(o.maxWind)&&o.maxWind>=12)score-=2; else if(Number.isFinite(o.maxWind)&&o.maxWind>=8)score-=1;
+  if(Number.isFinite(o.maxRain)&&o.maxRain>=4)score-=2; else if(Number.isFinite(o.maxRain)&&o.maxRain>=1)score-=1;
+  if(o.fogRisk==='高')score-=1;
+  score=Math.max(1,Math.min(5,score));
+  return {score,label:score>=5?'かなり快適':score>=4?'比較的快適':score>=3?'注意':score>=2?'やや厳しい':'厳しい',note:score>=4?'大きな荒れは少ない見込みです。':score>=3?'防寒と天候変化に注意。':'防寒と風雨への備えを強めてください。'};
 }
-function comfortStars(score){
-  return Array.from({length:5},(_,i)=>`<span class="${i<score?'is-on':''}">★</span>`).join('');
+function overnightStars(score){return Array.from({length:5},(_,i)=>`<span class="${i<score?'on':''}">★</span>`).join('');}
+function overnightMetric(icon,label,value,sub='',tone='blue'){
+  return `<div class="overnight-v2-metric tone-${tone}"><div class="metric-icon">${overnightIcon(icon)}</div><div><small>${esc(label)}</small><b>${value}</b>${sub?`<em>${esc(sub)}</em>`:''}</div></div>`;
 }
+
 function renderOvernights(items){
   const section=$('overnightSection');
   if(!items.length){section.classList.add('hidden');$('overnightCards').innerHTML='';return;}
   section.classList.remove('hidden');
   $('overnightCards').innerHTML=items.map(o=>{
-    const comfort=o.comfort||overnightComfort(o);
-    const dawn=o.dawn||{time:`${addDays(o.point.date,1)}T05:00`,temp:NaN,icon:'🌤️',label:'--',wind:NaN,rain:NaN,cls:'partly'};
-    const moonLabel=o.moon?.phase?`${esc(o.moon.phase)} ${Math.round(o.moon.illum)}%`:'–';
-    const milkyTone=o.score>=75?'good':o.score>=55?'fair':o.score>=35?'caution':'hard';
-    return `<article class="overnight-card overnight-card-redesign">
-      <div class="overnight-topbar">
+    const dawn=o.dawn||{};
+    const comfort=overnightComfort(o);
+    const milkyClass=o.score>=75?'good':o.score>=55?'fair':o.score>=35?'caution':'hard';
+    return `<article class="overnight-card overnight-v2">
+      <div class="overnight-v2-head">
         <span class="night-badge">${o.nightNo}泊目</span>
+        <div class="overnight-v2-place"><div class="hut-mark">⌂</div><div><h3>${esc(o.point.name)}</h3><p>${formatOvernightDate(o.point.date)} / 標高 ${Math.round(o.point.elevation||0).toLocaleString('ja-JP')}m${o.source?` ・ ${esc(o.source)}`:''}</p></div></div>
       </div>
-      <div class="overnight-place-row">
-        <div class="overnight-place-icon" aria-hidden="true">⛺</div>
-        <div class="overnight-place-copy">
-          <h3>${esc(o.point.name)}</h3>
-          <small>${formatDateJa(o.point.date)} / 標高 ${Math.round(o.point.elevation||0).toLocaleString('ja-JP')}m${o.source?` ・ ${esc(o.source)}`:''}</small>
-        </div>
+      <div class="overnight-v2-hero">
+        <div class="overnight-v2-key key-sunset"><div class="key-icon">${overnightIcon('sunset')}</div><small>日の入り</small><b>${timeOnly(o.sunset)}</b><span>${o.sunsetView.mark} ${esc(o.sunsetView.label)}</span></div>
+        <div class="overnight-v2-key key-milky ${milkyClass}"><div class="key-icon">${overnightIcon('milky')}</div><small>天の川</small><b>${esc(o.milkyLabel)}</b><span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span></div>
+        <div class="overnight-v2-key key-sunrise"><div class="key-icon">${overnightIcon('sunrise')}</div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${o.sunriseView.mark} ${esc(o.sunriseView.label)}</span></div>
+        <div class="overnight-v2-key key-dawn ${esc(dawn.cls||'partly')}"><div class="key-icon dawn-clock">${overnightIcon('clock')}</div><div class="dawn-copy"><small>朝5時の空</small><b>05:00</b><span>${esc(dawn.label||'--')}</span><em>気温 ${num(dawn.temp,1)}℃　風 ${num(dawn.wind,1)}m/s</em></div><div class="dawn-art" aria-hidden="true"><i class="sun"></i><i class="cloud c1"></i><i class="cloud c2"></i><i class="mountain m1"></i><i class="mountain m2"></i></div></div>
       </div>
-      <div class="astro-hero-grid">
-        <div class="astro-card sunset-card tone-fair">
-          <div class="astro-mark sunset" aria-hidden="true">🌇</div>
-          <small>日の入り</small>
-          <b>${timeOnly(o.sunset)}</b>
-          <span>${o.sunsetView.mark} ${o.sunsetView.label}</span>
-        </div>
-        <div class="astro-card milky-card tone-${milkyTone}">
-          <div class="astro-mark milky" aria-hidden="true">🌌</div>
-          <small>天の川</small>
-          <b>${o.milkyLabel}</b>
-          <span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span>
-        </div>
-        <div class="astro-card sunrise-card tone-good">
-          <div class="astro-mark sunrise" aria-hidden="true">🌄</div>
-          <small>日の出</small>
-          <b>${timeOnly(o.sunrise)}</b>
-          <span>${o.sunriseView.mark} ${o.sunriseView.label}</span>
-        </div>
+      <div class="overnight-v2-metrics">
+        ${overnightMetric('thermometer','到着時気温',`${num(o.arrivalTemp)}℃`,`${o.point.time||'--:--'} 到着`,'green')}
+        ${overnightMetric('thermometer','翌朝最低気温',`${num(o.morningMinTemp)}℃`,'0:00〜8:00','blue')}
+        ${overnightMetric('moon','夜間最低気温',`${num(o.minTemp)}℃`,'','purple')}
+        ${overnightMetric('thermometer','最低体感温度',`${num(o.minApp)}℃`,'','green')}
+        ${overnightMetric('wind','最大風速',`${num(o.maxWind)}m/s`,`平均 ${num(o.avgWind,1)}m/s`,'blue')}
+        ${overnightMetric('wind','最大突風',`${num(o.maxGust)}m/s`,'','blue')}
+        ${overnightMetric('rain','夜間降水量',`${num(o.maxRain)}mm/h`,'','blue')}
+        ${overnightMetric('cloud','平均雲量',`${num(o.avgCloud,0)}%`,'','blue')}
+        ${overnightMetric('fog','ガス・霧',esc(o.fogRisk),'','blue')}
+        ${overnightMetric('moon','月明かり',`${esc(o.moon.phase)} ${Math.round(o.moon.illum)}%`,'','purple')}
       </div>
-      <div class="overnight-dawn-banner ${esc(dawn.cls||'partly')}">
-        <div class="dawn-mark" aria-hidden="true">🕔</div>
-        <div class="dawn-card-copy">
-          <small>朝5時の空</small>
-          <strong>${num(dawn.temp,0)}℃</strong>
-          <span>${esc(dawn.label||'--')}</span>
-          <em>風 ${num(dawn.wind,1)}m/s ・ 雨 ${num(dawn.rain,1)}mm/h</em>
-        </div>
-        <div class="dawn-scene" aria-hidden="true">
-          <div class="dawn-sun"></div>
-          <div class="dawn-cloud one"></div>
-          <div class="dawn-cloud two"></div>
-          <div class="dawn-mountain back"></div>
-          <div class="dawn-mountain front"></div>
-          <div class="dawn-weather-icon">${esc(dawn.icon||'🌤️')}</div>
-        </div>
-      </div>
-      <div class="overnight-metrics overnight-metrics-redesign">
-        <span class="temp-focus arrival"><label>到着時気温</label><b>${num(o.arrivalTemp)}℃</b><em>${esc(o.point.time||'--:--')} 到着</em></span>
-        <span class="temp-focus morning"><label>翌朝最低</label><b>${num(o.morningMinTemp)}℃</b><em>0:00〜8:00</em></span>
-        <span><label>夜間最低</label><b>${num(o.minTemp)}℃</b></span>
-        <span><label>最低体感温度</label><b>${num(o.minApp)}℃</b></span>
-        <span><label>最大風速</label><b>${num(o.maxWind)}m/s</b><em>平均 ${num(o.avgWind,1)}m/s</em></span>
-        <span><label>最大突風</label><b>${num(o.maxGust)}m/s</b></span>
-        <span><label>夜間降水量</label><b>${num(o.maxRain)}mm/h</b></span>
-        <span><label>平均雲量</label><b>${num(o.avgCloud,0)}%</b></span>
-        <span><label>ガス・霧</label><b>${esc(o.fogRisk)}</b></span>
-        <span><label>月明かり</label><b>${moonLabel}</b></span>
-      </div>
-      <div class="overnight-foot-grid">
-        <div class="overnight-comfort-card">
-          <small>総合快適度（到着〜翌朝）</small>
-          <div class="comfort-stars">${comfortStars(comfort.score)}</div>
-          <b>${comfort.label}</b>
-          <span>${comfort.note}</span>
-        </div>
-        <div class="night-note-card">
-          <small>💡 天の川スコアについて</small>
-          <p>天の川スコアは、夜間の雲量・降水・視程・湿度と月明かりから算出した目安です。地形による空の開け方や局地的な雲は反映しません。</p>
-        </div>
+      <div class="overnight-v2-footer">
+        <div class="comfort-box"><div class="footer-icon">${overnightIcon('shield')}</div><div><small>総合快適度（到着〜翌朝）</small><div class="comfort-stars">${overnightStars(comfort.score)}</div><b>${comfort.label}</b><p>${comfort.note}</p></div></div>
+        <div class="milky-note"><div class="bulb-mark">☼</div><div><small>天の川スコアについて</small><p>夜間の雲量・降水・視程・湿度と月明かりから算出した目安です。地形による空の開け方や局地的な雲は反映しません。</p></div></div>
       </div>
     </article>`;
   }).join('');
 }
 
-function nearestTimeIndex
-(times,target){const t=new Date(target).getTime();let best=-1,d=Infinity;times.forEach((s,i)=>{const x=Math.abs(new Date(s).getTime()-t);if(x<d){d=x;best=i;}});return best;}
+function nearestTimeIndex(times,target){const t=new Date(target).getTime();let best=-1,d=Infinity;times.forEach((s,i)=>{const x=Math.abs(new Date(s).getTime()-t);if(x<d){d=x;best=i;}});return best;}
 function numberOrNaN(v){const n=Number(v);return Number.isFinite(n)?n:NaN;}
 function mean(v){const x=v.filter(Number.isFinite);return x.length?x.reduce((a,b)=>a+b,0)/x.length:NaN;} function max(v){const x=v.filter(Number.isFinite);return x.length?Math.max(...x):NaN;}
 function averageRows(rows){return {temp:mean(rows.map(x=>x.temp)),rain:mean(rows.map(x=>x.rain)),cloud:mean(rows.map(x=>x.cloud)),wind:mean(rows.map(x=>x.wind)),gust:max(rows.map(x=>x.gust)),cape:max(rows.map(x=>x.cape)),visibility:mean(rows.map(x=>x.visibility)),freezing:mean(rows.map(x=>x.freezing))};}

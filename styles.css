@@ -1199,94 +1199,40 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 #summaryResult{scroll-margin-top:14px}
 @media(min-width:901px){#summaryResult{scroll-margin-top:118px}}
 
-/* V1.12.61 overnight card redesign */
-.overnight-grid{grid-template-columns:1fr;gap:20px}
-.overnight-card-redesign{padding:22px;background:linear-gradient(180deg,#ffffff 0%,#fbfcfc 100%);border:1px solid #dce8e2;border-radius:24px;box-shadow:0 16px 36px rgba(20,48,38,.08)}
-.overnight-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.overnight-place-row{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-.overnight-place-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;background:linear-gradient(180deg,#f7fbf8,#eff6f2);border:1px solid #cfe0d8;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
-.overnight-place-copy h3{margin:0 0 6px;font-size:clamp(24px,2.4vw,34px);line-height:1.08;color:#142331}
-.overnight-place-copy small{display:block;font-size:14px;color:#4d5b68}
-.astro-hero-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px;align-items:stretch}
-.astro-card{min-height:120px;padding:16px 18px;border-radius:18px;border:1px solid #e0e6e2;background:#fff;box-shadow:0 10px 26px rgba(24,49,40,.05)}
-.astro-card small{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:#475964;letter-spacing:.01em}
-.astro-card b{font-size:25px;line-height:1.15;margin:10px 0 6px;color:#172330}
-.astro-card span{font-size:13px;font-weight:700;color:#576773;line-height:1.45}
-.astro-card.tone-fair{background:linear-gradient(180deg,#fffaf1,#fffdf8);border-color:#f1ca83}
-.astro-card.tone-fair b,.astro-card.sunset-card b{color:#a6630b}
-.astro-card.tone-good,.astro-card.sunrise-card{background:linear-gradient(180deg,#fff7f2,#fffdfb);border-color:#f0c4a8}
-.astro-card.sunrise-card b{color:#c8611a}
-.astro-card.tone-good span,.astro-card.tone-fair span{color:#5f5c56}
-.astro-card.milky-card{background:linear-gradient(180deg,#f9f6ff,#fbf9ff);border-color:#d8c4ff}
-.astro-card.milky-card b{font-size:26px;color:#5a39c4}
-.astro-card.milky-card span{color:#5f56a4}
-.astro-card.milky-card.tone-good{background:linear-gradient(180deg,#f4f2ff,#fbfaff)}
-.astro-card.milky-card.tone-fair{background:linear-gradient(180deg,#f7f4ff,#fcfbff)}
-.astro-card.milky-card.tone-caution{background:linear-gradient(180deg,#fbf7ff,#ffffff)}
-.astro-card.milky-card.tone-hard{background:linear-gradient(180deg,#f8f3ff,#fcfcff)}
-.overnight-dawn-banner{position:relative;overflow:hidden;min-height:156px;margin-bottom:16px;padding:20px 22px;border-radius:20px;border:1px solid #bfdbf4;display:flex;justify-content:space-between;align-items:stretch;background:linear-gradient(135deg,#3a8adf 0%,#6ba5ed 38%,#f4b8a4 100%);color:#fff;box-shadow:0 12px 28px rgba(46,101,173,.18)}
-.overnight-dawn-banner.cloud{background:linear-gradient(135deg,#54799d 0%,#7da1bf 44%,#c5b7b5 100%)}
-.overnight-dawn-banner.rain,.overnight-dawn-banner.shower{background:linear-gradient(135deg,#4b78a7 0%,#6f8fb1 35%,#95a6ba 100%)}
-.overnight-dawn-banner.storm{background:linear-gradient(135deg,#35495f 0%,#4c6885 40%,#7d7f95 100%)}
-.overnight-dawn-banner.sun{background:linear-gradient(135deg,#4f95ea 0%,#7bb4f3 34%,#f3b78d 100%)}
-.overnight-dawn-banner.partly{background:linear-gradient(135deg,#4d8ddb 0%,#79acee 36%,#f0bea4 100%)}
-.overnight-dawn-banner .dawn-card-copy{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-start;max-width:44%;min-width:260px}
-.overnight-dawn-banner small{font-size:14px;font-weight:800;color:#f8fbff;text-shadow:0 1px 8px rgba(14,39,71,.16)}
-.overnight-dawn-banner strong{font-size:34px;line-height:1.05;margin:10px 0 8px;color:#fff;text-shadow:0 3px 18px rgba(14,39,71,.18)}
-.overnight-dawn-banner span{font-size:15px;font-weight:800;color:#f6fbff}
-.overnight-dawn-banner em{font-style:normal;margin-top:auto;font-size:12px;color:rgba(248,252,255,.92)}
-.dawn-scene{position:relative;flex:1;min-width:240px}
-.dawn-sun{position:absolute;right:30px;bottom:34px;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,#fff6b8 0%,#ffe7a0 45%,rgba(255,229,160,.1) 72%,rgba(255,229,160,0) 73%);box-shadow:0 0 28px rgba(255,244,186,.35)}
-.dawn-cloud{position:absolute;background:rgba(255,255,255,.52);border-radius:999px;filter:blur(.1px)}
-.dawn-cloud::before,.dawn-cloud::after{content:"";position:absolute;background:inherit;border-radius:inherit}
-.dawn-cloud.one{top:18px;right:18px;width:68px;height:18px}.dawn-cloud.one::before{width:24px;height:24px;left:8px;top:-8px}.dawn-cloud.one::after{width:22px;height:22px;right:10px;top:-6px}
-.dawn-cloud.two{top:42px;right:78px;width:54px;height:14px;opacity:.72}.dawn-cloud.two::before{width:18px;height:18px;left:6px;top:-6px}.dawn-cloud.two::after{width:16px;height:16px;right:8px;top:-5px}
-.dawn-mountain{position:absolute;left:auto;right:0;bottom:0;border-radius:30% 0 0 0}
-.dawn-mountain.back{right:-14px;width:210px;height:78px;background:linear-gradient(180deg,#5f95d9 0%,#4f76bb 100%);clip-path:polygon(0% 100%,20% 62%,34% 74%,49% 41%,64% 68%,82% 44%,100% 100%)}
-.dawn-mountain.front{right:-8px;width:230px;height:56px;background:linear-gradient(180deg,#4f80c6 0%,#395f96 100%);clip-path:polygon(0% 100%,18% 72%,36% 84%,51% 58%,63% 70%,79% 48%,100% 100%)}
-.dawn-weather-icon{position:absolute;right:76px;bottom:10px;font-size:34px;filter:drop-shadow(0 4px 12px rgba(24,49,40,.18))}
-.overnight-metrics-redesign{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:14px}
-.overnight-metrics-redesign span{display:flex;flex-direction:column;gap:4px;min-height:96px;padding:14px 16px;border-radius:17px;background:linear-gradient(180deg,#ffffff 0%,#fbfcfc 100%);border:1px solid #dce6e1;color:#5d6d77;box-shadow:0 6px 18px rgba(24,49,40,.04)}
-.overnight-metrics-redesign span label{font-size:12px;font-weight:800;color:#5b6d79}
-.overnight-metrics-redesign span b{display:block;margin-top:2px;font-size:20px;line-height:1.15;color:#172330}
-.overnight-metrics-redesign span em{font-style:normal;font-size:12px;color:#798995;margin-top:auto}
-.overnight-metrics-redesign .temp-focus{background:linear-gradient(180deg,#f7fbff 0%,#ffffff 100%);border-color:#cfe0ea}
-.overnight-metrics-redesign .temp-focus.arrival b{color:#1a7d57}
-.overnight-metrics-redesign .temp-focus.morning b{color:#2a67b0}
-.overnight-foot-grid{display:grid;grid-template-columns:minmax(260px,.9fr) 1.4fr;gap:12px;align-items:stretch}
-.overnight-comfort-card,.night-note-card{border-radius:18px;border:1px solid #dce6e1;background:linear-gradient(180deg,#fbfcfc 0%,#ffffff 100%);padding:16px 18px;box-shadow:0 6px 18px rgba(24,49,40,.04)}
-.overnight-comfort-card small,.night-note-card small{display:block;font-size:13px;font-weight:800;color:#4f7b62;margin-bottom:10px}
-.overnight-comfort-card .comfort-stars{display:flex;gap:6px;font-size:28px;line-height:1;margin-bottom:8px}
-.overnight-comfort-card .comfort-stars span{color:#d3ddd7}.overnight-comfort-card .comfort-stars span.is-on{color:#2c9966}
-.overnight-comfort-card b{display:block;font-size:22px;color:#173126;margin-bottom:6px}
-.overnight-comfort-card span{display:block;font-size:13px;color:#597064;line-height:1.6}
-.night-note-card p{margin:0;font-size:13px;color:#5f6f78;line-height:1.75}
-@media(max-width:1100px){.astro-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overnight-metrics-redesign{grid-template-columns:repeat(3,minmax(0,1fr))}.overnight-foot-grid{grid-template-columns:1fr}}
-@media(max-width:760px){.overnight-card-redesign{padding:18px}.overnight-place-row{align-items:flex-start}.overnight-place-icon{width:58px;height:58px;font-size:28px}.overnight-place-copy h3{font-size:29px}.overnight-dawn-card .dawn-card-copy{max-width:56%;min-width:0}.overnight-metrics-redesign{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.astro-hero-grid{grid-template-columns:1fr}.overnight-place-row{gap:12px}.overnight-place-copy h3{font-size:25px}.overnight-place-copy small{font-size:13px}.overnight-dawn-card{min-height:170px}.overnight-dawn-card .dawn-card-copy{max-width:100%}.dawn-scene{position:absolute;inset:0;opacity:.92}.dawn-card-copy{position:relative}.overnight-metrics-redesign{grid-template-columns:1fr 1fr}.overnight-metrics-redesign span{min-height:86px;padding:12px 13px}.overnight-comfort-card .comfort-stars{font-size:24px}}
-
-/* V1.12.64 restore icon marks and stabilize dawn banner */
-.astro-card,.overnight-dawn-banner{position:relative}
-.astro-mark,.dawn-mark{
-  position:absolute;
-  top:12px;
-  right:12px;
-  width:44px;
-  height:44px;
-  border-radius:14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:22px;
-  line-height:1;
-  box-shadow:0 10px 24px rgba(24,49,40,.10);
-  z-index:3;
-}
-.astro-mark.sunset{background:linear-gradient(180deg,#ffe7ae,#ffd886)}
-.astro-mark.milky{background:linear-gradient(180deg,#e8ddff,#d9c9ff)}
-.astro-mark.sunrise{background:linear-gradient(180deg,#ffe2cf,#ffd1ba)}
-.dawn-mark{background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.14));border:1px solid rgba(255,255,255,.34);color:#fff;backdrop-filter:blur(6px)}
-.astro-card small,.overnight-dawn-banner small{padding-right:54px}
-@media(max-width:1100px){.astro-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overnight-metrics-redesign{grid-template-columns:repeat(3,minmax(0,1fr))}.overnight-foot-grid{grid-template-columns:1fr}}
-@media(max-width:760px){.overnight-card-redesign{padding:18px}.overnight-place-row{align-items:flex-start}.overnight-place-icon{width:58px;height:58px;font-size:28px}.overnight-place-copy h3{font-size:29px}.overnight-dawn-banner .dawn-card-copy{max-width:56%;min-width:0}.overnight-metrics-redesign{grid-template-columns:repeat(2,minmax(0,1fr))}.astro-mark,.dawn-mark{width:40px;height:40px;font-size:20px}.astro-card small,.overnight-dawn-banner small{padding-right:48px}}
-@media(max-width:560px){.astro-hero-grid{grid-template-columns:1fr}.overnight-place-row{gap:12px}.overnight-place-copy h3{font-size:25px}.overnight-place-copy small{font-size:13px}.overnight-dawn-banner{min-height:170px;padding:18px}.overnight-dawn-banner .dawn-card-copy{max-width:100%}.dawn-scene{position:absolute;inset:0;opacity:.92;min-width:0}.dawn-card-copy{position:relative}.overnight-metrics-redesign{grid-template-columns:1fr 1fr}.overnight-metrics-redesign span{min-height:86px;padding:12px 13px}.overnight-comfort-card .comfort-stars{font-size:24px}}
+/* V1.12.65 overnight dashboard redesign */
+.overnight-grid{grid-template-columns:1fr!important;gap:20px}
+.overnight-card.overnight-v2{padding:24px!important;border:1px solid #dce8e2!important;border-radius:26px!important;background:linear-gradient(180deg,#fff 0%,#fbfcfc 100%)!important;box-shadow:0 16px 38px rgba(20,48,38,.08)!important;overflow:hidden}
+.overnight-v2-head{display:grid;gap:12px;margin-bottom:18px}
+.overnight-v2-head .night-badge{width:max-content;background:#e7f6ee;color:#13754f;font-size:12px;padding:6px 10px;border-radius:999px}
+.overnight-v2-place{display:flex;align-items:center;gap:16px}
+.overnight-v2-place .hut-mark{width:68px;height:68px;border:1px solid #cfe0d8;border-radius:50%;display:grid;place-items:center;background:#f6fbf8;color:#2f8e69;font-size:38px;font-weight:900;line-height:1}
+.overnight-v2-place h3{margin:0 0 6px;font-size:32px;line-height:1.08;color:#172330;letter-spacing:-.03em}
+.overnight-v2-place p{margin:0;color:#5f6e79;font-size:14px}
+.overnight-v2-hero{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.overnight-v2-key{position:relative;min-height:158px;padding:18px 18px 16px;border-radius:20px;border:1px solid #dce5e1;background:#fff;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;box-shadow:0 9px 24px rgba(20,48,38,.05)}
+.overnight-v2-key .key-icon{position:absolute;right:15px;top:14px;width:42px;height:42px}
+.overnight-v2-key .key-icon svg{width:100%;height:100%;display:block}
+.overnight-v2-key small{font-size:14px;font-weight:850;color:#364956;padding-right:50px}
+.overnight-v2-key>b{display:block;margin:17px 0 9px;font-size:29px;line-height:1.08;color:#172330}
+.overnight-v2-key>span{font-size:13px;font-weight:750;color:#5c6b76;line-height:1.45}
+.overnight-v2-key.key-sunset{background:linear-gradient(180deg,#fffaf1,#fffdf9);border-color:#f1c66b;color:#e59600}.overnight-v2-key.key-sunset>b{color:#a96809}
+.overnight-v2-key.key-milky{background:linear-gradient(180deg,#f8f5ff,#fcfbff);border-color:#d6c2ff;color:#6d4eea}.overnight-v2-key.key-milky>b{color:#5a39c4;font-size:27px}.overnight-v2-key.key-milky>span{color:#6354ad}
+.overnight-v2-key.key-sunrise{background:linear-gradient(180deg,#fff7f2,#fffdfb);border-color:#efbea3;color:#ed7527}.overnight-v2-key.key-sunrise>b{color:#bf5c1f}
+.overnight-v2-key.key-dawn{color:#1f5eb4;border-color:#3579d4;background:linear-gradient(135deg,#eef7ff 0%,#dcecff 48%,#f9d7b5 100%)}
+.overnight-v2-key.key-dawn .dawn-clock{z-index:4;color:#1c62bf;background:rgba(255,255,255,.78);border-radius:50%;padding:8px;box-shadow:0 6px 18px rgba(24,73,141,.12)}
+.overnight-v2-key.key-dawn .dawn-copy{position:relative;z-index:3;display:flex;flex-direction:column;height:100%;max-width:62%}
+.overnight-v2-key.key-dawn .dawn-copy small{color:#28588d}.overnight-v2-key.key-dawn .dawn-copy b{font-size:26px;color:#235ea8;margin:15px 0 8px}.overnight-v2-key.key-dawn .dawn-copy span{font-size:14px;font-weight:850;color:#28588d}.overnight-v2-key.key-dawn .dawn-copy em{font-style:normal;font-size:12px;font-weight:700;color:#466a91;margin-top:auto}
+.dawn-art{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.dawn-art .sun{position:absolute;right:30px;bottom:35px;width:55px;height:55px;border-radius:50%;background:radial-gradient(circle,#fff8c4 0%,#ffe6a0 50%,rgba(255,226,150,.1) 72%,transparent 73%);box-shadow:0 0 24px rgba(255,235,168,.35)}
+.dawn-art .cloud{position:absolute;background:rgba(255,255,255,.74);height:12px;border-radius:999px}.dawn-art .cloud:before,.dawn-art .cloud:after{content:"";position:absolute;background:inherit;border-radius:50%}.dawn-art .c1{width:48px;right:14px;top:32px}.dawn-art .c1:before{width:18px;height:18px;left:7px;top:-7px}.dawn-art .c1:after{width:16px;height:16px;right:7px;top:-5px}.dawn-art .c2{width:38px;right:72px;top:52px;opacity:.75}.dawn-art .c2:before{width:14px;height:14px;left:6px;top:-5px}.dawn-art .c2:after{width:12px;height:12px;right:6px;top:-4px}
+.dawn-art .mountain{position:absolute;right:-4px;bottom:-1px;display:block;clip-path:polygon(0 100%,20% 62%,35% 76%,49% 42%,65% 68%,82% 45%,100% 100%)}.dawn-art .m1{width:180px;height:73px;background:#6d9dde}.dawn-art .m2{width:210px;height:54px;background:#3f6eaf;opacity:.95}
+.overnight-v2-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.overnight-v2-metric{min-height:104px;padding:14px 15px;border:1px solid #dce6e1;border-radius:18px;background:#fff;display:flex;align-items:flex-start;gap:10px;box-shadow:0 6px 18px rgba(20,48,38,.035)}
+.overnight-v2-metric .metric-icon{width:34px;height:34px;flex:0 0 34px;color:#2d6ccc;margin-top:1px}.overnight-v2-metric .metric-icon svg{width:100%;height:100%}
+.overnight-v2-metric.tone-green .metric-icon{color:#248a5e}.overnight-v2-metric.tone-purple .metric-icon{color:#6745c2}
+.overnight-v2-metric small{display:block;font-size:12px;font-weight:850;color:#52636f;margin-bottom:8px}.overnight-v2-metric b{display:block;color:#172330;font-size:21px;line-height:1.08}.overnight-v2-metric em{display:block;font-style:normal;color:#71818c;font-size:11px;margin-top:7px}
+.overnight-v2-footer{display:grid;grid-template-columns:.9fr 1.25fr;gap:12px}
+.comfort-box,.milky-note{border:1px solid #dce6e1;border-radius:19px;background:linear-gradient(180deg,#fbfdfc,#fff);padding:17px 18px;display:flex;gap:14px;align-items:flex-start}.comfort-box .footer-icon{width:42px;height:42px;color:#248a5e;flex:0 0 42px}.comfort-box .footer-icon svg{width:100%;height:100%}.comfort-box small,.milky-note small{font-size:13px;font-weight:900;color:#2d7654}.comfort-stars{display:flex;gap:4px;margin:8px 0 5px;font-size:22px;line-height:1}.comfort-stars span{color:#d5dfda}.comfort-stars span.on{color:#2e9868}.comfort-box b{display:block;font-size:22px;color:#183128;margin-bottom:5px}.comfort-box p,.milky-note p{margin:0;color:#5f6f79;font-size:13px;line-height:1.7}.milky-note .bulb-mark{width:42px;height:42px;flex:0 0 42px;border:2px solid #e7a700;color:#e7a700;border-radius:50%;display:grid;place-items:center;font-size:22px}
+@media(max-width:1150px){.overnight-v2-hero{grid-template-columns:repeat(2,minmax(0,1fr))}.overnight-v2-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.overnight-v2-footer{grid-template-columns:1fr}}
+@media(max-width:700px){.overnight-card.overnight-v2{padding:18px!important;border-radius:22px!important}.overnight-v2-place .hut-mark{width:56px;height:56px;font-size:30px}.overnight-v2-place h3{font-size:28px}.overnight-v2-place p{font-size:13px}.overnight-v2-hero{grid-template-columns:1fr 1fr;gap:10px}.overnight-v2-key{min-height:150px;padding:15px}.overnight-v2-key small{font-size:13px}.overnight-v2-key>b{font-size:25px}.overnight-v2-key.key-milky>b{font-size:23px}.overnight-v2-key.key-dawn .dawn-copy{max-width:70%}.overnight-v2-key.key-dawn .dawn-copy b{font-size:24px}.overnight-v2-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.overnight-v2-metric{min-height:94px;padding:12px}.overnight-v2-metric .metric-icon{width:30px;height:30px;flex-basis:30px}.overnight-v2-metric b{font-size:19px}.comfort-box,.milky-note{padding:14px}}
+@media(max-width:430px){.overnight-v2-hero{grid-template-columns:1fr}.overnight-v2-key{min-height:132px}.overnight-v2-key.key-dawn{min-height:150px}.overnight-v2-metrics{grid-template-columns:1fr 1fr}.overnight-v2-metric{display:grid;grid-template-columns:30px 1fr;gap:8px}.overnight-v2-metric small{font-size:11px}.overnight-v2-metric b{font-size:18px}}
