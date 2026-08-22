@@ -1275,3 +1275,76 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 .decision-commentary.warning{border-color:#efc093;background:linear-gradient(180deg,#fff9f3,#fff2e8)}
 .decision-commentary.danger{border-color:#e7aaa6;background:linear-gradient(180deg,#fff5f4,#ffedeb)}
 @media(max-width:680px){.decision-commentary{gap:10px;padding:15px;border-radius:17px}.decision-commentary-icon{flex-basis:36px;width:36px;height:36px;border-radius:12px;font-size:18px}.decision-commentary b{font-size:17px}.decision-commentary p{font-size:14px;line-height:1.75}.decision-commentary em{font-size:11px}}
+
+/* V1.12.69 isolated dawn strip - deliberately independent from all older dawn CSS */
+.overnight-card.overnight-v2 .overnight-dawn-strip-v69{
+  position:static !important;
+  inset:auto !important;
+  float:none !important;
+  clear:both;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 0 16px !important;
+  padding:12px 14px !important;
+  display:flex !important;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:0;
+  overflow:hidden !important;
+  border:1px solid #bfd5ea;
+  border-radius:17px;
+  background:#f5f9fd;
+  box-shadow:0 5px 16px rgba(28,76,126,.04);
+}
+.overnight-card.overnight-v2 .ods69-icon{
+  position:static !important;
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  padding:8px;
+  box-sizing:border-box;
+  color:#2e6fd1;
+  background:#fff;
+  border:1px solid #cfdef0;
+  border-radius:13px;
+  margin-right:10px;
+}
+.overnight-card.overnight-v2 .ods69-icon svg{display:block;width:100%;height:100%}
+.overnight-card.overnight-v2 .ods69-item{
+  position:static !important;
+  flex:1 1 0;
+  min-width:0;
+  padding:2px 12px;
+  border-left:1px solid #dce7f1;
+  overflow:hidden;
+}
+.overnight-card.overnight-v2 .ods69-main{flex:0 0 118px;border-left:0;padding-left:4px}
+.overnight-card.overnight-v2 .ods69-item small{
+  display:block;
+  margin:0 0 3px;
+  padding:0 !important;
+  font-size:11px;
+  font-weight:850;
+  color:#61758a;
+  white-space:nowrap;
+}
+.overnight-card.overnight-v2 .ods69-item b{
+  display:block;
+  margin:0;
+  font-size:16px;
+  line-height:1.2;
+  color:#172330;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.overnight-card.overnight-v2 .ods69-main b{font-size:21px;color:#235ea8}
+@media(max-width:700px){
+  .overnight-card.overnight-v2 .overnight-dawn-strip-v69{flex-wrap:wrap;padding:11px 12px !important;gap:8px 0}
+  .overnight-card.overnight-v2 .ods69-icon{flex-basis:40px;width:40px;height:40px}
+  .overnight-card.overnight-v2 .ods69-main{flex:1 1 calc(100% - 52px);border-left:0}
+  .overnight-card.overnight-v2 .ods69-item:not(.ods69-main){flex:1 1 25%;padding:7px 8px;border-left:0;border-top:1px solid #e1eaf2}
+  .overnight-card.overnight-v2 .ods69-item b{font-size:15px;white-space:normal}
+}

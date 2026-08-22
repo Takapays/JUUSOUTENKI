@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.68';
+const APP_VERSION = '1.12.69';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3648,13 +3648,13 @@ function renderOvernights(items){
         <div class="overnight-v2-key key-milky ${milkyClass}"><div class="key-icon">${overnightIcon('milky')}</div><small>天の川</small><b>${esc(o.milkyLabel)}</b><span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span></div>
         <div class="overnight-v2-key key-sunrise"><div class="key-icon">${overnightIcon('sunrise')}</div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${o.sunriseView.mark} ${esc(o.sunriseView.label)}</span></div>
       </div>
-      <div class="overnight-v2-dawn-row ${esc(dawn.cls||'partly')}">
-        <div class="dawn-row-icon">${overnightIcon(dawnIcon)}</div>
-        <div class="dawn-row-title"><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b></div>
-        <div class="dawn-row-weather"><small>天気</small><b>${esc(dawn.label||'--')}</b></div>
-        <div class="dawn-row-metric"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
-        <div class="dawn-row-metric"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
-        <div class="dawn-row-metric"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
+      <div class="overnight-dawn-strip-v69 ${esc(dawn.cls||'partly')}">
+        <div class="ods69-icon">${overnightIcon(dawnIcon)}</div>
+        <div class="ods69-item ods69-main"><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b></div>
+        <div class="ods69-item"><small>天気</small><b>${esc(dawn.label||'--')}</b></div>
+        <div class="ods69-item"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
+        <div class="ods69-item"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
+        <div class="ods69-item"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
       </div>
       <div class="overnight-v2-metrics">
         ${overnightMetric('thermometer','到着時気温',`${num(o.arrivalTemp)}℃`,`${o.point.time||'--:--'} 到着`,'green')}
