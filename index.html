@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0b1714">
-  <title>縦走山行判断ツール | V1.6.5</title>
-  <link rel="stylesheet" href="styles.css?v=1.6.5">
+  <meta name="theme-color" content="#0b4f86">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="トラテン">
+  <link rel="apple-touch-icon" sizes="180x180" href="traten-icon-180.png?v=1.12.37">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1.12.37">
+  <link rel="manifest" href="manifest.json?v=1.12.37">
+  <title>トラテン｜トラバース天気 | V1.12.37</title>
+  <link rel="stylesheet" href="styles.css?v=1.12.37">
 </head>
 <body>
 <header class="hero">
-  <div class="hero-inner">
+  <div class="hero-inner hero-brand">
     <div class="hero-copy">
-      <div class="eyebrow">TRAVERSE WEATHER DECISION</div>
-      <h1>縦走山行判断ツール</h1>
-      <p>山に行くか？やめるか？</p>
-      <span class="version">V1.6.5</span>
-    </div>
-    <div class="hero-mark" aria-hidden="true">
-      <span class="ridge ridge-back"></span>
-      <span class="ridge ridge-front"></span>
-      <span class="sun"></span>
+      <h1 class="sr-only">トラテン｜トラバース天気</h1>
+      <img class="traten-logo" src="traten-logo.png?v=1.12.37" alt="トラテン｜トラバース天気　山行ルートの地点・時刻別予報">
+      <div class="version-row"><span class="version">V1.12.37</span><span class="edition-badge">三百名山網羅版！</span></div>
     </div>
   </div>
 </header>
@@ -32,7 +32,19 @@
     </div>
 
     <div class="mountain-row">
-      <label>山<select id="mountainPreset"></select></label>
+      <div class="mountain-picker-dual">
+        <label class="mountain-area-label">山域を選択
+          <select id="mountainArea"><option value="">山域を選択してください</option></select>
+        </label>
+        <label class="mountain-select-label">山を選択
+          <select id="mountainPreset" disabled><option value="">先に山域を選択してください</option></select>
+        </label>
+        <label class="mountain-search-label">山名検索
+          <input id="mountainSearch" type="search" list="mountainPresetList" autocomplete="off" placeholder="山名を入力して検索">
+          <datalist id="mountainPresetList"></datalist>
+        </label>
+      </div>
+      <small id="mountainCount" class="mountain-count"></small>
       <button id="loadPoiBtn" class="secondary" type="button">この山のルート候補を読み込む</button>
       <div id="candidateState" class="state"></div>
     </div>
@@ -47,6 +59,7 @@
         <span class="horizon-chip caution"><b>8〜15日先</b><small>ECMWF / GFS中心 △</small></span>
         <span class="horizon-chip out"><b>16日以降</b><small>予報対象外</small></span>
       </div>
+      <div class="forecast-horizon-note">※混雑時は予備モデルのみの分析となります</div>
     </div>
 
     <div class="points-head">
@@ -73,10 +86,11 @@
         <article><small>雷リスク</small><b id="thunderRisk">–</b></article>
         <article><small>モデル一致度</small><b id="confidence">–</b></article>
       </div>
+      <div id="routeAlerts"></div>
     </section>
 
     <section class="panel">
-      <div class="section-title"><span>03</span><div><h2>縦走気象グラフ</h2><p>地点ごとの変化と危険箇所をひと目で確認</p></div></div>
+      <div class="section-title"><span>03</span><div><h2>縦走気象グラフ</h2></div></div>
       <div id="weatherCharts" class="weather-charts"></div>
       <div id="riskRibbon" class="risk-ribbon"></div>
     </section>
@@ -99,9 +113,9 @@
 </main>
 
 <footer>
-  <strong>縦走山行判断ツール</strong><br>
+  <strong>トラテン｜トラバース天気</strong><br>
   Weather via Open-Meteo。予報は登山の安全を保証しません。
 </footer>
-<script src="app.js?v=1.6.5"></script>
+<script src="app.js?v=1.12.37"></script>
 </body>
 </html>
