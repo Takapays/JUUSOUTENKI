@@ -972,3 +972,22 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 @media(max-width:900px){.app-topbar{position:relative}.topbar-inner{display:flex !important;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:12px 14px !important}.brand-lockup img{width:220px;max-width:62vw}.topbar-center{display:none !important}.mobile-topbar-copy{display:block;order:3;flex:0 0 100%;font-size:14px;font-weight:900;letter-spacing:.03em;line-height:1.5;text-align:center;margin-top:4px}.mobile-topbar-version{order:2}}
 @media(max-width:680px){.brand-lockup img{width:200px;max-width:60vw}.mobile-topbar-copy{font-size:15px}}
 @media(max-width:430px){.topbar-inner{padding:10px 12px !important}.brand-lockup img{width:182px;max-width:58vw}.mobile-topbar-copy{font-size:14px;line-height:1.45}}
+
+
+/* V1.12.50 topbar status + square route map */
+.status-topbar{grid-column:1/-1;margin:2px 0 0 !important;max-width:none !important;width:100%;box-shadow:none !important;border-radius:22px;padding:15px 18px;background:#eef8f3;border:1px solid #cbe7d7;color:#275a45}
+.status-topbar.error{background:#fff2f1;border-color:#efc1bd;color:#a63f39}
+.topbar-inner > .status-topbar.hidden{display:none !important}
+.dashboard-stage>.status{display:none !important}
+.route-map-canvas{width:min(100%,560px);aspect-ratio:1 / 1;height:auto !important;min-height:0 !important;max-width:100%;margin:0 auto;border-radius:18px}
+.route-map-point-list{margin-top:14px}
+@media(max-width:900px){
+  .status-topbar{order:4;flex:0 0 100%;margin-top:6px !important;padding:14px 15px;border-radius:18px;font-size:14px;line-height:1.6}
+}
+@media(max-width:680px){
+  .route-map-canvas{width:100%}
+  .status-topbar{font-size:14px}
+}
+@media(max-width:430px){
+  .status-topbar{padding:13px 14px;border-radius:16px;font-size:13px;line-height:1.55}
+}
