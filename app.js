@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.65';
+const APP_VERSION = '1.12.66';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3598,6 +3598,17 @@ function overnightIcon(name){
   };
   return `<svg ${common}>${paths[name]||paths.cloud}</svg>`;
 }
+function overnightDawnIcon(dawn){
+  const cls=(dawn&&dawn.cls)||'';
+  const rain=Number(dawn&&dawn.rain);
+  const cloud=Number(dawn&&dawn.cloud);
+  if(Number.isFinite(rain)&&rain>=0.5)return 'rain';
+  if(cls==='rainy')return 'rain';
+  if(cls==='cloudy')return 'cloud';
+  if(Number.isFinite(cloud)&&cloud>=75)return 'cloud';
+  return 'sunrise';
+}
+
 function formatOvernightDate(dateStr){
   if(!dateStr)return '';
   const d=new Date(`${dateStr}T00:00:00+09:00`);
@@ -3626,6 +3637,7 @@ function renderOvernights(items){
     const dawn=o.dawn||{};
     const comfort=overnightComfort(o);
     const milkyClass=o.score>=75?'good':o.score>=55?'fair':o.score>=35?'caution':'hard';
+    const dawnIcon=overnightDawnIcon(dawn);
     return `<article class="overnight-card overnight-v2">
       <div class="overnight-v2-head">
         <span class="night-badge">${o.nightNo}泊目</span>
@@ -3635,7 +3647,7 @@ function renderOvernights(items){
         <div class="overnight-v2-key key-sunset"><div class="key-icon">${overnightIcon('sunset')}</div><small>日の入り</small><b>${timeOnly(o.sunset)}</b><span>${o.sunsetView.mark} ${esc(o.sunsetView.label)}</span></div>
         <div class="overnight-v2-key key-milky ${milkyClass}"><div class="key-icon">${overnightIcon('milky')}</div><small>天の川</small><b>${esc(o.milkyLabel)}</b><span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span></div>
         <div class="overnight-v2-key key-sunrise"><div class="key-icon">${overnightIcon('sunrise')}</div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${o.sunriseView.mark} ${esc(o.sunriseView.label)}</span></div>
-        <div class="overnight-v2-key key-dawn ${esc(dawn.cls||'partly')}"><div class="key-icon dawn-clock">${overnightIcon('clock')}</div><div class="dawn-copy"><small>朝5時の空</small><b>05:00</b><span>${esc(dawn.label||'--')}</span><em>気温 ${num(dawn.temp,1)}℃　風 ${num(dawn.wind,1)}m/s</em></div><div class="dawn-art" aria-hidden="true"><i class="sun"></i><i class="cloud c1"></i><i class="cloud c2"></i><i class="mountain m1"></i><i class="mountain m2"></i></div></div>
+        <div class="overnight-v2-key key-dawn ${esc(dawn.cls||'partly')}"><div class="key-icon dawn-weather">${overnightIcon(dawnIcon)}</div><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b><span>${esc(dawn.label||'--')}</span><div class="dawn-meta"><i>気温 ${num(dawn.temp,1)}℃</i><i>風 ${num(dawn.wind,1)}m/s</i></div></div>
       </div>
       <div class="overnight-v2-metrics">
         ${overnightMetric('thermometer','到着時気温',`${num(o.arrivalTemp)}℃`,`${o.point.time||'--:--'} 到着`,'green')}
