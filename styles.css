@@ -1032,3 +1032,53 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
   .planner-rail .point-row select,
   .planner-rail .point-row input{font-size:15px}
 }
+
+
+/* V1.12.53 desktop status position refine */
+.topbar-inner{grid-template-areas:
+  "brand center"
+  "brand status" !important;
+  grid-template-columns:minmax(320px,440px) minmax(0,1fr) !important;
+  align-items:center}
+.brand-lockup{grid-area:brand}
+.topbar-center{grid-area:center;align-self:end}
+.status-topbar{grid-area:status;grid-column:auto !important;align-self:start;justify-self:stretch;display:block;box-sizing:border-box;position:relative;z-index:1;margin:8px 0 0 !important;max-width:100% !important;width:100%;padding:10px 14px !important;border-radius:18px;font-size:14px;line-height:1.35;box-shadow:none !important}
+.status-topbar.hidden{display:none !important}
+.status-topbar:empty{display:none !important}
+@media(max-width:1120px){.topbar-inner{grid-template-columns:minmax(280px,360px) minmax(0,1fr) !important}}
+@media(max-width:900px){.topbar-inner{display:flex !important;grid-template-areas:none !important;grid-template-columns:none !important}.status-topbar{order:4;flex:0 0 100%;margin-top:6px !important;padding:12px 14px !important;border-radius:16px;font-size:13px;line-height:1.5}}
+
+
+/* V1.12.54 mobile waypoint card rebalance */
+@media(max-width:900px){
+  .planner-rail .point-row{grid-template-columns:34px 68px minmax(0,1fr) 118px !important;align-items:center !important;gap:8px 10px !important;padding:12px !important}
+  .planner-rail .point-no{grid-column:1;grid-row:1 / span 6;align-self:start;margin-top:4px}
+  .planner-rail .point-type-label,
+  .planner-rail .point-name-label,
+  .planner-rail .date-label{grid-column:2 / 5 !important;display:grid !important;grid-template-columns:68px minmax(0,1fr);align-items:center;gap:8px;margin:0 !important}
+  .planner-rail .time-label{grid-column:2 / 4 !important;display:grid !important;grid-template-columns:68px minmax(0,1fr);align-items:center;gap:8px;margin:0 !important}
+  .planner-rail .time-label .point-time{max-width:128px;justify-self:start}
+  .planner-rail .stay-option{grid-column:4 !important;display:grid !important;grid-template-columns:minmax(0,1fr) !important;align-items:center;gap:0;margin:0 !important}
+  .planner-rail .stay-option>span:first-child{display:none !important}
+  .planner-rail .stay-option.hidden{display:none !important}
+  .planner-rail .stay-toggle{min-height:44px;width:100%;justify-content:center;padding:0 8px}
+  .planner-rail .stay-toggle b{font-size:13px;white-space:nowrap}
+  .planner-rail .point-meta{grid-column:2 / 5 !important;margin:0 !important;padding-top:2px;font-size:12px !important}
+  .planner-rail .move.up{grid-column:2;justify-self:stretch;width:100%}
+  .planner-rail .move.down{grid-column:3;justify-self:stretch;width:100%}
+  .planner-rail .remove{grid-column:4;justify-self:stretch;width:100%}
+  .planner-rail .move,.planner-rail .remove{min-height:38px}
+}
+@media(max-width:430px){
+  .planner-rail .point-row{grid-template-columns:32px 62px minmax(0,1fr) 110px !important;gap:8px 8px !important;padding:12px 10px !important}
+  .planner-rail .point-type-label,
+  .planner-rail .point-name-label,
+  .planner-rail .date-label,
+  .planner-rail .time-label{grid-template-columns:62px minmax(0,1fr) !important}
+  .planner-rail .point-row .field-caption{font-size:13px}
+  .planner-rail .point-row select,
+  .planner-rail .point-row input{font-size:15px;min-height:42px;height:42px}
+  .planner-rail .date-picker-btn{height:42px;min-height:42px}
+  .planner-rail .stay-toggle{min-height:42px}
+  .planner-rail .stay-toggle b{font-size:12px}
+}

@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.51';
+const APP_VERSION = '1.12.54';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -34,6 +34,11 @@ const MOUNTAIN_PRESETS = {
   '赤岳': {latitude:35.970833, longitude:138.370000},
   '谷川岳': {latitude:36.8370, longitude:138.9300},
   '木曽駒ヶ岳': {latitude:35.7895, longitude:137.8047},
+  // V1.12.54 中央アルプス木曽駒〜空木縦走主要ピーク
+  '宝剣岳': {latitude:35.781389, longitude:137.809167},
+  '檜尾岳': {latitude:35.751944, longitude:137.813333},
+  '熊沢岳': {latitude:35.739167, longitude:137.803333},
+  '東川岳': {latitude:35.725278, longitude:137.805556},
   '御嶽山': {latitude:35.8929, longitude:137.4803},
   '大山': {latitude:35.3711, longitude:133.5462},
   '石鎚山': {latitude:33.7679, longitude:133.1150},
@@ -806,6 +811,29 @@ const REGIONAL_CATALOG = {
     {id:'area-yh-karasawagoya',type:'hut',name:'涸沢小屋',lat:36.3018,lon:137.6652,elevation:2350}
   ]
 };
+
+// V1.12.54: 中央アルプス 木曽駒ヶ岳〜空木岳の縦走回廊。
+// 国土地理院の主要山頂座標と公開情報で確認済みの山小屋座標のみを固定候補として使用。
+Object.assign(REGIONAL_CATALOG, {
+  central_kisokoma_utsugi: [
+    {id:'area-cku-senjojiki',type:'trailhead',name:'千畳敷',lat:35.779700,lon:137.814700,elevation:2612,source:'固定候補'},
+    {id:'area-cku-kisokoma',type:'peak',name:'木曽駒ヶ岳',lat:35.789444,lon:137.804444,elevation:2956,source:'固定候補'},
+    {id:'area-cku-tengu',type:'hut',name:'天狗荘',lat:35.786100,lon:137.806500,elevation:2870,source:'固定候補'},
+    {id:'area-cku-hoken-sanso',type:'hut',name:'宝剣山荘',lat:35.783155,lon:137.808938,elevation:2870,source:'固定候補'},
+    {id:'area-cku-chojo',type:'hut',name:'頂上山荘',lat:35.790400,lon:137.806000,elevation:2870,source:'固定候補'},
+    {id:'area-cku-hoken',type:'peak',name:'宝剣岳',lat:35.781389,lon:137.809167,elevation:2931,source:'固定候補'},
+    {id:'area-cku-hinokio',type:'peak',name:'檜尾岳',lat:35.751944,lon:137.813333,elevation:2728,source:'固定候補'},
+    {id:'area-cku-hinokio-hut',type:'hut',name:'檜尾小屋',lat:35.751111,lon:137.816111,elevation:2689,source:'固定候補'},
+    {id:'area-cku-kumazawa',type:'peak',name:'熊沢岳',lat:35.739167,lon:137.803333,elevation:2778,source:'固定候補'},
+    {id:'area-cku-higashikawa',type:'peak',name:'東川岳',lat:35.725278,lon:137.805556,elevation:2671,source:'固定候補'},
+    {id:'area-cku-kisodono',type:'hut',name:'木曽殿山荘',lat:35.723056,lon:137.807778,elevation:2587,source:'固定候補'},
+    {id:'area-cku-utsugi',type:'peak',name:'空木岳',lat:35.718889,lon:137.817222,elevation:2864,source:'固定候補'},
+    {id:'area-cku-komaho',type:'hut',name:'空木駒峰ヒュッテ',lat:35.719722,lon:137.818333,elevation:2800,source:'固定候補'},
+    {id:'area-cku-utsugidaira',type:'hut',name:'空木平避難小屋',lat:35.721111,lon:137.828056,elevation:2517,source:'固定候補'},
+    {id:'area-cku-ikeyama',type:'trailhead',name:'池山口登山口',lat:35.736861,lon:137.878032,elevation:1370,source:'固定候補'}
+  ]
+});
+
 // V1.9.1 北アルプスを山域単位で手登録。OpenStreetMap自動探索より先に確実な主要地点を提示する。
 Object.assign(REGIONAL_CATALOG, {
   jonen_chou: [
@@ -1761,7 +1789,10 @@ const MOUNTAIN_REGION = {
   '針ノ木岳':'harinoki_funakubo','蓮華岳':'harinoki_funakubo',
   '爺ヶ岳':'ushirotateyama','鹿島槍ヶ岳':'ushirotateyama','五竜岳':'ushirotateyama',
   '立山':'tateyama_tsurugi','剱岳':'tateyama_tsurugi','奥大日岳':'tateyama_tsurugi',
-  '薬師岳':'yakushi_kurobe','黒部五郎岳':'yakushi_kurobe'
+  '薬師岳':'yakushi_kurobe','黒部五郎岳':'yakushi_kurobe',
+  // V1.12.54 中央アルプス縦走回廊
+  '木曽駒ヶ岳':'central_kisokoma_utsugi','宝剣岳':'central_kisokoma_utsugi','檜尾岳':'central_kisokoma_utsugi',
+  '熊沢岳':'central_kisokoma_utsugi','東川岳':'central_kisokoma_utsugi','空木岳':'central_kisokoma_utsugi'
 };
 // typo-safe alias for the ura-ginza key used above.
 MOUNTAIN_REGION['鷲羽岳']='ushiroginza';
@@ -1940,6 +1971,11 @@ function regionalCandidates(mountain){
   // 白馬岳から後立山を南下し、五竜岳→鹿島槍ヶ岳→爺ヶ岳→針ノ木岳方面まで候補を連続表示。
   if(['白馬岳','唐松岳','五竜岳','鹿島槍ヶ岳','爺ヶ岳','針ノ木岳','蓮華岳'].includes(mountain)){
     return mergeRegionalCatalogs('hakuba_asahi','ushirotateyama','harinoki_funakubo');
+  }
+
+  // V1.12.54 木曽駒ヶ岳〜宝剣岳〜檜尾岳〜熊沢岳〜東川岳〜空木岳を同一回廊として提示。
+  if(['木曽駒ヶ岳','宝剣岳','檜尾岳','熊沢岳','東川岳','空木岳'].includes(mountain)){
+    return mergeRegionalCatalogs('central_kisokoma_utsugi');
   }
   return REGIONAL_CATALOG[key]||[];
 }
