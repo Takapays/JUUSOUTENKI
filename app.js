@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.62';
+const APP_VERSION = '1.12.64';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3637,35 +3637,39 @@ function renderOvernights(items){
       </div>
       <div class="astro-hero-grid">
         <div class="astro-card sunset-card tone-fair">
-          <small>🌇 日の入り</small>
+          <div class="astro-mark sunset" aria-hidden="true">🌇</div>
+          <small>日の入り</small>
           <b>${timeOnly(o.sunset)}</b>
           <span>${o.sunsetView.mark} ${o.sunsetView.label}</span>
         </div>
         <div class="astro-card milky-card tone-${milkyTone}">
-          <small>🌌 天の川</small>
+          <div class="astro-mark milky" aria-hidden="true">🌌</div>
+          <small>天の川</small>
           <b>${o.milkyLabel}</b>
           <span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span>
         </div>
         <div class="astro-card sunrise-card tone-good">
-          <small>🌄 日の出</small>
+          <div class="astro-mark sunrise" aria-hidden="true">🌄</div>
+          <small>日の出</small>
           <b>${timeOnly(o.sunrise)}</b>
           <span>${o.sunriseView.mark} ${o.sunriseView.label}</span>
         </div>
-        <div class="overnight-dawn-card ${esc(dawn.cls||'partly')}">
-          <div class="dawn-card-copy">
-            <small>🕔 朝5時の空</small>
-            <strong>${num(dawn.temp,0)}℃</strong>
-            <span>${esc(dawn.label||'--')}</span>
-            <em>風 ${num(dawn.wind,1)}m/s ・ 雨 ${num(dawn.rain,1)}mm/h</em>
-          </div>
-          <div class="dawn-scene" aria-hidden="true">
-            <div class="dawn-sun"></div>
-            <div class="dawn-cloud one"></div>
-            <div class="dawn-cloud two"></div>
-            <div class="dawn-mountain back"></div>
-            <div class="dawn-mountain front"></div>
-            <div class="dawn-weather-icon">${esc(dawn.icon||'🌤️')}</div>
-          </div>
+      </div>
+      <div class="overnight-dawn-banner ${esc(dawn.cls||'partly')}">
+        <div class="dawn-mark" aria-hidden="true">🕔</div>
+        <div class="dawn-card-copy">
+          <small>朝5時の空</small>
+          <strong>${num(dawn.temp,0)}℃</strong>
+          <span>${esc(dawn.label||'--')}</span>
+          <em>風 ${num(dawn.wind,1)}m/s ・ 雨 ${num(dawn.rain,1)}mm/h</em>
+        </div>
+        <div class="dawn-scene" aria-hidden="true">
+          <div class="dawn-sun"></div>
+          <div class="dawn-cloud one"></div>
+          <div class="dawn-cloud two"></div>
+          <div class="dawn-mountain back"></div>
+          <div class="dawn-mountain front"></div>
+          <div class="dawn-weather-icon">${esc(dawn.icon||'🌤️')}</div>
         </div>
       </div>
       <div class="overnight-metrics overnight-metrics-redesign">

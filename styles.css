@@ -1224,18 +1224,18 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 .astro-card.milky-card.tone-fair{background:linear-gradient(180deg,#f7f4ff,#fcfbff)}
 .astro-card.milky-card.tone-caution{background:linear-gradient(180deg,#fbf7ff,#ffffff)}
 .astro-card.milky-card.tone-hard{background:linear-gradient(180deg,#f8f3ff,#fcfcff)}
-.overnight-dawn-card{grid-column:1/-1;position:relative;overflow:hidden;min-height:148px;padding:18px 18px;border-radius:18px;border:1px solid #bfdbf4;display:flex;justify-content:space-between;align-items:stretch;background:linear-gradient(135deg,#3a8adf 0%,#6ba5ed 38%,#f4b8a4 100%);color:#fff;box-shadow:0 12px 28px rgba(46,101,173,.18)}
-.overnight-dawn-card.cloud{background:linear-gradient(135deg,#54799d 0%,#7da1bf 44%,#c5b7b5 100%)}
-.overnight-dawn-card.rain,.overnight-dawn-card.shower{background:linear-gradient(135deg,#4b78a7 0%,#6f8fb1 35%,#95a6ba 100%)}
-.overnight-dawn-card.storm{background:linear-gradient(135deg,#35495f 0%,#4c6885 40%,#7d7f95 100%)}
-.overnight-dawn-card.sun{background:linear-gradient(135deg,#4f95ea 0%,#7bb4f3 34%,#f3b78d 100%)}
-.overnight-dawn-card.partly{background:linear-gradient(135deg,#4d8ddb 0%,#79acee 36%,#f0bea4 100%)}
-.overnight-dawn-card .dawn-card-copy{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-start;max-width:42%;min-width:220px}
-.overnight-dawn-card small{font-size:14px;font-weight:800;color:#f8fbff;text-shadow:0 1px 8px rgba(14,39,71,.16)}
-.overnight-dawn-card strong{font-size:34px;line-height:1.05;margin:10px 0 8px;color:#fff;text-shadow:0 3px 18px rgba(14,39,71,.18)}
-.overnight-dawn-card span{font-size:15px;font-weight:800;color:#f6fbff}
-.overnight-dawn-card em{font-style:normal;margin-top:auto;font-size:12px;color:rgba(248,252,255,.92)}
-.dawn-scene{position:relative;flex:1;min-width:220px}
+.overnight-dawn-banner{position:relative;overflow:hidden;min-height:156px;margin-bottom:16px;padding:20px 22px;border-radius:20px;border:1px solid #bfdbf4;display:flex;justify-content:space-between;align-items:stretch;background:linear-gradient(135deg,#3a8adf 0%,#6ba5ed 38%,#f4b8a4 100%);color:#fff;box-shadow:0 12px 28px rgba(46,101,173,.18)}
+.overnight-dawn-banner.cloud{background:linear-gradient(135deg,#54799d 0%,#7da1bf 44%,#c5b7b5 100%)}
+.overnight-dawn-banner.rain,.overnight-dawn-banner.shower{background:linear-gradient(135deg,#4b78a7 0%,#6f8fb1 35%,#95a6ba 100%)}
+.overnight-dawn-banner.storm{background:linear-gradient(135deg,#35495f 0%,#4c6885 40%,#7d7f95 100%)}
+.overnight-dawn-banner.sun{background:linear-gradient(135deg,#4f95ea 0%,#7bb4f3 34%,#f3b78d 100%)}
+.overnight-dawn-banner.partly{background:linear-gradient(135deg,#4d8ddb 0%,#79acee 36%,#f0bea4 100%)}
+.overnight-dawn-banner .dawn-card-copy{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-start;max-width:44%;min-width:260px}
+.overnight-dawn-banner small{font-size:14px;font-weight:800;color:#f8fbff;text-shadow:0 1px 8px rgba(14,39,71,.16)}
+.overnight-dawn-banner strong{font-size:34px;line-height:1.05;margin:10px 0 8px;color:#fff;text-shadow:0 3px 18px rgba(14,39,71,.18)}
+.overnight-dawn-banner span{font-size:15px;font-weight:800;color:#f6fbff}
+.overnight-dawn-banner em{font-style:normal;margin-top:auto;font-size:12px;color:rgba(248,252,255,.92)}
+.dawn-scene{position:relative;flex:1;min-width:240px}
 .dawn-sun{position:absolute;right:30px;bottom:34px;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,#fff6b8 0%,#ffe7a0 45%,rgba(255,229,160,.1) 72%,rgba(255,229,160,0) 73%);box-shadow:0 0 28px rgba(255,244,186,.35)}
 .dawn-cloud{position:absolute;background:rgba(255,255,255,.52);border-radius:999px;filter:blur(.1px)}
 .dawn-cloud::before,.dawn-cloud::after{content:"";position:absolute;background:inherit;border-radius:inherit}
@@ -1244,7 +1244,7 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 .dawn-mountain{position:absolute;left:auto;right:0;bottom:0;border-radius:30% 0 0 0}
 .dawn-mountain.back{right:-14px;width:210px;height:78px;background:linear-gradient(180deg,#5f95d9 0%,#4f76bb 100%);clip-path:polygon(0% 100%,20% 62%,34% 74%,49% 41%,64% 68%,82% 44%,100% 100%)}
 .dawn-mountain.front{right:-8px;width:230px;height:56px;background:linear-gradient(180deg,#4f80c6 0%,#395f96 100%);clip-path:polygon(0% 100%,18% 72%,36% 84%,51% 58%,63% 70%,79% 48%,100% 100%)}
-.dawn-weather-icon{position:absolute;left:18px;bottom:12px;font-size:28px;filter:drop-shadow(0 4px 12px rgba(24,49,40,.18))}
+.dawn-weather-icon{position:absolute;right:76px;bottom:10px;font-size:34px;filter:drop-shadow(0 4px 12px rgba(24,49,40,.18))}
 .overnight-metrics-redesign{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .overnight-metrics-redesign span{display:flex;flex-direction:column;gap:4px;min-height:96px;padding:14px 16px;border-radius:17px;background:linear-gradient(180deg,#ffffff 0%,#fbfcfc 100%);border:1px solid #dce6e1;color:#5d6d77;box-shadow:0 6px 18px rgba(24,49,40,.04)}
 .overnight-metrics-redesign span label{font-size:12px;font-weight:800;color:#5b6d79}
@@ -1261,6 +1261,32 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 .overnight-comfort-card b{display:block;font-size:22px;color:#173126;margin-bottom:6px}
 .overnight-comfort-card span{display:block;font-size:13px;color:#597064;line-height:1.6}
 .night-note-card p{margin:0;font-size:13px;color:#5f6f78;line-height:1.75}
-(max-width:1100px){.astro-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overnight-metrics-redesign{grid-template-columns:repeat(3,minmax(0,1fr))}.overnight-foot-grid{grid-template-columns:1fr}}
-(max-width:760px){.overnight-card-redesign{padding:18px}.overnight-place-row{align-items:flex-start}.overnight-place-icon{width:58px;height:58px;font-size:28px}.overnight-place-copy h3{font-size:29px}.overnight-dawn-card .dawn-card-copy{max-width:56%;min-width:0}.overnight-metrics-redesign{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1100px){.astro-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overnight-metrics-redesign{grid-template-columns:repeat(3,minmax(0,1fr))}.overnight-foot-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.overnight-card-redesign{padding:18px}.overnight-place-row{align-items:flex-start}.overnight-place-icon{width:58px;height:58px;font-size:28px}.overnight-place-copy h3{font-size:29px}.overnight-dawn-card .dawn-card-copy{max-width:56%;min-width:0}.overnight-metrics-redesign{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.astro-hero-grid{grid-template-columns:1fr}.overnight-place-row{gap:12px}.overnight-place-copy h3{font-size:25px}.overnight-place-copy small{font-size:13px}.overnight-dawn-card{min-height:170px}.overnight-dawn-card .dawn-card-copy{max-width:100%}.dawn-scene{position:absolute;inset:0;opacity:.92}.dawn-card-copy{position:relative}.overnight-metrics-redesign{grid-template-columns:1fr 1fr}.overnight-metrics-redesign span{min-height:86px;padding:12px 13px}.overnight-comfort-card .comfort-stars{font-size:24px}}
+
+/* V1.12.64 restore icon marks and stabilize dawn banner */
+.astro-card,.overnight-dawn-banner{position:relative}
+.astro-mark,.dawn-mark{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  line-height:1;
+  box-shadow:0 10px 24px rgba(24,49,40,.10);
+  z-index:3;
+}
+.astro-mark.sunset{background:linear-gradient(180deg,#ffe7ae,#ffd886)}
+.astro-mark.milky{background:linear-gradient(180deg,#e8ddff,#d9c9ff)}
+.astro-mark.sunrise{background:linear-gradient(180deg,#ffe2cf,#ffd1ba)}
+.dawn-mark{background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.14));border:1px solid rgba(255,255,255,.34);color:#fff;backdrop-filter:blur(6px)}
+.astro-card small,.overnight-dawn-banner small{padding-right:54px}
+@media(max-width:1100px){.astro-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overnight-metrics-redesign{grid-template-columns:repeat(3,minmax(0,1fr))}.overnight-foot-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.overnight-card-redesign{padding:18px}.overnight-place-row{align-items:flex-start}.overnight-place-icon{width:58px;height:58px;font-size:28px}.overnight-place-copy h3{font-size:29px}.overnight-dawn-banner .dawn-card-copy{max-width:56%;min-width:0}.overnight-metrics-redesign{grid-template-columns:repeat(2,minmax(0,1fr))}.astro-mark,.dawn-mark{width:40px;height:40px;font-size:20px}.astro-card small,.overnight-dawn-banner small{padding-right:48px}}
+@media(max-width:560px){.astro-hero-grid{grid-template-columns:1fr}.overnight-place-row{gap:12px}.overnight-place-copy h3{font-size:25px}.overnight-place-copy small{font-size:13px}.overnight-dawn-banner{min-height:170px;padding:18px}.overnight-dawn-banner .dawn-card-copy{max-width:100%}.dawn-scene{position:absolute;inset:0;opacity:.92;min-width:0}.dawn-card-copy{position:relative}.overnight-metrics-redesign{grid-template-columns:1fr 1fr}.overnight-metrics-redesign span{min-height:86px;padding:12px 13px}.overnight-comfort-card .comfort-stars{font-size:24px}}
