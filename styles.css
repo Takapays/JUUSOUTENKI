@@ -1177,3 +1177,24 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
   .planner-rail .stay-toggle b{font-size:11px !important}
   .rf-metric::before,.rf-direction::before{font-size:9px}
 }
+
+
+/* V1.12.59 PC full-width point forecast + mobile stay spacing */
+@media(min-width:901px){
+  #forecastCards.forecast-grid{display:block !important;width:100%;max-width:100%;min-width:0}
+  #forecastCards .route-forecast-board{display:block;width:100% !important;max-width:none !important;min-width:0}
+  #forecastCards .route-forecast-head,
+  #forecastCards .route-forecast-row{width:100% !important}
+}
+@media(max-width:900px){
+  /* Keep the time field intentionally short so it can never sit under the stay control. */
+  .planner-rail .time-label{grid-column:2 / 4 !important;display:grid !important;grid-template-columns:68px 118px !important;justify-content:start;width:auto !important;max-width:196px !important;min-width:0 !important}
+  .planner-rail .time-label .point-time{width:118px !important;max-width:118px !important;min-width:0 !important;justify-self:start}
+  .planner-rail .stay-option{grid-column:4 !important;align-self:center;justify-self:end;z-index:2}
+}
+@media(max-width:430px){
+  .planner-rail .time-label{grid-template-columns:62px 104px !important;max-width:174px !important}
+  .planner-rail .time-label .point-time{width:104px !important;max-width:104px !important}
+}
+#summaryResult{scroll-margin-top:14px}
+@media(min-width:901px){#summaryResult{scroll-margin-top:118px}}

@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.58';
+const APP_VERSION = '1.12.59';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3408,6 +3408,17 @@ async function analyzePointsBatch(points){
   });
 }
 
+async function scrollToSummaryResult(){
+  const target=$('summaryResult');
+  if(!target)return;
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      try{target.scrollIntoView({behavior:'smooth',block:'start'});}catch(_){target.scrollIntoView();}
+      setTimeout(()=>{try{window.scrollBy({top:-12,left:0,behavior:'smooth'});}catch(_){window.scrollBy(0,-12);}},180);
+    });
+  });
+}
+
 async function analyze(){
   const started=performance.now(); let points=[];
   try{
@@ -3423,7 +3434,7 @@ async function analyze(){
       setStatus(`宿泊分析：${stayPoints.length}泊分をまとめて取得しています…`);
       try{overnight=await analyzeOvernightsBatch(stayPoints);}catch(e){overnightWarning=` / 宿泊詳細は取得できませんでした（${e?.message||'取得失敗'}）`;}
     }
-    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}${overnightWarning}（一括取得）`,false);
+    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}${overnightWarning}（一括取得）`,false); scrollToSummaryResult();
     logEvent('weather_analysis',{success:true,duration_ms:performance.now()-started,route_points:points.length,metadata:{provider_count:providers.length,manual_datetime:true,batch_weather:true}});
   }catch(e){setStatus(e.message||String(e),true);logEvent('weather_analysis',{success:false,duration_ms:performance.now()-started,route_points:points.length,error_message:e.message||String(e)});}
   finally{$('analyzeBtn').disabled=false;}
