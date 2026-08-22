@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.46';
+const APP_VERSION = '1.12.47';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3721,29 +3721,50 @@ function ensureRouteMap(mapId){
   routeMapViews[mapId]=state;
   return state;
 }
-function invalidateRouteMap(state){
+function invalidateRouteMap(state,callback=null){
   if(!state?.map)return;
-  requestAnimationFrame(()=>{try{state.map.invalidateSize();}catch(_){}});
+  requestAnimationFrame(()=>{
+    try{state.map.invalidateSize({pan:false,animate:false});}catch(_){}
+    requestAnimationFrame(()=>{if(typeof callback==='function')callback();});
+  });
+}
+function fitRouteMapToPoints(state,latlngs){
+  if(!state?.map||!latlngs.length)return;
+  try{
+    if(latlngs.length===1){
+      state.map.setView(latlngs[0],13,{animate:false});
+      return;
+    }
+    const bounds=L.latLngBounds(latlngs);
+    state.map.fitBounds(bounds,{padding:[28,28],maxZoom:13,animate:false});
+  }catch(_){}
 }
 function renderSingleRouteMap({mapId,emptyId,listId},points){
   const emptyEl=$(emptyId), mapEl=$(mapId), listEl=$(listId);
   if(listEl)listEl.innerHTML=points.length?routeMapListHtml(points):'';
   if(!mapEl)return;
-  const state=ensureRouteMap(mapId);
-  const showMap=!!state&&points.length>0;
-  mapEl.classList.toggle('hidden',!showMap);
-  if(emptyEl){
-    emptyEl.classList.toggle('hidden',showMap);
-    if(points.length&&!state)emptyEl.textContent='地図ライブラリを読み込めなかったため、地点一覧のみ表示しています。';
-  }
-  if(!state)return;
-  state.markers.clearLayers();
-  state.lines.clearLayers();
+
+  // Leaflet must measure the map after the element is visible. Initializing it
+  // while .hidden is applied can leave the first view at world-map scale.
   if(!points.length){
-    try{state.map.setView(ROUTE_MAP_DEFAULT_VIEW,5);}catch(_){ }
-    invalidateRouteMap(state);
+    mapEl.classList.add('hidden');
+    if(emptyEl)emptyEl.classList.remove('hidden');
+    const existing=routeMapViews[mapId];
+    if(existing){existing.markers.clearLayers();existing.lines.clearLayers();}
     return;
   }
+
+  mapEl.classList.remove('hidden');
+  if(emptyEl)emptyEl.classList.add('hidden');
+  const state=ensureRouteMap(mapId);
+  if(!state){
+    mapEl.classList.add('hidden');
+    if(emptyEl){emptyEl.classList.remove('hidden');emptyEl.textContent='地図ライブラリを読み込めなかったため、地点一覧のみ表示しています。';}
+    return;
+  }
+
+  state.markers.clearLayers();
+  state.lines.clearLayers();
   const latlngs=points.map(point=>[point.lat,point.lon]);
   if(points.length>=2){
     L.polyline(latlngs,{color:'#1f7fbd',weight:4,opacity:.95}).addTo(state.lines);
@@ -3752,12 +3773,7 @@ function renderSingleRouteMap({mapId,emptyId,listId},points){
     const marker=L.marker([point.lat,point.lon],{icon:routeMapIcon(point)}).addTo(state.markers);
     marker.bindPopup(routeMapPopupHtml(point));
   });
-  if(points.length===1){
-    state.map.setView(latlngs[0],12);
-  }else{
-    state.map.fitBounds(L.latLngBounds(latlngs).pad(0.22));
-  }
-  invalidateRouteMap(state);
+  invalidateRouteMap(state,()=>fitRouteMapToPoints(state,latlngs));
 }
 function renderRouteMaps(points=null){
   const normalized=(Array.isArray(points)?points:collectRouteMapPointsFromForm())
