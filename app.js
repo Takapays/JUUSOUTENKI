@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.69';
+const APP_VERSION = '1.12.71';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3609,54 +3609,6 @@ function overnightDawnIcon(dawn){
   return 'sunrise';
 }
 
-function overnightDawnIllustration(dawn){
-  const icon=overnightDawnIcon(dawn);
-  const rain=Number(dawn&&dawn.rain);
-  const cloud=Number(dawn&&dawn.cloud);
-  const cloudy=icon==='cloud' || (Number.isFinite(cloud) && cloud>=70);
-  const rainy=icon==='rain' || (Number.isFinite(rain) && rain>=0.5);
-  const skyTop=rainy?'#d9e7f5':cloudy?'#e5eef7':'#d8edff';
-  const skyMid=rainy?'#edf4fb':cloudy?'#eef3f8':'#eef7ff';
-  const skyBottom=rainy?'#f7e1c9':cloudy?'#f9e8d2':'#ffe7c8';
-  const sun=rainy
-    ? '<g opacity="0.55"><circle cx="138" cy="46" r="20" fill="#ffd88d"/><circle cx="138" cy="46" r="28" fill="none" stroke="#ffe7b7" stroke-width="8" opacity="0.42"/></g>'
-    : '<g><circle cx="142" cy="44" r="20" fill="#ffcb58"/><circle cx="142" cy="44" r="30" fill="none" stroke="#ffe7a9" stroke-width="8" opacity="0.48"/></g>';
-  const clouds=cloudy || rainy
-    ? '<g fill="#ffffff" opacity="0.94"><ellipse cx="118" cy="54" rx="26" ry="14"/><ellipse cx="99" cy="58" rx="14" ry="10"/><ellipse cx="136" cy="59" rx="13" ry="9"/><ellipse cx="84" cy="44" rx="18" ry="11" opacity="0.88"/></g>'
-    : '<g fill="#ffffff" opacity="0.82"><ellipse cx="110" cy="56" rx="24" ry="13"/><ellipse cx="92" cy="59" rx="12" ry="9"/><ellipse cx="127" cy="60" rx="11" ry="8"/></g>';
-  const rainMarks=rainy
-    ? '<g stroke="#4f86d6" stroke-width="3" stroke-linecap="round" opacity="0.95"><path d="M98 76l-6 14"/><path d="M116 78l-6 14"/><path d="M134 76l-6 14"/></g>'
-    : '';
-  return `<svg viewBox="0 0 220 140" class="od70-scene-svg" aria-hidden="true">
-    <defs>
-      <linearGradient id="od70Sky" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="${skyTop}"/>
-        <stop offset="58%" stop-color="${skyMid}"/>
-        <stop offset="100%" stop-color="${skyBottom}"/>
-      </linearGradient>
-      <linearGradient id="od70HillBack" x1="0" x2="1" y1="0" y2="1">
-        <stop offset="0%" stop-color="#86b3eb"/>
-        <stop offset="100%" stop-color="#5d8fc9"/>
-      </linearGradient>
-      <linearGradient id="od70HillFront" x1="0" x2="1" y1="0" y2="1">
-        <stop offset="0%" stop-color="#4b79b8"/>
-        <stop offset="100%" stop-color="#315b96"/>
-      </linearGradient>
-    </defs>
-    <rect x="0" y="0" width="220" height="140" rx="24" fill="url(#od70Sky)"/>
-    ${sun}
-    ${clouds}
-    ${rainMarks}
-    <path d="M0 114C20 108 38 96 52 88c14-8 25-7 37 4 8 8 14 12 25 13 18 3 27-9 38-19 12-10 22-11 35-1 10 8 19 18 33 23v32H0z" fill="url(#od70HillBack)"/>
-    <path d="M0 122c18-5 32-16 45-28 11-10 22-11 34 0 6 6 12 15 22 16 14 2 25-10 35-20 10-10 20-14 32-7 15 9 25 25 52 39v18H0z" fill="url(#od70HillFront)"/>
-    <path d="M25 118c12-8 18-18 24-30 8 10 12 18 17 30" fill="none" stroke="#dfeeff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
-    <g transform="translate(22 20)">
-      <circle cx="18" cy="18" r="17" fill="rgba(255,255,255,0.84)" stroke="rgba(53,121,212,0.2)"/>
-      <path d="M18 9v10l7 4" fill="none" stroke="#2866b9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-  </svg>`;
-}
-
 function formatOvernightDate(dateStr){
   if(!dateStr)return '';
   const d=new Date(`${dateStr}T00:00:00+09:00`);
@@ -3696,20 +3648,13 @@ function renderOvernights(items){
         <div class="overnight-v2-key key-milky ${milkyClass}"><div class="key-icon">${overnightIcon('milky')}</div><small>天の川</small><b>${esc(o.milkyLabel)}</b><span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span></div>
         <div class="overnight-v2-key key-sunrise"><div class="key-icon">${overnightIcon('sunrise')}</div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${o.sunriseView.mark} ${esc(o.sunriseView.label)}</span></div>
       </div>
-      <div class="overnight-dawn-v70 ${esc(dawn.cls||'partly')}">
-        <div class="od70-main">
-          <div class="od70-heading">
-            <div class="od70-badge">朝5時の空</div>
-            <div class="od70-time">${timeOnly(dawn.time)||'05:00'}</div>
-            <div class="od70-weather"><span class="od70-weather-icon">${overnightIcon(dawnIcon)}</span><b>${esc(dawn.label||'--')}</b></div>
-          </div>
-          <div class="od70-stats">
-            <div class="od70-stat"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
-            <div class="od70-stat"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
-            <div class="od70-stat"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
-          </div>
-        </div>
-        <div class="od70-art">${overnightDawnIllustration(dawn)}</div>
+      <div class="overnight-dawn-strip-v69 ${esc(dawn.cls||'partly')}">
+        <div class="ods69-icon">${overnightIcon(dawnIcon)}</div>
+        <div class="ods69-item ods69-main"><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b></div>
+        <div class="ods69-item"><small>天気</small><b>${esc(dawn.label||'--')}</b></div>
+        <div class="ods69-item"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
+        <div class="ods69-item"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
+        <div class="ods69-item"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
       </div>
       <div class="overnight-v2-metrics">
         ${overnightMetric('thermometer','到着時気温',`${num(o.arrivalTemp)}℃`,`${o.point.time||'--:--'} 到着`,'green')}
