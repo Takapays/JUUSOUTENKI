@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.40';
+const APP_VERSION = '1.12.41';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -4514,7 +4514,7 @@ Object.assign(CURATED_ACCESS_HINTS, {
 });
 
 
-// V1.12.40: 西穂高岳〜奥穂高岳縦走の追加ピーク「ジャンダルム」を固定。
+// V1.12.37: 西穂高岳〜奥穂高岳縦走の追加ピーク「ジャンダルム」を固定。
 // 公開座標を複数照合し、36°17′16.001″N / 137°38′37.000″E を10進表記へ変換。
 // 標高 3,163m。山行可否・ルート難易度を保証するものではない。
 const V1237_GENDARME = {
