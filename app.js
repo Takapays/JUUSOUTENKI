@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.66';
+const APP_VERSION = '1.12.68';
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -3647,7 +3647,14 @@ function renderOvernights(items){
         <div class="overnight-v2-key key-sunset"><div class="key-icon">${overnightIcon('sunset')}</div><small>日の入り</small><b>${timeOnly(o.sunset)}</b><span>${o.sunsetView.mark} ${esc(o.sunsetView.label)}</span></div>
         <div class="overnight-v2-key key-milky ${milkyClass}"><div class="key-icon">${overnightIcon('milky')}</div><small>天の川</small><b>${esc(o.milkyLabel)}</b><span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span></div>
         <div class="overnight-v2-key key-sunrise"><div class="key-icon">${overnightIcon('sunrise')}</div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${o.sunriseView.mark} ${esc(o.sunriseView.label)}</span></div>
-        <div class="overnight-v2-key key-dawn ${esc(dawn.cls||'partly')}"><div class="key-icon dawn-weather">${overnightIcon(dawnIcon)}</div><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b><span>${esc(dawn.label||'--')}</span><div class="dawn-meta"><i>気温 ${num(dawn.temp,1)}℃</i><i>風 ${num(dawn.wind,1)}m/s</i></div></div>
+      </div>
+      <div class="overnight-v2-dawn-row ${esc(dawn.cls||'partly')}">
+        <div class="dawn-row-icon">${overnightIcon(dawnIcon)}</div>
+        <div class="dawn-row-title"><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b></div>
+        <div class="dawn-row-weather"><small>天気</small><b>${esc(dawn.label||'--')}</b></div>
+        <div class="dawn-row-metric"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
+        <div class="dawn-row-metric"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
+        <div class="dawn-row-metric"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
       </div>
       <div class="overnight-v2-metrics">
         ${overnightMetric('thermometer','到着時気温',`${num(o.arrivalTemp)}℃`,`${o.point.time||'--:--'} 到着`,'green')}
@@ -3714,6 +3721,57 @@ function renderRouteAlerts(points){
   const topLevel=maxRank>=3?'danger':maxRank>=2?'warning':'caution';
   const chips=active.slice(0,8).map(h=>`<span class="route-alert-chip ${String(h.level).toLowerCase()}"><b>${h.icon} ${esc(h.label)}</b><span>${esc(h.point.time||'')} ${esc(h.point.name)}</span><small>${esc(h.detail)}</small></span>`).join('');
   el.innerHTML=`<div class="route-alerts ${topLevel}"><div class="route-alert-title"><span>${top.icon}</span><div><small>今回の最大リスク</small><b>${esc(top.point.time||'')} ${esc(top.point.name)}｜${esc(top.label)} ${HAZARD_LABEL[top.level]}</b><em>${esc(top.detail)}</em></div></div><div class="route-alert-chips">${chips}</div><p>※ 気象予報値から機械的に抽出した注意情報です。登山可否を保証・断定するものではありません。</p></div>`;
+}
+function routeCommentaryData(points){
+  const active=[];
+  points.forEach((r,i)=>(r.hazards||[]).filter(h=>h.level!=='NONE').forEach(h=>active.push({...h,point:r.point,index:i,grade:r.grade})));
+  active.sort((a,b)=>b.rank-a.rank||gradeRank(b.grade)-gradeRank(a.grade)||a.index-b.index);
+  const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]);
+  const confidence=overallConfidence(points.map(x=>x.confidence));
+  const half=Math.max(1,Math.ceil(points.length/2));
+  const first=active.filter(h=>h.index<half);
+  const second=active.filter(h=>h.index>=half);
+  const maxRank=list=>list.reduce((m,h)=>Math.max(m,h.rank||0),0);
+  return {active,worst,confidence,firstRank:maxRank(first),secondRank:maxRank(second)};
+}
+function buildDecisionCommentary(points){
+  if(!Array.isArray(points)||!points.length)return {tone:'clear',title:'解説',body:'分析結果がありません。'};
+  const {active,worst,confidence,firstRank,secondRank}=routeCommentaryData(points);
+  const grade=worst.grade;
+  const tone=grade==='E'||grade==='D'?'danger':grade==='C'?'warning':grade==='B'?'caution':'clear';
+  const intro={
+    A:'設定した通過時刻では、ルート全体に大きな気象リスクは見当たりません。',
+    B:'全体としては比較的安定していますが、一部の地点・時間帯に注意要素があります。',
+    C:'ルート上に無視しにくい注意要素があり、通過時刻を含めて慎重に見たい状況です。',
+    D:'ルート上に強い気象リスクがあり、現計画のままでは厳しい条件が含まれます。',
+    E:'ルート上に非常に強い気象リスクがあり、現計画は大きな見直しが必要な条件です。'
+  }[grade]||'ルート全体の気象条件を確認してください。';
+  const parts=[intro];
+  if(active.length){
+    const top=active[0];
+    parts.push(`最大の注意点は ${top.point.time||''} ${top.point.name} の「${top.label}」で、${top.detail}です。`);
+    const distinct=[...new Set(active.filter(h=>h.rank>=2).map(h=>h.label))];
+    if(distinct.length>=2)parts.push(`特に ${distinct.slice(0,3).join('・')} が重なる地点では、複合的に条件が悪化する可能性があります。`);
+  }else{
+    parts.push('5系統の警戒基準に達する地点はありませんが、山岳では局地的な変化があるため現地状況の確認は必要です。');
+  }
+  if(secondRank>firstRank&&secondRank>=1){
+    parts.push('ルート後半ほど注意要素が強くなる傾向です。可能であれば早めの行動開始で、悪化する時間帯を避けられる余地があります。');
+  }else if(firstRank>secondRank&&firstRank>=2){
+    parts.push('前半に強い注意要素が集中しています。出発直後から条件を確認し、改善を待つ選択肢も含めて判断してください。');
+  }else if(active.length){
+    parts.push('注意要素は特定の時間帯だけでなくルート中に分散しているため、通過地点ごとの変化を追うのが重要です。');
+  }
+  if(confidence==='LOW')parts.push('なお、気象モデル間の差が大きいため予報の不確実性も高めです。直前の再分析をおすすめします。');
+  else if(confidence==='MEDIUM')parts.push('モデル間には一定のばらつきがあるため、出発前に最新予報を再確認してください。');
+  return {tone,title:'この計画の解説',body:parts.join(' ')};
+}
+function renderDecisionCommentary(points){
+  const el=$('decisionCommentary');
+  if(!el)return;
+  const c=buildDecisionCommentary(points);
+  el.className=`decision-commentary ${c.tone}`;
+  el.innerHTML=`<div class="decision-commentary-icon">💬</div><div><small>分析結果から自動生成</small><b>${esc(c.title)}</b><p>${esc(c.body)}</p><em>※ 気象予報値に基づく参考コメントです。登山可否を保証するものではありません。</em></div>`;
 }
 function assessConfidence(rows){const spread=k=>{const v=rows.map(x=>x[k]).filter(Number.isFinite);return v.length>1?Math.max(...v)-Math.min(...v):0;};if(spread('wind')>7||spread('rain')>4||spread('temp')>6)return'LOW';if(spread('wind')>3.5||spread('rain')>1.5||spread('temp')>3)return'MEDIUM';return'HIGH';}
 function gradeRank(g){return({A:1,B:2,C:3,D:4,E:5})[g]||9;} function verdict(g){return({A:'かなり良好',B:'概ね登山可能',C:'注意が必要',D:'かなり厳しい',E:'中止推奨'})[g]||'–';}
@@ -4011,7 +4069,7 @@ function renderPointForecastTimeline(points){
 
 function renderAll(points,overnight=[]){
 
-  $('results').classList.remove('hidden'); renderWeatherCharts(points); renderRouteAlerts(points); renderRouteMaps(points.map(x=>x.point)); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]); const best=points.reduce((a,b)=>gradeRank(b.grade)<gradeRank(a.grade)?b:a,points[0]);
+  $('results').classList.remove('hidden'); renderWeatherCharts(points); renderDecisionCommentary(points); renderRouteAlerts(points); renderRouteMaps(points.map(x=>x.point)); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]); const best=points.reduce((a,b)=>gradeRank(b.grade)<gradeRank(a.grade)?b:a,points[0]);
   $('grade').textContent=worst.grade; $('verdict').textContent=verdict(worst.grade); $('bestWindow').textContent=`${best.point.date} ${best.point.time} ${best.point.name}`; $('maxWind').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.wind))))} m/s`; $('maxRain').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.rain))))} mm/h`; $('thunderRisk').innerHTML=thunderBadge(maxThunder(points.map(x=>x.thunder))); $('confidence').textContent=overallConfidence(points.map(x=>x.confidence));
   renderPointForecastTimeline(points);
   const overnightWithArrival=overnight.map(o=>{const match=points.find(r=>r.point===o.point||(r.point.name===o.point.name&&r.point.date===o.point.date&&r.point.time===o.point.time));return {...o,arrivalTemp:match?.temp};});

@@ -1248,3 +1248,30 @@ footer{background:#073d68;color:#bcd1dd;margin-top:12px;padding:22px}footer stro
 .overnight-v2-key.key-dawn .dawn-meta i{font-style:normal;font-size:12px;font-weight:800;color:#466a91;border:1px solid rgba(63,110,175,.18);background:rgba(255,255,255,.55);border-radius:999px;padding:6px 10px}
 .overnight-v2-key.key-dawn .dawn-art,.overnight-v2-key.key-dawn .dawn-copy{display:none!important}
 @media(max-width:700px){.overnight-v2-key.key-dawn>b{font-size:24px}.overnight-v2-key.key-dawn .dawn-meta i{font-size:11px;padding:5px 9px}}
+
+
+/* V1.12.67 stable dawn row: no fourth hero card, no absolute artwork */
+.overnight-v2-hero{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.overnight-v2-key.key-dawn{display:none!important}
+.overnight-v2-dawn-row{display:grid;grid-template-columns:52px 120px minmax(150px,1fr) repeat(3,minmax(90px,auto));align-items:center;gap:14px;margin:0 0 16px;padding:14px 16px;border:1px solid #bcd6ef;border-radius:18px;background:linear-gradient(180deg,#f7fbff 0%,#f1f7fd 100%);box-shadow:0 6px 18px rgba(28,76,126,.05);min-width:0}
+.dawn-row-icon{width:46px;height:46px;display:grid;place-items:center;color:#2e6fd1;background:#fff;border:1px solid #cfe0f2;border-radius:14px;padding:8px;box-sizing:border-box}
+.dawn-row-icon svg{width:100%;height:100%}
+.dawn-row-title,.dawn-row-weather,.dawn-row-metric{min-width:0}
+.dawn-row-title small,.dawn-row-weather small,.dawn-row-metric small{display:block;margin-bottom:4px;font-size:11px;font-weight:850;color:#5b7085}
+.dawn-row-title b{font-size:22px;color:#235ea8;line-height:1.1}
+.dawn-row-weather b,.dawn-row-metric b{display:block;font-size:17px;color:#172330;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.overnight-v2-dawn-row.rainy,.overnight-v2-dawn-row.rain{background:linear-gradient(180deg,#f3f7fb,#eef4fa);border-color:#b9cce0}
+.overnight-v2-dawn-row.cloudy,.overnight-v2-dawn-row.cloud{background:linear-gradient(180deg,#f7f8fa,#f1f4f6);border-color:#cdd7de}
+@media(max-width:900px){.overnight-v2-hero{grid-template-columns:repeat(3,minmax(0,1fr))!important}.overnight-v2-dawn-row{grid-template-columns:46px 105px minmax(120px,1fr) repeat(3,minmax(76px,auto));gap:10px;padding:12px}.dawn-row-title b{font-size:20px}.dawn-row-weather b,.dawn-row-metric b{font-size:15px}}
+@media(max-width:700px){.overnight-v2-hero{grid-template-columns:1fr!important}.overnight-v2-dawn-row{grid-template-columns:44px 1fr 1fr;grid-template-areas:'icon title weather' 'icon temp wind' 'icon rain rain';gap:10px 12px}.dawn-row-icon{grid-area:icon;align-self:start}.dawn-row-title{grid-area:title}.dawn-row-weather{grid-area:weather}.dawn-row-metric:nth-of-type(4){grid-area:temp}.dawn-row-metric:nth-of-type(5){grid-area:wind}.dawn-row-metric:nth-of-type(6){grid-area:rain}.dawn-row-weather b,.dawn-row-metric b{white-space:normal;overflow:visible;text-overflow:clip}}
+
+
+/* V1.12.68 summary commentary */
+.decision-commentary{display:flex;align-items:flex-start;gap:14px;margin-top:18px;padding:18px 20px;border:1px solid #d7e6df;border-radius:20px;background:linear-gradient(180deg,#fbfdfc 0%,#f5faf7 100%);box-shadow:0 8px 22px rgba(24,49,40,.05)}
+.decision-commentary-icon{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:#fff;box-shadow:0 7px 18px rgba(24,49,40,.07);font-size:21px}
+.decision-commentary>div:last-child{min-width:0}.decision-commentary small{display:block;color:#70857b;font-size:11px;font-weight:850;margin-bottom:3px}.decision-commentary b{display:block;color:#1b362c;font-size:17px;line-height:1.4}.decision-commentary p{margin:8px 0 6px;color:#3d554b;font-size:14px;line-height:1.8;font-weight:650}.decision-commentary em{display:block;color:#7b8e85;font-size:10px;line-height:1.5;font-style:normal}
+.decision-commentary.clear{border-color:#bddfce;background:linear-gradient(180deg,#f5fbf7,#edf8f2)}
+.decision-commentary.caution{border-color:#e5d693;background:linear-gradient(180deg,#fffdf6,#fff9e9)}
+.decision-commentary.warning{border-color:#efc093;background:linear-gradient(180deg,#fff9f3,#fff2e8)}
+.decision-commentary.danger{border-color:#e7aaa6;background:linear-gradient(180deg,#fff5f4,#ffedeb)}
+@media(max-width:680px){.decision-commentary{gap:10px;padding:15px;border-radius:17px}.decision-commentary-icon{flex-basis:36px;width:36px;height:36px;border-radius:12px;font-size:18px}.decision-commentary b{font-size:17px}.decision-commentary p{font-size:14px;line-height:1.75}.decision-commentary em{font-size:11px}}
