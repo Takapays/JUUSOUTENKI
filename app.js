@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.4.74';
+const APP_VERSION = '1.4.75';
 
 
 
@@ -4841,6 +4841,7 @@ function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
     <button class="move up" type="button" title="上へ">↑</button><button class="move down" type="button" title="下へ">↓</button><button class="remove" type="button" title="削除">×</button>
     <div class="point-meta">地点を選択してください</div>`;
   $('points').appendChild(row); renumber();
+  window.TratenTrailheadAccess?.attachRow?.(row);
   const typeSel=row.querySelector('.point-type'), pointSel=row.querySelector('.point-select'), stay=row.querySelector('.stay-option');
   typeSel.addEventListener('change',()=>preservePointRowViewport(row,()=>{pointSel.innerHTML=candidateOptions(typeSel.value); stay.classList.toggle('hidden',typeSel.value!=='hut'); if(typeSel.value!=='hut')row.querySelector('.point-stay').checked=false; updateMeta(row); refreshAllCourseTimeMissingBadges();}));
   pointSel.addEventListener('change',()=>preservePointRowViewport(row,()=>{

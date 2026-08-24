@@ -130,7 +130,8 @@
       btn.disabled=hasSelection&&!hit;
       btn.setAttribute('aria-disabled',hasSelection&&!hit?'true':'false');
       btn.dataset.trailhead=hit?.key||'';
-      btn.textContent=hit?'アクセス':'アクセス情報なし';
+      const nextText=hit?'アクセス':'アクセス情報なし';
+      if(btn.textContent!==nextText) btn.textContent=nextText;
       btn.title=hit?`${hit.key}のアクセス情報を見る`:(hasSelection?`${selected}のアクセス情報は現在未登録です`:'');
     };
     select._tratenAccessUpdate=update;
@@ -219,10 +220,19 @@
     });
   }
 
+  function attachRow(row){
+    if(!row)return;
+    const typeSel=row.querySelector('.point-type');
+    const pointSel=row.querySelector('.point-select');
+    if(!typeSel||!pointSel)return;
+    setButtonVisibility(pointSel,typeSel.value==='trailhead');
+    if(typeSel.dataset.accessWatch!=='1'){
+      typeSel.dataset.accessWatch='1';
+      typeSel.addEventListener('change',()=>setButtonVisibility(pointSel,typeSel.value==='trailhead'));
+    }
+  }
+
   ensureModal();
   scan();
-  const observer=new MutationObserver(()=>scan());
-  const root=document.getElementById('routeWizard')||document.body;
-  observer.observe(root,{childList:true,subtree:true});
-  window.TratenTrailheadAccess={open:openModal,data:ACCESS_DB,refresh:scan};
+  window.TratenTrailheadAccess={open:openModal,data:ACCESS_DB,refresh:scan,attachRow};
 })();
