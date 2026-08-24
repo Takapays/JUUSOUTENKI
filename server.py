@@ -9,6 +9,7 @@ Designed to run locally with `python server.py` and in production with Gunicorn.
 from __future__ import annotations
 
 import gzip
+import hmac
 import heapq
 import json
 import math
@@ -26,7 +27,7 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "1.12.70"
+APP_VERSION = "1.4.73"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
@@ -42,6 +43,18 @@ SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 USAGE_LOG_STDOUT = os.environ.get("USAGE_LOG_STDOUT", "1").lower() not in {"0", "false", "no"}
 USAGE_EVENT_TIMEOUT = int(os.environ.get("USAGE_EVENT_TIMEOUT", "8"))
 USAGE_EVENT_MAX_BYTES = int(os.environ.get("USAGE_EVENT_MAX_BYTES", str(32 * 1024)))
+USAGE_DASHBOARD_USERNAME = os.environ.get("USAGE_DASHBOARD_USERNAME", "admin")
+USAGE_DASHBOARD_PASSWORD = os.environ.get("USAGE_DASHBOARD_PASSWORD", "")
+USAGE_DASHBOARD_MAX_EVENTS = int(os.environ.get("USAGE_DASHBOARD_MAX_EVENTS", "50000"))
+
+INDEXNOW_KEY = "5d55ce5ee953aa38b715681f5207ee3d"
+INDEXNOW_KEY_FILENAME = f"{INDEXNOW_KEY}.txt"
+INDEXNOW_ENDPOINT = "https://api.indexnow.org/IndexNow"
+INDEXNOW_HOST = "otenki.onrender.com"
+INDEXNOW_PUBLIC_URLS = [
+    "https://otenki.onrender.com/",
+    "https://otenki.onrender.com/guide.html",
+]
 
 ALLOWED_EVENT_NAMES = {
     "page_view",
@@ -50,10 +63,14 @@ ALLOWED_EVENT_NAMES = {
     "trail_route_calculated",
     "arrival_times_calculated",
     "weather_analysis",
+    "mountain_selected",
+    "point_selected",
+    "route_point_used",
 }
 
 ALLOWED_HOSTS = {
     "api.open-meteo.com",
+    "air-quality-api.open-meteo.com",
     "geocoding-api.open-meteo.com",
     "nominatim.openstreetmap.org",
     "api.met.no",
@@ -73,12 +90,12 @@ OVERPASS_ENDPOINTS = [
 
 UA = os.environ.get(
     "UPSTREAM_USER_AGENT",
-    "TraverseWeatherDecision/1.12.70",
+    "TraverseWeatherDecision/1.4.21",
 )
 
 METNO_USER_AGENT = os.environ.get(
     "METNO_USER_AGENT",
-    "TRATEN/1.12.70 https://juusoutenki.onrender.com",
+    "TRATEN/1.4.21 https://juusoutenki.onrender.com",
 )
 
 NOAA_GFS_FILTER = os.environ.get(
@@ -291,6 +308,21 @@ def _usage_row(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _supabase_headers(*, accept_json: bool = False) -> dict[str, str]:
+    """Build Data API headers for both new sb_secret_* keys and legacy service_role JWTs."""
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "User-Agent": UA,
+    }
+    # New Supabase secret keys are not JWTs and must not be sent as Bearer tokens.
+    # Legacy service_role keys are JWTs and can continue to use Authorization.
+    if SUPABASE_SERVICE_ROLE_KEY and not SUPABASE_SERVICE_ROLE_KEY.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+    if accept_json:
+        headers["Accept"] = "application/json"
+    return headers
+
+
 def _write_supabase_event(row: dict[str, Any]) -> bool:
     if not (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY):
         return False
@@ -301,15 +333,242 @@ def _write_supabase_event(row: dict[str, Any]) -> bool:
         data=body,
         method="POST",
         headers={
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            **_supabase_headers(),
             "Content-Type": "application/json",
             "Prefer": "return=minimal",
-            "User-Agent": UA,
         },
     )
     with urllib.request.urlopen(req, timeout=USAGE_EVENT_TIMEOUT) as resp:
         return 200 <= resp.status < 300
+
+def _dashboard_auth_ok() -> bool:
+    if not USAGE_DASHBOARD_PASSWORD:
+        return False
+    auth = request.authorization
+    if not auth:
+        return False
+    return hmac.compare_digest(auth.username or "", USAGE_DASHBOARD_USERNAME) and hmac.compare_digest(auth.password or "", USAGE_DASHBOARD_PASSWORD)
+
+
+def _dashboard_unauthorized():
+    if not USAGE_DASHBOARD_PASSWORD:
+        return Response(
+            "USAGE_DASHBOARD_PASSWORD is not configured on the server.",
+            status=503,
+            content_type="text/plain; charset=utf-8",
+        )
+    response = Response("Authentication required", status=401, content_type="text/plain; charset=utf-8")
+    response.headers["WWW-Authenticate"] = 'Basic realm="TRATEN Usage Dashboard", charset="UTF-8"'
+    return response
+
+
+def _submit_indexnow(urls: list[str]) -> tuple[int, str]:
+    allowed_prefix = f"https://{INDEXNOW_HOST}/"
+    clean_urls: list[str] = []
+    for url in urls:
+        if not isinstance(url, str):
+            continue
+        url = url.strip()
+        if url == f"https://{INDEXNOW_HOST}" or url.startswith(allowed_prefix):
+            if url not in clean_urls:
+                clean_urls.append(url)
+    if not clean_urls:
+        raise ValueError("No valid IndexNow URLs were supplied.")
+
+    body = json.dumps(
+        {
+            "host": INDEXNOW_HOST,
+            "key": INDEXNOW_KEY,
+            "keyLocation": f"https://{INDEXNOW_HOST}/{INDEXNOW_KEY_FILENAME}",
+            "urlList": clean_urls,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        INDEXNOW_ENDPOINT,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": "Traten-IndexNow/1.0",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            detail = resp.read(1000).decode("utf-8", errors="replace")
+            return resp.status, detail
+    except urllib.error.HTTPError as exc:
+        detail = exc.read(1000).decode("utf-8", errors="replace")
+        return exc.code, detail
+
+
+def _supabase_read_usage_events(days: int | None) -> list[dict[str, Any]]:
+    if not (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY):
+        raise RuntimeError("Supabase is not configured")
+    params = {
+        "select": "created_at,session_id,event_name,success,mountain,duration_ms,route_points,stay_count,error_message,metadata",
+        "order": "created_at.desc",
+    }
+    if days is not None:
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        params["created_at"] = "gte." + since.isoformat().replace("+00:00", "Z")
+    query = urllib.parse.urlencode(params, safe=",.:+-")
+    url = f"{SUPABASE_URL}/rest/v1/usage_events?{query}"
+    events: list[dict[str, Any]] = []
+    page_size = 1000
+    for offset in range(0, USAGE_DASHBOARD_MAX_EVENTS, page_size):
+        end = min(offset + page_size - 1, USAGE_DASHBOARD_MAX_EVENTS - 1)
+        req = urllib.request.Request(
+            url,
+            headers={
+                **_supabase_headers(accept_json=True),
+                "Range": f"{offset}-{end}",
+                "Range-Unit": "items",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=max(USAGE_EVENT_TIMEOUT, 15)) as resp:
+            rows = json.loads(resp.read().decode("utf-8"))
+        if not isinstance(rows, list):
+            break
+        events.extend(rows)
+        if len(rows) < page_size:
+            break
+    return events
+
+
+def _usage_dashboard_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
+    sessions = {str(e.get("session_id") or "") for e in events if e.get("session_id")}
+    page_views = sum(1 for e in events if e.get("event_name") == "page_view")
+    analyses_ok = sum(1 for e in events if e.get("event_name") == "weather_analysis" and e.get("success") is True)
+    analyses_failed = sum(1 for e in events if e.get("event_name") == "weather_analysis" and e.get("success") is False)
+
+    # Day-by-day usage trend in Japan Standard Time.
+    jst = timezone(timedelta(hours=9))
+    daily_map: dict[str, dict[str, Any]] = {}
+    for e in events:
+        raw_created = str(e.get("created_at") or "")
+        try:
+            created_dt = datetime.fromisoformat(raw_created.replace("Z", "+00:00"))
+            if created_dt.tzinfo is None:
+                created_dt = created_dt.replace(tzinfo=timezone.utc)
+            day = created_dt.astimezone(jst).date().isoformat()
+        except Exception:
+            continue
+        row = daily_map.setdefault(day, {
+            "date": day, "sessions": set(), "page_views": 0,
+            "analyses_ok": 0, "analyses_failed": 0,
+        })
+        session_id = str(e.get("session_id") or "")
+        if session_id:
+            row["sessions"].add(session_id)
+        event_name = str(e.get("event_name") or "")
+        if event_name == "page_view":
+            row["page_views"] += 1
+        if event_name == "weather_analysis" and e.get("success") is True:
+            row["analyses_ok"] += 1
+        if event_name == "weather_analysis" and e.get("success") is False:
+            row["analyses_failed"] += 1
+
+    daily_trend = []
+    for day in sorted(daily_map):
+        row = daily_map[day]
+        daily_trend.append({
+            "date": row["date"],
+            "unique_sessions": len(row["sessions"]),
+            "page_views": row["page_views"],
+            "analyses_ok": row["analyses_ok"],
+            "analyses_failed": row["analyses_failed"],
+        })
+
+    mountain_map: dict[str, dict[str, Any]] = {}
+    place_map: dict[tuple[str, str, str], dict[str, Any]] = {}
+
+    def mountain_row(name: str):
+        return mountain_map.setdefault(name, {
+            "mountain": name, "selected_count": 0, "analysis_count": 0,
+            "sessions": set(), "last_used": "",
+        })
+
+    for e in events:
+        event = str(e.get("event_name") or "")
+        meta = e.get("metadata") if isinstance(e.get("metadata"), dict) else {}
+        mountain = str(e.get("mountain") or meta.get("mountain") or "").strip()
+        session = str(e.get("session_id") or "")
+        created = str(e.get("created_at") or "")
+
+        if mountain and event in {"mountain_selected", "weather_analysis", "route_candidates_loaded", "route_point_used", "point_selected"}:
+            mr = mountain_row(mountain)
+            if event == "mountain_selected":
+                mr["selected_count"] += 1
+            if event == "weather_analysis" and e.get("success") is True:
+                mr["analysis_count"] += 1
+            if session:
+                mr["sessions"].add(session)
+            if created > mr["last_used"]:
+                mr["last_used"] = created
+
+        if event not in {"point_selected", "route_point_used"}:
+            continue
+        point_name = str(meta.get("point_name") or "").strip()
+        point_type = str(meta.get("point_type") or "other").strip() or "other"
+        if not point_name:
+            continue
+        key = (mountain, point_name, point_type)
+        pr = place_map.setdefault(key, {
+            "mountain": mountain, "point_name": point_name, "point_type": point_type,
+            "role": str(meta.get("point_role") or ""), "source": str(meta.get("source") or ""),
+            "selected_count": 0, "used_count": 0, "sessions": set(), "last_used": "",
+        })
+        if event == "point_selected":
+            pr["selected_count"] += 1
+        else:
+            pr["used_count"] += 1
+        if session:
+            pr["sessions"].add(session)
+        if created > pr["last_used"]:
+            pr["last_used"] = created
+        if not pr["role"] and meta.get("point_role"):
+            pr["role"] = str(meta.get("point_role"))
+
+    mountains = []
+    for row in mountain_map.values():
+        row["unique_sessions"] = len(row.pop("sessions"))
+        # Do not show incidental mountain context unless it was actually selected or analyzed.
+        if row["selected_count"] <= 0 and row["analysis_count"] <= 0:
+            continue
+        mountains.append(row)
+    mountains.sort(key=lambda x: (-x["analysis_count"], -x["selected_count"], x["mountain"]))
+
+    places = []
+    for row in place_map.values():
+        row["unique_sessions"] = len(row.pop("sessions"))
+        places.append(row)
+    places.sort(key=lambda x: (-x["used_count"], -x["selected_count"], x["mountain"], x["point_name"]))
+
+    recent_failures = [
+        {
+            "created_at": e.get("created_at"), "event_name": e.get("event_name"),
+            "mountain": e.get("mountain"), "error_message": e.get("error_message"),
+        }
+        for e in events if e.get("success") is False
+    ][:100]
+
+    return {
+        "ok": True,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "events_loaded": len(events),
+        "truncated": len(events) >= USAGE_DASHBOARD_MAX_EVENTS,
+        "summary": {
+            "unique_sessions": len(sessions), "page_views": page_views,
+            "analyses_ok": analyses_ok, "analyses_failed": analyses_failed,
+        },
+        "mountains": mountains,
+        "places": places,
+        "daily_trend": daily_trend,
+        "recent_failures": recent_failures,
+    }
+
 
 def _cache_get(key: str):
     now = time.time()
@@ -563,6 +822,86 @@ def _bytes_response(status: int, ctype: str, body: bytes, *, cache_control: str 
     return response
 
 
+def _national_grade(max_wind: float, max_gust: float, max_rain: float, max_cape: float, min_temp: float, min_visibility: float | None):
+    severe = max_wind >= 15 or max_gust >= 20 or max_rain >= 4 or max_cape >= 500 or min_temp <= -5 or (min_visibility is not None and min_visibility < 500)
+    caution = max_wind >= 10 or max_gust >= 15 or max_rain >= 1.5 or max_cape >= 200 or min_temp <= 0 or (min_visibility is not None and min_visibility < 2000)
+    if severe:
+        return "C", "強い注意要素があります。詳細分析で時間帯とルート全体を確認してください。"
+    if caution:
+        return "B", "注意要素があります。条件と時間帯を確認して判断してください。"
+    return "A", "大きな注意要素は見当たりません。詳細分析で最終確認してください。"
+
+@app.post("/api/national-outlook")
+def national_outlook():
+    payload = request.get_json(silent=True) or {}
+    date_text = str(payload.get("date") or "")[:10]
+    try:
+        target = datetime.strptime(date_text, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify(error="日付が不正です"), 400
+    today_jst = (datetime.now(timezone.utc) + timedelta(hours=9)).date()
+    if target < today_jst or target > today_jst + timedelta(days=15):
+        return jsonify(error="全国判定は今日から15日先までです"), 400
+    raw_points = payload.get("points")
+    if not isinstance(raw_points, list) or not raw_points or len(raw_points) > 150:
+        return jsonify(error="判定地点数が不正です"), 400
+    points=[]
+    for x in raw_points:
+        if not isinstance(x, dict): continue
+        name=str(x.get("name") or "")[:80]
+        try: lat=float(x.get("lat")); lon=float(x.get("lon"))
+        except (TypeError,ValueError): continue
+        if not name or not (20 <= lat <= 50 and 120 <= lon <= 155): continue
+        try: elev=float(x.get("elevation")) if x.get("elevation") is not None else None
+        except (TypeError,ValueError): elev=None
+        points.append({"name":name,"lat":lat,"lon":lon,"elevation":elev})
+    if not points: return jsonify(error="有効な地点がありません"), 400
+    key="national-outlook:"+date_text+":"+"|".join(f'{p["name"]}:{p["lat"]:.4f}:{p["lon"]:.4f}' for p in points)
+    cached=_cache_get(key)
+    if cached:
+        status,ctype,body=cached
+        return Response(body,status=status,content_type=ctype)
+    results=[]
+    hourly_vars="temperature_2m,precipitation,cloud_cover,wind_speed_10m,wind_gusts_10m,cape,visibility"
+    try:
+        for start in range(0,len(points),30):
+            chunk=points[start:start+30]
+            params={
+                "latitude":",".join(f'{p["lat"]:.5f}' for p in chunk),
+                "longitude":",".join(f'{p["lon"]:.5f}' for p in chunk),
+                "hourly":hourly_vars,"start_date":date_text,"end_date":date_text,
+                "timezone":"Asia/Tokyo","wind_speed_unit":"ms"
+            }
+            if all(p["elevation"] is not None for p in chunk): params["elevation"]=",".join(f'{p["elevation"]:.0f}' for p in chunk)
+            url="https://api.open-meteo.com/v1/forecast?"+urllib.parse.urlencode(params)
+            status,ctype,body=_request_url(url)
+            if status != 200: raise RuntimeError(f"Open-Meteo HTTP {status}")
+            data=json.loads(body.decode("utf-8"))
+            rows=data if isinstance(data,list) else [data]
+            if len(rows) != len(chunk): raise RuntimeError("Open-Meteo response size mismatch")
+            for p,forecast in zip(chunk,rows):
+                hourly=forecast.get("hourly") or {}; times=hourly.get("time") or []
+                idx=[i for i,t in enumerate(times) if isinstance(t,str) and len(t)>=13 and 6 <= int(t[11:13]) <= 15]
+                def vals(k):
+                    a=hourly.get(k) or []
+                    out=[]
+                    for i in idx:
+                        try:v=float(a[i])
+                        except (TypeError,ValueError,IndexError):continue
+                        if math.isfinite(v):out.append(v)
+                    return out
+                wind=vals("wind_speed_10m"); gust=vals("wind_gusts_10m"); rain=vals("precipitation"); cape=vals("cape"); temp=vals("temperature_2m"); vis=vals("visibility")
+                if not (wind and rain and temp): continue
+                max_w=max(wind); max_g=max(gust) if gust else max_w; max_r=max(rain); max_c=max(cape) if cape else 0; min_t=min(temp); min_v=min(vis) if vis else None
+                grade,summary=_national_grade(max_w,max_g,max_r,max_c,min_t,min_v)
+                thunder="HIGH" if max_c>=500 else "MEDIUM" if max_c>=200 else "LOW"
+                results.append({"name":p["name"],"grade":grade,"summary":summary,"maxWind":round(max_w,1),"maxGust":round(max_g,1),"maxRain":round(max_r,1),"maxCape":round(max_c),"minTemp":round(min_t,1),"minVisibility":round(min_v) if min_v is not None else None,"thunder":thunder})
+    except Exception as exc:
+        return jsonify(error=f"全国簡易予報の取得に失敗しました: {exc}"), 502
+    payload_out=json.dumps({"date":date_text,"results":results,"version":APP_VERSION},ensure_ascii=False).encode("utf-8")
+    _cache_put(key,200,"application/json; charset=utf-8",payload_out,ttl=1800)
+    return Response(payload_out,status=200,content_type="application/json; charset=utf-8")
+
 @app.get("/api/health")
 def health():
     return jsonify(
@@ -731,12 +1070,102 @@ def overpass():
     return jsonify(error="Overpass取得失敗", detail=" / ".join(errors)), 502
 
 
+@app.get("/usage-dashboard")
+def usage_dashboard():
+    if not _dashboard_auth_ok():
+        return _dashboard_unauthorized()
+    response = send_from_directory(BASE, "usage-dashboard.html")
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
+@app.post("/api/admin/indexnow-submit")
+def indexnow_submit():
+    if not _dashboard_auth_ok():
+        return _dashboard_unauthorized()
+    payload = request.get_json(silent=True) or {}
+    urls = payload.get("urls") if isinstance(payload, dict) else None
+    if not isinstance(urls, list) or not urls:
+        urls = INDEXNOW_PUBLIC_URLS
+    try:
+        status, detail = _submit_indexnow(urls)
+        ok = status in {200, 202}
+        response = jsonify(
+            ok=ok,
+            status=status,
+            submitted=[u for u in urls if isinstance(u, str)],
+            key_location=f"https://{INDEXNOW_HOST}/{INDEXNOW_KEY_FILENAME}",
+            detail=detail[:500],
+        )
+        response.status_code = 200 if ok else 502
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as exc:
+        return jsonify(ok=False, error=str(exc)[:500]), 502
+
+
+@app.get("/api/admin/usage-summary")
+def usage_dashboard_data():
+    if not _dashboard_auth_ok():
+        return _dashboard_unauthorized()
+    raw_days = request.args.get("days", "30").strip().lower()
+    if raw_days in {"all", "0"}:
+        days = None
+    else:
+        try:
+            days = max(1, min(3650, int(raw_days)))
+        except ValueError:
+            days = 30
+    try:
+        events = _supabase_read_usage_events(days)
+        payload = _usage_dashboard_summary(events)
+        payload["days"] = days
+        response = jsonify(payload)
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", errors="replace")[:700]
+        except Exception:
+            detail = ""
+        return jsonify(ok=False, error=f"Supabase HTTP {exc.code}", detail=detail), 502
+    except Exception as exc:
+        return jsonify(ok=False, error=str(exc)[:500]), 502
+
+
 @app.get("/")
 def index():
-    return send_from_directory(BASE, "index.html")
+    response = send_from_directory(BASE, "index.html")
+    response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
+    return response
 
 
-PUBLIC_FILES = {"app.js", "styles.css", "favicon.ico", "robots.txt", "manifest.json"}
+@app.get("/robots.txt")
+def robots_txt():
+    response = send_from_directory(BASE, "robots.txt", mimetype="text/plain")
+    response.headers["Cache-Control"] = "no-store, no-cache, max-age=0, must-revalidate"
+    return response
+
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    response = send_from_directory(BASE, "sitemap.xml", mimetype="application/xml")
+    response.headers["Cache-Control"] = "no-store, no-cache, max-age=0, must-revalidate"
+    return response
+
+
+@app.get("/BingSiteAuth.xml")
+def bing_site_auth():
+    response = send_from_directory(BASE, "BingSiteAuth.xml", mimetype="application/xml")
+    response.headers["Cache-Control"] = "no-store, no-cache, max-age=0, must-revalidate"
+    return response
+
+
+PUBLIC_FILES = {"app.js", "styles.css", "access.js", "access-data.js", "access.css", "favicon.ico", "robots.txt", "sitemap.xml", "guide.html", "manifest.json", "google5a7b3dfd79ff97f0.html", "BingSiteAuth.xml", INDEXNOW_KEY_FILENAME}
 PUBLIC_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico"}
 
 
@@ -759,6 +1188,8 @@ def security_headers(response: Response):
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    if request.path in {"/", "/guide.html"}:
+        response.headers.setdefault("X-Robots-Tag", "index, follow, max-image-preview:large")
     return response
 
 

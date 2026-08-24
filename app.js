@@ -1,5 +1,1043 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.12.70';
+const APP_VERSION = '1.4.74';
+
+
+
+
+// V1.4.34: 北アルプス全域の主要区間 標準コースタイム（分）。
+// 公開情報で方向別所要時間を確認できた区間だけを登録する。推測値は使用しない。
+// 北アルプス山小屋友交会「主なルート（所要時間）」「北アルプス 夏山コースタイム」準拠。
+const NORTH_ALPS_COURSE_TIMES = Object.freeze({
+  '上高地→槍沢ロッヂ': {minutes:260, source:'北アルプス山小屋友交会・槍沢ロッヂ'},
+  '槍沢ロッヂ→上高地': {minutes:240, source:'北アルプス山小屋友交会・槍沢ロッヂ'},
+  '槍沢ロッヂ→槍ヶ岳山荘': {minutes:280, source:'北アルプス山小屋友交会・槍沢ロッヂ'},
+  '槍ヶ岳山荘→槍沢ロッヂ': {minutes:210, source:'北アルプス山小屋友交会・槍沢ロッヂ'},
+  // V1.4.63: 槍ヶ岳山荘グループ公式FAQ『穂先（頂上）までは通常片道30分程度』。
+  '槍ヶ岳山荘→槍ヶ岳': {minutes:30, source:'槍ヶ岳山荘グループ公式FAQ・穂先まで片道30分'},
+  '槍ヶ岳→槍ヶ岳山荘': {minutes:30, source:'槍ヶ岳山荘グループ公式FAQ・穂先まで片道30分'},
+  '三股→蝶ヶ岳': {minutes:330, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '蝶ヶ岳→三股': {minutes:190, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '横尾→蝶ヶ岳': {minutes:270, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '蝶ヶ岳→横尾': {minutes:180, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '常念小屋→常念山頂': {minutes:90, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '常念山頂→常念小屋': {minutes:90, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '常念山頂→蝶ヶ岳': {minutes:270, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '蝶ヶ岳→常念山頂': {minutes:300, source:'北アルプス山小屋友交会・蝶ヶ岳ヒュッテ'},
+  '燕山荘→大天荘': {minutes:210, source:'北アルプス山小屋友交会・大天荘'},
+  '高瀬ダム→烏帽子小屋': {minutes:360, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '烏帽子小屋→高瀬ダム': {minutes:240, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '烏帽子小屋→野口五郎岳': {minutes:210, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '野口五郎岳→烏帽子小屋': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '野口五郎岳→水晶小屋': {minutes:180, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '水晶小屋→野口五郎岳': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '水晶小屋→三俣山荘': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '三俣山荘→水晶小屋': {minutes:180, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '三俣山荘→三俣蓮華岳': {minutes:60, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '三俣蓮華岳→三俣山荘': {minutes:40, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '三俣蓮華岳→双六小屋': {minutes:90, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '双六小屋→三俣蓮華岳': {minutes:120, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  // V1.4.33: 表銀座（燕山荘グループ公式の現行案内で区間時間を確認）
+  '中房→合戦小屋': {minutes:240, source:'燕山荘グループ・合戦小屋/ルートマップ'},
+  '合戦小屋→燕山荘': {minutes:90, source:'燕山荘グループ・合戦小屋/ルートマップ'},
+  '燕山荘→燕岳': {minutes:30, source:'燕山荘グループ・ルートマップ'},
+  // V1.4.33: 新穂高〜双六（双六小屋グループ公式FAQ）
+  '新穂高温泉→わさび平小屋': {minutes:80, source:'双六小屋グループ・FAQ'},
+  'わさび平小屋→鏡平山荘': {minutes:240, source:'双六小屋グループ・FAQ'},
+  '鏡平山荘→双六小屋': {minutes:130, source:'双六小屋グループ・鏡平山荘（現行案内）'},
+  // V1.4.33: 槍・穂高主要区間（北アルプス山小屋友交会・夏山コースタイム）
+  '上高地→横尾': {minutes:175, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '横尾→上高地': {minutes:175, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '横尾→涸沢ヒュッテ': {minutes:180, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '涸沢ヒュッテ→横尾': {minutes:120, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '新穂高温泉→槍平小屋': {minutes:270, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '槍平小屋→新穂高温泉': {minutes:210, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '槍平小屋→槍ヶ岳山荘': {minutes:240, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '槍ヶ岳山荘→槍平小屋': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '槍ヶ岳山荘→南岳小屋': {minutes:120, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '南岳小屋→槍ヶ岳山荘': {minutes:120, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '南岳小屋→北穂高小屋': {minutes:180, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '北穂高小屋→南岳小屋': {minutes:180, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '北穂高小屋→涸沢ヒュッテ': {minutes:105, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '涸沢ヒュッテ→北穂高小屋': {minutes:180, source:'北アルプス山小屋友交会・夏山コースタイム'},
+
+  // V1.4.34: 白馬・朝日・後立山（白馬村公式モデルコース）
+  '猿倉→白馬尻小屋': {minutes:90, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬尻小屋→白馬山荘': {minutes:320, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '白馬山荘→白馬岳': {minutes:15, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬岳→白馬山荘': {minutes:10, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬岳→小蓮華山': {minutes:90, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '小蓮華山→白馬岳': {minutes:95, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '小蓮華山→白馬大池山荘': {minutes:90, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬大池山荘→小蓮華山': {minutes:130, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬大池山荘→栂池自然園': {minutes:170, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '栂池自然園→白馬大池山荘': {minutes:235, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '白馬大池山荘→蓮華温泉': {minutes:140, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬山荘→杓子岳': {minutes:75, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '杓子岳→白馬鑓ヶ岳': {minutes:60, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬鑓ヶ岳→天狗山荘': {minutes:50, source:'白馬村公式観光サイト・モデルコース'},
+  '天狗山荘→不帰キレット': {minutes:120, source:'白馬村公式観光サイト・モデルコース'},
+  '不帰キレット→唐松岳': {minutes:180, source:'白馬村公式観光サイト・モデルコース'},
+  '唐松岳→唐松岳頂上山荘': {minutes:20, source:'白馬村公式観光サイト・モデルコース'},
+  '唐松岳頂上山荘→唐松岳': {minutes:20, source:'白馬村公式観光サイト・モデルコース'},
+  '八方池山荘→唐松岳頂上山荘': {minutes:250, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '唐松岳頂上山荘→八方池山荘': {minutes:200, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '唐松岳頂上山荘→五竜山荘': {minutes:180, source:'白馬村公式観光サイト・モデルコース'},
+  '五竜山荘→五竜岳': {minutes:60, source:'白馬村公式観光サイト・モデルコース'},
+  '五竜岳→五竜山荘': {minutes:45, source:'白馬村公式観光サイト・モデルコース'},
+  'アルプス平→五竜山荘': {minutes:350, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '五竜山荘→アルプス平': {minutes:260, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '五竜岳→キレット小屋': {minutes:240, source:'白馬村公式観光サイト・モデルコース'},
+  'キレット小屋→鹿島槍ヶ岳': {minutes:180, source:'白馬村公式観光サイト・モデルコース'},
+  '鹿島槍ヶ岳→冷池山荘': {minutes:90, source:'白馬村公式観光サイト・モデルコース'},
+  '冷池山荘→爺ヶ岳': {minutes:120, source:'白馬村公式観光サイト・モデルコース'},
+  '爺ヶ岳→種池山荘': {minutes:30, source:'白馬村公式観光サイト・モデルコース'},
+  '種池山荘→扇沢': {minutes:180, source:'白馬村公式観光サイト・モデルコース'},
+  '白馬岳→雪倉岳': {minutes:135, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+  '雪倉岳→朝日小屋': {minutes:240, source:'白馬村公式観光サイト・モデルコース'},
+  '朝日小屋→朝日岳': {minutes:60, source:'白馬村公式観光サイト・モデルコース'},
+  '朝日岳→蓮華温泉': {minutes:320, source:'白馬村公式観光サイト・モデルコース（公式区間合算）'},
+
+  // V1.4.34: 針ノ木・船窪（各小屋公式）
+  '扇沢→針ノ木小屋': {minutes:240, source:'針ノ木小屋公式・登山道情報'},
+  '針ノ木小屋→蓮華岳': {minutes:40, source:'船窪小屋公式・登山ルート'},
+  '蓮華岳→針ノ木小屋': {minutes:40, source:'船窪小屋公式・登山ルート'},
+  '七倉→船窪小屋': {minutes:360, source:'船窪小屋公式・登山ルート'},
+  '船窪小屋→七倉': {minutes:240, source:'船窪小屋公式・登山ルート'},
+
+  // V1.4.34: 立山・剱（立山黒部アルペンルート／早月小屋公式）
+  '室堂→一の越山荘': {minutes:60, source:'立山黒部アルペンルート公式・雄山モデルコース'},
+  '一の越山荘→立山（雄山）': {minutes:50, source:'立山黒部アルペンルート公式・雄山モデルコース'},
+  '立山（雄山）→一の越山荘': {minutes:50, source:'立山黒部アルペンルート公式・雄山モデルコース'},
+  '一の越山荘→室堂': {minutes:60, source:'立山黒部アルペンルート公式・雄山モデルコース'},
+  '馬場島→早月小屋': {minutes:360, source:'早月小屋公式・アクセス'},
+
+  // V1.4.34: 常念山脈（北アルプス山小屋友交会）
+  '一ノ沢→常念小屋': {minutes:300, source:'北アルプス山小屋友交会・常念小屋'},
+  '大天井岳→常念小屋': {minutes:180, source:'北アルプス山小屋友交会・常念小屋'},
+
+  // V1.4.34: 西穂・焼岳／穂高（北アルプス山小屋友交会）
+  '上高地→焼岳小屋': {minutes:150, source:'北アルプス山小屋友交会・焼岳小屋'},
+  '西穂山荘→焼岳小屋': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '焼岳小屋→西穂山荘': {minutes:210, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '涸沢ヒュッテ→穂高岳山荘': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '穂高岳山荘→涸沢ヒュッテ': {minutes:105, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '穂高岳山荘→奥穂高岳': {minutes:40, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '奥穂高岳→穂高岳山荘': {minutes:60, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '奥穂高岳→前穂高岳': {minutes:120, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '前穂高岳→奥穂高岳': {minutes:120, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '穂高岳山荘→北穂高小屋': {minutes:130, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '北穂高小屋→穂高岳山荘': {minutes:150, source:'北アルプス山小屋友交会・夏山コースタイム'},
+  '涸沢ヒュッテ→北穂高岳': {minutes:190, source:'北アルプス山小屋友交会・北穂高小屋'},
+
+  // V1.4.34: 薬師岳（薬師岳山荘公式）
+  '折立登山口→太郎平小屋': {minutes:270, source:'薬師岳山荘公式・登山ルート（公式区間合算）'},
+  '太郎平小屋→薬師岳山荘': {minutes:150, source:'薬師岳山荘公式・登山ルート（公式区間合算）'},
+  '薬師岳山荘→薬師岳': {minutes:50, source:'薬師岳山荘公式・登山ルート'},
+  '薬師岳→薬師岳山荘': {minutes:40, source:'薬師岳山荘公式・登山ルート'},
+  '薬師岳山荘→太郎平小屋': {minutes:90, source:'薬師岳山荘公式・登山ルート'},
+  '太郎平小屋→折立登山口': {minutes:210, source:'薬師岳山荘公式・登山ルート'},
+
+  // V1.4.34: 双六・笠・黒部五郎（双六小屋グループ公式）
+  '新穂高温泉→鏡平山荘': {minutes:300, source:'双六小屋グループ・鏡平山荘'},
+  '鏡平山荘→笠ヶ岳山荘': {minutes:330, source:'双六小屋グループ・鏡平山荘'},
+  '双六小屋→黒部五郎小舎': {minutes:210, source:'双六小屋グループ・黒部五郎小舎'},
+
+  // V1.4.61: 太郎平小屋－黒部五郎岳。ヤマレコ公開『山行計画』の標準CTを複数照合し、同一路線の細区間を合算。
+  '太郎平小屋→黒部五郎岳': {minutes:276, source:'ヤマレコ・黒部五郎岳 太郎平ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+  '黒部五郎岳→太郎平小屋': {minutes:228, source:'ヤマレコ・黒部五郎岳 太郎平ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'}
+});
+
+
+
+
+
+
+
+// V1.4.39: 北海道・東北・関東・甲信越の主要区間 標準コースタイム（分）。
+// 公式情報を優先し、細区間はヤマレコ公開「山行計画」の標準CTで複数確認できる値のみ補助利用。
+// 推測値・実歩行記録の実績時間は使用しない。
+const EAST_NORTH_COURSE_TIMES = Object.freeze({
+  // 関東：男体山（日光市観光協会公式 2026）
+  '二荒山神社中宮祠登山口→男体山': {minutes:230, source:'日光市観光協会公式・男体山コースタイム'},
+  '男体山→二荒山神社中宮祠登山口': {minutes:160, source:'日光市観光協会公式・男体山コースタイム'},
+
+  // 関東：谷川岳（天神尾根）
+  '天神平→熊穴沢避難小屋': {minutes:35, source:'ヤマレコ・谷川岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '熊穴沢避難小屋→谷川岳オキノ耳': {minutes:115, source:'ヤマレコ・谷川岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '熊穴沢避難小屋→天神平': {minutes:52, source:'ヤマレコ・谷川岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 関東：雲取山（鴨沢）
+  '鴨沢登山口→雲取山': {minutes:440, source:'ヤマレコ・雲取山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '雲取山→雲取山荘': {minutes:22, source:'ヤマレコ・雲取山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '雲取山荘→雲取山': {minutes:40, source:'ヤマレコ・雲取山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '雲取山→鴨沢登山口': {minutes:297, source:'ヤマレコ・雲取山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 東北：岩手山（馬返し）
+  '馬返し登山口岩手山→八合目避難小屋': {minutes:255, source:'ヤマレコ・岩手山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '八合目避難小屋→岩手山': {minutes:65, source:'ヤマレコ・岩手山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '岩手山→八合目避難小屋': {minutes:27, source:'ヤマレコ・岩手山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '八合目避難小屋→馬返し登山口岩手山': {minutes:145, source:'ヤマレコ・岩手山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 東北：早池峰山（小田越）
+  '小田越登山口→早池峰山': {minutes:154, source:'ヤマレコ・早池峰山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 東北：磐梯山（八方台）
+  '八方台登山口→弘法清水小屋': {minutes:125, source:'ヤマレコ・磐梯山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '弘法清水小屋→磐梯山': {minutes:40, source:'ヤマレコ・磐梯山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '磐梯山→弘法清水小屋': {minutes:22, source:'ヤマレコ・磐梯山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '弘法清水小屋→八方台登山口': {minutes:86, source:'ヤマレコ・磐梯山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 北海道：大雪山・旭岳
+  '旭岳ロープウェイ姿見駅→旭岳石室': {minutes:20, source:'ヤマレコ・旭岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '旭岳石室→大雪山（旭岳）': {minutes:140, source:'ヤマレコ・旭岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '大雪山（旭岳）→旭岳石室': {minutes:77, source:'ヤマレコ・旭岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '旭岳石室→旭岳ロープウェイ姿見駅': {minutes:22, source:'ヤマレコ・旭岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 北海道：十勝岳（望岳台）
+  '望岳台→十勝岳避難小屋': {minutes:95, source:'ヤマレコ・十勝岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '十勝岳避難小屋→十勝岳': {minutes:173, source:'ヤマレコ・十勝岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '十勝岳→十勝岳避難小屋': {minutes:99, source:'ヤマレコ・十勝岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '十勝岳避難小屋→望岳台': {minutes:58, source:'ヤマレコ・十勝岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 北海道：羅臼岳（岩尾別温泉）
+  '岩尾別温泉・木下小屋登山口→羅臼平': {minutes:276, source:'ヤマレコ・羅臼岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '羅臼平→羅臼岳': {minutes:71, source:'ヤマレコ・羅臼岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '羅臼岳→羅臼平': {minutes:39, source:'ヤマレコ・羅臼岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '羅臼平→岩尾別温泉・木下小屋登山口': {minutes:164, source:'ヤマレコ・羅臼岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 北海道：斜里岳
+  '清岳荘→斜里岳': {minutes:221, source:'ヤマレコ・斜里岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '斜里岳→清岳荘': {minutes:139, source:'ヤマレコ・斜里岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 甲信越：火打山（笹ヶ峰）
+  '笹ヶ峰登山口→高谷池ヒュッテ': {minutes:212, source:'ヤマレコ・火打山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '高谷池ヒュッテ→火打山': {minutes:103, source:'ヤマレコ・火打山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '火打山→高谷池ヒュッテ': {minutes:67, source:'ヤマレコ・火打山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '高谷池ヒュッテ→笹ヶ峰登山口': {minutes:137, source:'ヤマレコ・火打山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // V1.4.40: 全国CT未登録山の機械抽出後に追加した第1波。
+  // 北海道は行政・環境省の公開コースタイムを優先。
+  '利尻北麓野営場（鴛泊コース）→利尻山': {minutes:310, source:'環境省・利尻山鴛泊コース登山モデル（休憩時間を除く歩行時間）'},
+  '利尻山→利尻北麓野営場（鴛泊コース）': {minutes:220, source:'環境省・利尻山鴛泊コース登山モデル（休憩時間を除く歩行時間）'},
+  '比羅夫登山口・半月湖畔自然公園→後方羊蹄山（羊蹄山）': {minutes:310, source:'倶知安町公式・羊蹄山 倶知安ひらふコース'},
+  '7合目登山口→樽前山': {minutes:50, source:'苫小牧市公式・樽前山登山案内'},
+
+  // 東北：ヤマレコ標準計画を複数照合した区間のみ補完。
+  '酸ヶ湯登山口→八甲田山（大岳）': {minutes:179, source:'ヤマレコ・八甲田大岳 山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '八甲田山（大岳）→酸ヶ湯登山口': {minutes:121, source:'ヤマレコ・八甲田大岳 山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '八合目小屋 秋田駒ヶ岳→秋田駒ヶ岳（男女岳）': {minutes:102, source:'ヤマレコ・秋田駒ヶ岳 男女岳 山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // 関東：標準計画の区間時間を複数照合。
+  'つつじヶ丘登山口→筑波山（女体山）': {minutes:89, source:'ヤマレコ・筑波山 女体山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '筑波山（女体山）→つつじヶ丘登山口': {minutes:56, source:'ヤマレコ・筑波山 女体山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '黒檜山登山口→赤城山（黒檜山）': {minutes:102, source:'ヤマレコ・赤城山 黒檜山 山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // 甲信越：公開コースデータで上り・下りを確認。
+  '雨飾高原キャンプ場登山口→雨飾山': {minutes:240, source:'日本アルプス登山案内・雨飾山 小谷温泉コース'},
+  '雨飾山→雨飾高原キャンプ場登山口': {minutes:185, source:'日本アルプス登山案内・雨飾山 小谷温泉コース'},
+  '戸隠キャンプ場・高妻山登山者駐車場→高妻山': {minutes:290, source:'日本百名山登山コースデータ・高妻山 戸隠コース'},
+  '高妻山→戸隠キャンプ場・高妻山登山者駐車場': {minutes:200, source:'日本百名山登山コースデータ・高妻山 戸隠コース'},
+  '笹ヶ峰登山口→妙高山': {minutes:290, source:'日本百名山登山コースデータ・妙高山 笹ヶ峰コース'},
+  '妙高山→笹ヶ峰登山口': {minutes:230, source:'日本百名山登山コースデータ・妙高山 笹ヶ峰コース'},
+
+  // V1.4.41: 全国CT未登録山の穴埋め第2波（北海道・東北）。
+  // 公式値を最優先し、公式CTが得にくい区間のみヤマレコ公開「山行計画」の標準CTを複数照合。
+  '滝口・雄阿寒岳登山口→雄阿寒岳': {minutes:200, source:'環境省・阿寒摩周国立公園 雄阿寒岳登山コース'},
+  '雄阿寒岳→滝口・雄阿寒岳登山口': {minutes:140, source:'環境省・阿寒摩周国立公園 雄阿寒岳登山コース'},
+  '五色温泉インフォメーションセンター→ニセコアンヌプリ': {minutes:110, source:'ニセコ町公式観光パンフレット・五色温泉コース'},
+  'ニセコアンヌプリ→五色温泉インフォメーションセンター': {minutes:70, source:'ニセコ町公式観光パンフレット・五色温泉コース'},
+  'トムラウシ短縮コース登山口→トムラウシ山': {minutes:357, source:'ヤマレコ・トムラウシ山 短縮コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  'トムラウシ山→トムラウシ短縮コース登山口': {minutes:242, source:'ヤマレコ・トムラウシ山 短縮コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  'シュナイダーコース登山口（音更川二十一ノ沢出合）→石狩岳': {minutes:285, source:'ヤマレコ・石狩岳 シュナイダーコース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '石狩岳→シュナイダーコース登山口（音更川二十一ノ沢出合）': {minutes:174, source:'ヤマレコ・石狩岳 シュナイダーコース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '岩木山八合目→岩木山': {minutes:86, source:'ヤマレコ・岩木山 八合目コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '岩木山→岩木山八合目': {minutes:49, source:'ヤマレコ・岩木山 八合目コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '鉾立登山口（象潟口）→鳥海山（新山）': {minutes:306, source:'ヤマレコ・鳥海山 鉾立コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '鳥海山（新山）→鉾立登山口（象潟口）': {minutes:203, source:'ヤマレコ・鳥海山 鉾立コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '月山八合目登山口→月山': {minutes:156, source:'ヤマレコ・月山 八合目コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '月山→月山八合目登山口': {minutes:103, source:'ヤマレコ・月山 八合目コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '蔵王ロープウェイ地蔵山頂駅→蔵王山（熊野岳）': {minutes:60, source:'ヤマレコ・熊野岳 地蔵山頂駅コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.42: 全国CT未登録山の穴埋め第3波（北海道・東北）。
+  // 同一路線の標準CTを複数の公開山行計画で照合。ルート差がある山は採用ルートをsourceに明記。
+  '天塩岳ヒュッテ登山口→天塩岳': {minutes:268, source:'ヤマレコ・天塩岳 前天塩岳経由 山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '天塩岳→天塩岳ヒュッテ登山口': {minutes:184, source:'ヤマレコ・天塩岳 新道側下山 山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '暑寒荘→暑寒別岳': {minutes:311, source:'ヤマレコ・暑寒別岳 暑寒ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '暑寒別岳→暑寒荘': {minutes:194, source:'ヤマレコ・暑寒別岳 暑寒ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '暑寒荘・暑寒別岳登山口→暑寒別岳': {minutes:311, source:'ヤマレコ・暑寒別岳 暑寒ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '暑寒別岳→暑寒荘・暑寒別岳登山口': {minutes:194, source:'ヤマレコ・暑寒別岳 暑寒ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  'いわかがみ平→栗駒山': {minutes:122, source:'ヤマレコ・栗駒山 いわかがみ平中央コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '栗駒山→いわかがみ平': {minutes:72, source:'ヤマレコ・栗駒山 いわかがみ平中央コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '浄土平→一切経山': {minutes:101, source:'ヤマレコ・一切経山 浄土平コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '一切経山→浄土平': {minutes:65, source:'ヤマレコ・一切経山 浄土平コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '滝沢登山口→会津駒ヶ岳': {minutes:241, source:'ヤマレコ・会津駒ヶ岳 滝沢登山口コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '会津駒ヶ岳→滝沢登山口': {minutes:139, source:'ヤマレコ・会津駒ヶ岳 滝沢登山口コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.43: 全国CT未登録山の穴埋め第4波（北海道・東北）。
+  // 固定ポイント名称と公開標準CTの端点が一致する区間を優先。CT差が大きい山は保留。
+  'ニセイカウシュッペ山登山口（古川林道・西尾根）→ニセイカウシュッペ山': {minutes:197, source:'ヤマレコ・ニセイカウシュッペ山 山行計画（標準CT確認）', sourceType:'yamareco'},
+  'ニセイカウシュッペ山→ニセイカウシュッペ山登山口（古川林道・西尾根）': {minutes:124, source:'ヤマレコ・ニセイカウシュッペ山 山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  '冷水・馬の背登山口（夕張岳ヒュッテ）→夕張岳': {minutes:271, source:'ヤマレコ・夕張岳 冷水コース山行計画（夕張岳ヒュッテ起点区間を複数照合）', sourceType:'yamareco'},
+  '夕張岳→冷水・馬の背登山口（夕張岳ヒュッテ）': {minutes:175, source:'ヤマレコ・夕張岳 冷水コース山行計画（夕張岳ヒュッテ終点区間を複数照合）', sourceType:'yamareco'},
+
+  '千走登山口→狩場山': {minutes:207, source:'ヤマレコ・狩場山 千走コース山行計画（標準CT確認）', sourceType:'yamareco'},
+  '狩場山→千走登山口': {minutes:125, source:'ヤマレコ・狩場山 千走コース山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  '白神岳登山口駐車場→白神岳': {minutes:288, source:'ヤマレコ・白神岳 蟶山コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '白神岳→白神岳登山口駐車場': {minutes:181, source:'ヤマレコ・白神岳 蟶山コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '祝瓶山荘駐車場・桑住平ルート→祝瓶山': {minutes:225, source:'ヤマレコ・祝瓶山 祝瓶山荘・桑住平ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+  '祝瓶山→祝瓶山荘駐車場・桑住平ルート': {minutes:178, source:'ヤマレコ・祝瓶山 祝瓶山荘・桑住平ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  '馬坂峠→帝釈山': {minutes:60, source:'ヤマレコ・帝釈山 馬坂峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '帝釈山→馬坂峠': {minutes:34, source:'ヤマレコ・帝釈山 馬坂峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.44: 全国CT未登録山の穴埋め第5波（北陸・関東・上信越）。
+  // 白山・荒島岳・武尊山は自治体/県の公開標準CTを優先。能郷白山はヤマレコ標準計画を複数照合。
+  '別当出合→白山室堂': {minutes:270, source:'白山市公式・白山 砂防新道 標準時間（休憩含まず）'},
+  '白山室堂→別当出合': {minutes:140, source:'白山市公式・白山 砂防新道 標準時間（休憩含まず）'},
+  '白山室堂→白山（御前峰）': {minutes:40, source:'石川県・白山のグレーディング／登山マップ2026'},
+  '白山（御前峰）→白山室堂': {minutes:30, source:'石川県・白山のグレーディング／登山マップ2026'},
+
+  '勝原コース登山口→荒島岳': {minutes:210, source:'大野市公式・荒島岳 勝原コース'},
+  '荒島岳→勝原コース登山口': {minutes:150, source:'大野市公式・荒島岳 勝原コース'},
+  '中出コース登山口→荒島岳': {minutes:220, source:'大野市公式・荒島岳 中出コース'},
+  '荒島岳→中出コース登山口': {minutes:160, source:'大野市公式・荒島岳 中出コース'},
+
+  '川場谷野営場登山口→武尊山': {minutes:275, source:'群馬県公開・川場村観光ガイド 武尊山 川場谷野営場コース'},
+  '武尊山→川場谷野営場登山口': {minutes:225, source:'群馬県公開・川場村観光ガイド 武尊山 川場谷野営場コース'},
+
+  '温見峠→能郷白山（権現山）': {minutes:145, source:'ヤマレコ・能郷白山 温見峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '能郷白山（権現山）→温見峠': {minutes:85, source:'ヤマレコ・能郷白山 温見峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.45: 全国CT未登録山の穴埋め第6波（上信越・越後）。
+  // 新潟県・魚沼市観光協会・上田市等の公式CTを優先し、方向別CTが不足する山のみヤマレコ標準計画を複数照合。
+  '桜坂登山口→巻機山': {minutes:307, source:'ヤマレコ・巻機山 井戸尾根コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '巻機山→桜坂登山口': {minutes:187, source:'ヤマレコ・巻機山 井戸尾根コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '小赤沢三合目登山口→苗場山': {minutes:200, source:'ヤマレコ・苗場山 小赤沢三合目コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '苗場山→小赤沢三合目登山口': {minutes:136, source:'ヤマレコ・苗場山 小赤沢三合目コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '枝折峠→越後駒ヶ岳': {minutes:360, source:'魚沼市観光協会公式・越後駒ヶ岳 枝折峠コース'},
+  '越後駒ヶ岳→枝折峠': {minutes:330, source:'魚沼市観光協会公式・越後駒ヶ岳 枝折峠コース'},
+
+  '鷹ノ巣・平ヶ岳登山口→平ヶ岳': {minutes:390, source:'魚沼市観光協会公式・平ヶ岳 鷹ノ巣コース'},
+  '平ヶ岳→鷹ノ巣・平ヶ岳登山口': {minutes:240, source:'魚沼市観光協会公式・平ヶ岳 鷹ノ巣コース'},
+
+  '菅平牧場登山口→四阿山': {minutes:180, source:'上田市公式・菅平牧場 四阿山コース'},
+
+  '十字峡登山センター→中ノ岳': {minutes:360, source:'新潟県公式観光情報・中ノ岳 十字峡登山口コース'},
+
+  // V1.4.46: 全国CT未登録山の穴埋め第7波（北信・秋山郷）。
+  // 地点名と実際の起終点が一致する区間のみ採用。浅間山・黒姫山は地点差/規制・ルート差のため今回は保留。
+  'ドロノ木平登山口→佐武流山': {minutes:404, source:'ヤマレコ・佐武流山 ドロノキ平ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+  '佐武流山→ドロノ木平登山口': {minutes:293, source:'ヤマレコ・佐武流山 ドロノキ平ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  'ムジナ平登山口→鳥甲山': {minutes:270, source:'津南町観光協会公式・鳥甲山 ムジナ平ルート'},
+  '屋敷口→鳥甲山': {minutes:300, source:'津南町観光協会公式・鳥甲山 屋敷ルート'},
+
+  '一の鳥居苑地・飯縄山登山者駐車場→飯縄山': {minutes:150, source:'長野市公式・飯縄山 南登山道'},
+  '飯縄山→一の鳥居苑地・飯縄山登山者駐車場': {minutes:120, source:'長野市公式・飯縄山 南登山道'},
+
+  '戸隠神社奥社登山口→戸隠山': {minutes:130, source:'ヤマレコ・戸隠山 山行計画（奥社→八方睨→戸隠山、標準CT複数照合）', sourceType:'yamareco'},
+  '戸隠山→一不動避難小屋': {minutes:89, source:'ヤマレコ・戸隠山 山行計画（戸隠山→九頭龍山→一不動、標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.47: 全国CT未登録山の穴埋め第8波（越後・佐渡）。
+  // 公式・自治体の標準CTを優先。金北山の上りのみヤマレコ標準計画を複数照合。
+  '白雲台交流センター→金北山': {minutes:125, source:'ヤマレコ・金北山 白雲台登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '金北山→白雲台交流センター': {minutes:80, source:'さど観光ナビ公式・ドンデン高原～白雲台縦走ルート'},
+  '大平登山口→米山': {minutes:150, source:'柏崎市公式・米山 大平コース（休憩含まず）'},
+  '保久礼登山口→守門岳': {minutes:210, source:'魚沼市観光協会公式・守門岳 保久礼コース'},
+  '二口登山口→守門岳': {minutes:180, source:'魚沼市観光協会公式・守門岳 二口コース'},
+  'ネズモチ平登山口駐車場→浅草岳': {minutes:135, source:'魚沼市観光協会公式・浅草岳 ネズモチ平コース'},
+  '粟ヶ岳中央登山口（県民休養地）→粟ヶ岳': {minutes:180, source:'加茂市公式・粟ヶ岳 中央登山道'},
+  '室谷登山口→御神楽岳': {minutes:240, source:'新潟県公式観光情報・御神楽岳 室谷登山口'},
+
+  // V1.4.48: 全国CT未登録山の穴埋め第9波（北陸・飛騨）。
+  // 固定地点と公開CTの起終点が一致するルートのみ採用。八海山は山麓駅と山頂駅の起点差があるため保留。
+  '人形堂・中根平登山口→人形山': {minutes:251, source:'ヤマレコ・人形山 中根平登山口ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+  '人形山→人形堂・中根平登山口': {minutes:166, source:'ヤマレコ・人形山 中根平登山口ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+
+  '栃谷登山口金剛堂山→金剛堂山': {minutes:227, source:'ヤマレコ・金剛堂山 栃谷登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '金剛堂山→栃谷登山口金剛堂山': {minutes:142, source:'ヤマレコ・金剛堂山 栃谷登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  'ブナオ峠大門山登山口→大門山': {minutes:130, source:'日本アルプス登山案内・大門山 ブナオ峠コース'},
+  '大門山→ブナオ峠大門山登山口': {minutes:100, source:'日本アルプス登山案内・大門山 ブナオ峠コース'},
+
+  '山之口登山口川上岳→川上岳': {minutes:218, source:'ヤマレコ・川上岳 山之口登山口ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+  '川上岳→山之口登山口川上岳': {minutes:144, source:'ヤマレコ・川上岳 山之口登山口ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+
+  '冠山峠→冠山': {minutes:45, source:'ヤマレコ・冠山 冠山峠ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+  '冠山→冠山峠': {minutes:34, source:'ヤマレコ・冠山 冠山峠ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+
+  // V1.4.49: 全国CT未登録山の穴埋め第10波（福井・岐阜・北陸）。
+  // 固定候補と公開CTの起終点が一致する区間のみ採用。公式値を優先し、不足方向のみ補助CTを利用。
+  '桧峠 大日ヶ岳登山口→大日ヶ岳': {minutes:260, source:'TABITABI郡上公式・大日ヶ岳 ウイングヒルズ白鳥リゾートコース'},
+  '大日ヶ岳→桧峠 大日ヶ岳登山口': {minutes:180, source:'TABITABI郡上公式・大日ヶ岳 ウイングヒルズ白鳥リゾートコース'},
+
+  'ダナ平林道登山口→位山': {minutes:60, source:'高山市公式・位山 巨石群登山道'},
+  '位山→ダナ平林道登山口': {minutes:50, source:'高山市公式・位山 巨石群登山道'},
+
+  '西尾平駐車場→医王山（奥医王山）': {minutes:103, source:'ヤマレコ・奥医王山 西尾平ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '医王山（奥医王山）→西尾平駐車場': {minutes:80, source:'ヤマレコ・奥医王山 西尾平ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '奥越高原青少年自然の家→経ヶ岳（福井）': {minutes:270, source:'福井県公式・経ヶ岳登山道地図（一般的な所要時間・登り区間合算）'},
+  '経ヶ岳（福井）→奥越高原青少年自然の家': {minutes:183, source:'ヤマレコ・経ヶ岳 奥越高原青少年自然の家ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+
+  '乙女渓谷（小秀山登山口）→小秀山': {minutes:283, source:'ヤマレコ・小秀山 乙女渓谷二ノ谷ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '小秀山→乙女渓谷（小秀山登山口）': {minutes:192, source:'ヤマレコ・小秀山 三ノ谷下山ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.50: 全国CT未登録山の穴埋め第11波（北陸～中央アルプス北端）。
+  // 固定地点と公開CTの起終点が一致する区間のみ採用。奥三界岳は現行の通行規制とは分離してCT自体を保持。
+  '川上林道ゲート（夕森渓谷）→奥三界岳': {minutes:307, source:'ヤマレコ・奥三界岳 川上林道ゲート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+  '奥三界岳→川上林道ゲート（夕森渓谷）': {minutes:205, source:'ヤマレコ・奥三界岳 川上林道ゲート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+
+  '権兵衛峠登山口→経ヶ岳': {minutes:240, source:'ヤマレコ・経ヶ岳 権兵衛峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '経ヶ岳→権兵衛峠登山口': {minutes:164, source:'ヤマレコ・経ヶ岳 権兵衛峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '鷲ヶ岳立石キャンプ場（林道ルート起点）→鷲ヶ岳': {minutes:80, source:'マウンテンシティ・鷲ヶ岳キャンプ場ルート（一般コースタイム）'},
+  '鷲ヶ岳→鷲ヶ岳立石キャンプ場（林道ルート起点）': {minutes:60, source:'マウンテンシティ・鷲ヶ岳キャンプ場ルート（一般コースタイム）'},
+
+  // V1.4.51: 全国CT未登録山の穴埋め第12波（中央アルプス・御嶽／奥秩父）。
+  // 固定地点と標準CTの端点が一致する区間のみ採用。御嶽・奥秩父はヤマレコ標準CTを複数照合。
+  '田の原登山口→御嶽山（剣ヶ峰）': {minutes:202, source:'ヤマレコ・御嶽山 田の原ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '御嶽山（剣ヶ峰）→田の原登山口': {minutes:116, source:'ヤマレコ・御嶽山 田の原ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '神坂峠登山口→恵那山': {minutes:300, source:'中津川市公式・恵那山 神坂峠ルート'},
+  '恵那山→神坂峠登山口': {minutes:270, source:'中津川市公式・恵那山 神坂峠ルート'},
+
+  '上日川峠→大菩薩嶺': {minutes:122, source:'ヤマレコ・大菩薩嶺 上日川峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '大菩薩嶺→上日川峠': {minutes:74, source:'ヤマレコ・大菩薩嶺 上日川峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '大弛峠→金峰山': {minutes:128, source:'ヤマレコ・金峰山 大弛峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '金峰山→大弛峠': {minutes:105, source:'ヤマレコ・金峰山 大弛峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '瑞牆山荘・富士見平口→富士見平小屋': {minutes:66, source:'ヤマレコ・瑞牆山 瑞牆山荘ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '富士見平小屋→瑞牆山': {minutes:118, source:'ヤマレコ・瑞牆山 瑞牆山荘ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '瑞牆山→富士見平小屋': {minutes:76, source:'ヤマレコ・瑞牆山 瑞牆山荘ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '富士見平小屋→瑞牆山荘・富士見平口': {minutes:37, source:'ヤマレコ・瑞牆山 瑞牆山荘ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '瑞牆山荘・富士見平口→瑞牆山': {minutes:184, source:'ヤマレコ・瑞牆山 瑞牆山荘ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+  '瑞牆山→瑞牆山荘・富士見平口': {minutes:113, source:'ヤマレコ・瑞牆山 瑞牆山荘ルート山行計画（標準CT区間合算）', sourceType:'yamareco'},
+
+  // V1.4.52: 全国CT未登録山の穴埋め第13波（奥秩父～関東）。
+  // 公式CTを優先し、公式で逆方向が得られない区間のみヤマレコ公開「山行計画」の標準CTを複数照合して補完。
+  '日向大谷口→両神山': {minutes:300, source:'ヤマレコ・両神山 日向大谷ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '両神山→日向大谷口': {minutes:197, source:'ヤマレコ・両神山 日向大谷ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '毛木平登山口→甲武信ヶ岳': {minutes:240, source:'川上村公式・甲武信ヶ岳 毛木平～千曲川源流ルート'},
+  '甲武信ヶ岳→毛木平登山口': {minutes:168, source:'ヤマレコ・甲武信ヶ岳 毛木平ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '深田記念公園・茅ヶ岳登山口→茅ヶ岳': {minutes:140, source:'北杜市観光協会・茅ヶ岳 深田記念公園ルート'},
+  '茅ヶ岳→深田記念公園・茅ヶ岳登山口': {minutes:103, source:'ヤマレコ・茅ヶ岳 深田公園ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '徳和・乾徳山登山口→乾徳山': {minutes:294, source:'ヤマレコ・乾徳山 徳和・オソバ沢ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '乾徳山→徳和・乾徳山登山口': {minutes:171, source:'ヤマレコ・乾徳山 徳和・オソバ沢ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '生川・一の鳥居→武甲山': {minutes:130, source:'横瀬町観光協会公式・武甲山 表参道ルート'},
+  '武甲山→生川・一の鳥居': {minutes:104, source:'ヤマレコ・武甲山 一の鳥居表参道ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.53: 全国CT未登録山の穴埋め第14波（関東・山梨・伊豆を一括拡張）。
+  // 今回は8座・18方向。公式値を優先し、方向別CTがない区間はヤマレコ公開「山行計画」の標準CTを複数照合。
+  '大弛峠→国師ヶ岳': {minutes:60, source:'山梨市公式・国師ヶ岳（大弛峠から山頂まで約1時間）'},
+  '国師ヶ岳→大弛峠': {minutes:35, source:'ヤマレコ・国師ヶ岳 大弛峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '大倉登山口→塔ノ岳': {minutes:309, source:'ヤマレコ・塔ノ岳 大倉尾根ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '塔ノ岳→大倉登山口': {minutes:192, source:'ヤマレコ・塔ノ岳 大倉尾根ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '公時神社（金時神社）登山口→金時山': {minutes:116, source:'ヤマレコ・金時山 公時神社ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '金時山→公時神社（金時神社）登山口': {minutes:65, source:'ヤマレコ・金時山 公時神社ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '金時見晴パーキング→金時山': {minutes:83, source:'ヤマレコ・金時山 金時見晴パーキングルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '金時山→金時見晴パーキング': {minutes:48, source:'ヤマレコ・金時山 金時見晴パーキングルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '三ツ峠登山口→三ッ峠山': {minutes:110, source:'西桂町公式・三ツ峠山 裏登山口コース'},
+  '三ッ峠山→三ツ峠登山口': {minutes:80, source:'西桂町公式・三ツ峠山 裏登山口コース'},
+
+  '十里木高原登山口→愛鷹山（越前岳）': {minutes:146, source:'ヤマレコ・越前岳 十里木高原ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '愛鷹山（越前岳）→十里木高原登山口': {minutes:82, source:'ヤマレコ・越前岳 十里木高原ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '百畳峠（百畳平）駐車場・山伏登山口→山伏': {minutes:59, source:'ヤマレコ・山伏 百畳峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '山伏→百畳峠（百畳平）駐車場・山伏登山口': {minutes:34, source:'ヤマレコ・山伏 百畳峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '道坂トンネル都留側駐車場・御正体山登山口→御正体山': {minutes:247, source:'ヤマレコ・御正体山 道坂トンネルルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '御正体山→道坂トンネル都留側駐車場・御正体山登山口': {minutes:180, source:'ヤマレコ・御正体山 道坂トンネルルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  'ヤビツ峠→大山（神奈川）': {minutes:122, source:'ヤマレコ・大山 ヤビツ峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '大山（神奈川）→ヤビツ峠': {minutes:73, source:'ヤマレコ・大山 ヤビツ峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.54: 全国CT未登録山の穴埋め第15波（東北・北関東を一括拡張）。
+  // 8座・15方向。公式値を優先し、端点一致が確認できるヤマレコ標準計画のみ補助利用。逆方向が不明確な区間は登録しない。
+  '八幡平見返峠・山頂レストハウス→八幡平': {minutes:25, source:'ヤマレコ・八幡平 山頂レストハウス周回山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '八幡平→八幡平見返峠・山頂レストハウス': {minutes:21, source:'ヤマレコ・八幡平 山頂レストハウス周回山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '中沼登山口→焼石岳': {minutes:215, source:'ヤマレコ・焼石岳 中沼コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '焼石岳→中沼登山口': {minutes:140, source:'ヤマレコ・焼石岳 中沼コース山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '有屋登山口→神室山': {minutes:267, source:'ヤマレコ・神室山 有屋口ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+  '神室山→有屋登山口': {minutes:173, source:'ヤマレコ・神室山 有屋口ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  '奥岳登山口・あだたら山ロープウェイ→安達太良山': {minutes:150, source:'二本松市観光連盟公式・安達太良山 奥岳登山口 五葉松平コース'},
+
+  '山王峠・太郎山登山口→太郎山': {minutes:219, source:'ヤマレコ・太郎山 山王峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '太郎山→山王峠・太郎山登山口': {minutes:154, source:'ヤマレコ・太郎山 山王峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '浅間隠山登山口（二度上峠付近）→浅間隠山': {minutes:107, source:'ヤマレコ・浅間隠山 二度上峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '浅間隠山→浅間隠山登山口（二度上峠付近）': {minutes:64, source:'ヤマレコ・浅間隠山 二度上峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '榛名公園ビジターセンター登山口→榛名富士': {minutes:70, source:'ヤマレコ・榛名富士 ビジターセンタールート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '榛名富士→榛名公園ビジターセンター登山口': {minutes:36, source:'ヤマレコ・榛名富士 ビジターセンタールート山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  '内山峠登山口→荒船山（経塚山）': {minutes:181, source:'ヤマレコ・荒船山 内山峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '荒船山（経塚山）→内山峠登山口': {minutes:146, source:'ヤマレコ・荒船山 内山峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // V1.4.55: 全国CT未登録山の穴埋め第16波（北東北・阿武隈を追加）。
+  // 固定候補と公開標準CTの端点が一致する区間のみ採用。異なる下山路を使う大滝根山は登り方向のみ登録。
+  '一本杉登山口 姫神山→姫神山': {minutes:138, source:'ヤマレコ・姫神山 一本杉登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '姫神山→一本杉登山口 姫神山': {minutes:77, source:'ヤマレコ・姫神山 一本杉登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '赤坂峠 五葉山登山口→五葉山': {minutes:156, source:'ヤマレコ・五葉山 赤坂峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '五葉山→赤坂峠 五葉山登山口': {minutes:96, source:'ヤマレコ・五葉山 赤坂峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '石楠花荘→五葉山': {minutes:13, source:'ヤマレコ・五葉山 赤坂峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '五葉山→石楠花荘': {minutes:11, source:'ヤマレコ・五葉山 赤坂峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '阿仁ゴンドラ山頂駅→森吉山': {minutes:83, source:'ヤマレコ・森吉山 阿仁ゴンドラ山頂駅ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '森吉山→阿仁ゴンドラ山頂駅': {minutes:57, source:'ヤマレコ・森吉山 阿仁ゴンドラ山頂駅ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  '仙台平 大滝根山登山口→大滝根山': {minutes:125, source:'ヤマレコ・大滝根山 仙台平・鬼穴ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  // V1.4.56: 全国CT未登録山の穴埋め第17波（東北南部〜会津）。
+  // 固定座標の端点と公開CTの端点が一致した区間のみ追加。飯豊山・西吾妻山・荒海山・七ヶ岳・会津朝日岳は端点差/固定小屋未確定のため保留。
+  '古寺案内センター（古寺コース）→大朝日岳': {minutes:370, source:'山と高原地図Web・古寺案内センターから大朝日岳へ'},
+  '大朝日岳→古寺案内センター（古寺コース）': {minutes:245, source:'山と高原地図Web・古寺案内センターから大朝日岳へ'},
+
+  '御鍋神社登山口→二岐山（男岳）': {minutes:127, source:'ヤマレコ・二岐山 御鍋神社登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '二岐山（男岳）→御鍋神社登山口': {minutes:71, source:'ヤマレコ・二岐山 御鍋神社登山口ルート山行計画（標準CT確認）', sourceType:'yamareco'},
+
+  // V1.4.57: 全国CT未登録山の穴埋め第18波（北陸・越後を横断して端点一致区間を追加）。
+  // 公開公式CTを優先し、公式資料同士で値が割れる方向は登録しない。
+  '二王子神社登山口→二王子岳': {minutes:240, source:'新潟県観光協会公式・二王子岳 二王子神社登山口コース'},
+  '白木峰8合目駐車場→白木峰': {minutes:60, source:'富山市公式・白木峰 登山道ルート'},
+  '三方岩岳→三方岩駐車場': {minutes:40, source:'石川県林業公社・三方岩トレッキングコース（下り）'},
+
+  // V1.4.58: 全国CT未登録方向の穴埋め第19波（尾瀬・越後の逆方向補完）。
+  // 固定地点名とヤマレコ公開「山行計画」の端点名が一致し、標準CTを確認できた方向のみ追加。
+  '鳩待峠→至仏山': {minutes:173, source:'ヤマレコ・至仏山 鳩待峠ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+  '至仏山→鳩待峠': {minutes:111, source:'ヤマレコ・至仏山 鳩待峠ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+
+  '米山→大平登山口': {minutes:101, source:'ヤマレコ・米山 大平登山口ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+  '中ノ岳→十字峡登山センター': {minutes:232, source:'ヤマレコ・中ノ岳 十字峡登山センタールート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+  '御神楽岳→室谷登山口': {minutes:155, source:'ヤマレコ・御神楽岳 室谷登山口ルート山行計画（標準CT確認・区間合算）', sourceType:'yamareco'}
+});
+
+// V1.4.38: 九州・四国・近畿・中国の主要区間 標準コースタイム（分）。
+// 公式情報を優先し、細区間で公式CTが得にくい箇所のみヤマレコ公開「山行計画」の標準CTを補助利用。
+// 速度倍率が明記された計画・実歩行実績は採用しない。推測値は使用しない。
+const WEST_JAPAN_COURSE_TIMES = Object.freeze({
+  // 九州：由布・祖母・雲仙
+  '由布岳正面登山口→由布岳': {minutes:187, source:'ヤマレコ・由布岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '由布岳→由布岳正面登山口': {minutes:107, source:'ヤマレコ・由布岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '北谷登山口→祖母山': {minutes:155, source:'ヤマレコ・祖母山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '祖母山→北谷登山口': {minutes:127, source:'ヤマレコ・祖母山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '仁田峠→雲仙岳（普賢岳）': {minutes:90, source:'ヤマレコ・普賢岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 九州：くじゅう・霧島
+  '牧ノ戸峠→久住分かれ避難小屋': {minutes:113, source:'ヤマレコ・牧ノ戸峠〜久住山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '久住分かれ避難小屋→久住山': {minutes:37, source:'ヤマレコ・牧ノ戸峠〜久住山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '韓国岳登山口→霧島山（韓国岳）': {minutes:123, source:'ヤマレコ・韓国岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '霧島山（韓国岳）→韓国岳登山口': {minutes:74, source:'ヤマレコ・韓国岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '高千穂河原→高千穂峰': {minutes:145, source:'ヤマレコ・高千穂峰 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '高千穂峰→高千穂河原': {minutes:85, source:'ヤマレコ・高千穂峰 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 四国：剣山〜三嶺
+  '見の越→西島駅': {minutes:64, source:'ヤマレコ・剣山/次郎笈 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '西島駅→剣山頂上ヒュッテ': {minutes:50, source:'ヤマレコ・剣山/次郎笈 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '剣山頂上ヒュッテ→剣山': {minutes:7, source:'ヤマレコ・剣山/次郎笈 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '剣山→剣山頂上ヒュッテ': {minutes:7, source:'ヤマレコ・剣山縦走 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '剣山→次郎笈': {minutes:63, source:'ヤマレコ・剣山/次郎笈 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '次郎笈→剣山': {minutes:66, source:'ヤマレコ・剣山〜三嶺 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '白髪避難小屋→三嶺': {minutes:122, source:'ヤマレコ・剣山〜三嶺 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三嶺→白髪避難小屋': {minutes:112, source:'ヤマレコ・三嶺〜剣山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三嶺ヒュッテ→三嶺': {minutes:14, source:'ヤマレコ・三嶺 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三嶺→三嶺ヒュッテ': {minutes:9, source:'ヤマレコ・三嶺 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '名頃登山口→三嶺ヒュッテ': {minutes:223, source:'ヤマレコ・三嶺 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三嶺ヒュッテ→名頃登山口': {minutes:131, source:'ヤマレコ・三嶺 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 四国：石鎚山（石鎚山系公式）
+  '石鎚ロープウェイ山頂成就駅→石鎚山（弥山）': {minutes:210, source:'石鎚山・石鎚山系公式 初心者向けルート'},
+  '石鎚山（弥山）→石鎚ロープウェイ山頂成就駅': {minutes:180, source:'石鎚山・石鎚山系公式 初心者向けルート'},
+  '土小屋登山口→石鎚山（弥山）': {minutes:150, source:'石鎚山・石鎚山系公式 初心者向けルート'},
+  '石鎚山（弥山）→土小屋登山口': {minutes:120, source:'石鎚山・石鎚山系公式 初心者向けルート'},
+
+  // 近畿：大峰・比良
+  '行者還トンネル西口→弥山小屋': {minutes:205, source:'ヤマレコ・八経ヶ岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '弥山小屋→八経ヶ岳': {minutes:34, source:'ヤマレコ・八経ヶ岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '八経ヶ岳→弥山小屋': {minutes:30, source:'ヤマレコ・八経ヶ岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '弥山小屋→行者還トンネル西口': {minutes:131, source:'ヤマレコ・八経ヶ岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '坊村→武奈ヶ岳': {minutes:232, source:'ヤマレコ・武奈ヶ岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '武奈ヶ岳→坊村': {minutes:143, source:'ヤマレコ・武奈ヶ岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 中国：大山・氷ノ山・蒜山・道後山・三瓶山
+  '夏山登山口→六合目避難小屋': {minutes:128, source:'ヤマレコ・大山弥山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '六合目避難小屋→大山頂上避難小屋': {minutes:73, source:'ヤマレコ・大山弥山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '大山頂上避難小屋→大山（弥山）': {minutes:3, source:'ヤマレコ・大山弥山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '大山（弥山）→六合目避難小屋': {minutes:53, source:'ヤマレコ・大山弥山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '福定親水公園→氷ノ山': {minutes:221, source:'ヤマレコ・氷ノ山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '氷ノ山→福定親水公園': {minutes:133, source:'ヤマレコ・氷ノ山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '氷ノ山→氷ノ山山頂避難小屋': {minutes:1, source:'ヤマレコ・氷ノ山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '上蒜山登山口駐車場→上蒜山': {minutes:166, source:'ヤマレコ・上蒜山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '上蒜山→上蒜山登山口駐車場': {minutes:103, source:'ヤマレコ・上蒜山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '月見ヶ丘→道後山': {minutes:109, source:'ヤマレコ・道後山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '道後山→月見ヶ丘': {minutes:78, source:'ヤマレコ・道後山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '東の原登山口→三瓶山（男三瓶山）': {minutes:227, source:'ヤマレコ・男三瓶山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三瓶山（男三瓶山）→東の原登山口': {minutes:132, source:'ヤマレコ・男三瓶山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // V1.4.57: 近畿の未登録固定地点。固定地点と公開CT端点の一致を確認できた区間のみ追加。
+  'みつえ青少年旅行村（三峰山登山口）→三峰山': {minutes:120, source:'御杖村観光協会公式・三峰山 登尾ルート（片道約2時間）'},
+
+  // 藤原岳：山と高原地図Webの登り標準CT。逆方向はヤマレコ公開「山行計画」の標準CTを複数照合。
+  '大貝戸登山口→藤原山荘': {minutes:180, source:'山と高原地図Web・藤原岳 大貝戸登山道'},
+  '藤原山荘→藤原岳': {minutes:20, source:'山と高原地図Web・藤原岳 大貝戸登山道'},
+  '大貝戸登山口→藤原岳': {minutes:200, source:'山と高原地図Web・藤原岳 大貝戸登山道（区間合算）'},
+  '藤原岳→藤原山荘': {minutes:19, source:'ヤマレコ・藤原岳 大貝戸登山口ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '藤原山荘→大貝戸登山口': {minutes:114, source:'ヤマレコ・藤原岳 大貝戸登山口ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+  '藤原岳→大貝戸登山口': {minutes:133, source:'ヤマレコ・藤原岳 大貝戸登山口ルート山行計画（標準CT複数照合・区間合算）', sourceType:'yamareco'},
+
+
+  // V1.4.60: 確認済み同一資料CTの一意な連続経路を自動合算し、直通選択でも到着時刻へ反映。
+  // V1.4.59: 全国CT残り一括穴埋め。固定地点と公開CT端点が一致する区間のみ追加。
+  // 近畿：高見山・大和葛城山
+  '高見峠→高見山': {minutes:76, source:'ヤマレコ・高見山 高見峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '高見山→高見峠': {minutes:41, source:'ヤマレコ・高見山 高見峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '水越峠→大和葛城山': {minutes:120, source:'ヤマレコ・大和葛城山 水越峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+  '大和葛城山→水越峠': {minutes:77, source:'ヤマレコ・大和葛城山 水越峠ルート山行計画（標準CT複数照合）', sourceType:'yamareco'},
+
+  // 四国：瓶ヶ森（観光協会モデルコースの片道所要時間）
+  '瓶ヶ森駐車場→瓶ヶ森': {minutes:50, source:'西条市観光物産協会・瓶ヶ森モデルコース', sourceType:'official'},
+
+  // 九州：宮之浦岳。屋久島町公式の淀川登山口－宮之浦岳ルートの方向別所要時間。
+  '淀川登山口→淀川小屋': {minutes:50, source:'屋久島町・屋久島山岳登山ルート（淀川登山口－宮之浦岳）', sourceType:'official'},
+  '淀川小屋→淀川登山口': {minutes:50, source:'屋久島町・屋久島山岳登山ルート（淀川登山口－宮之浦岳）', sourceType:'official'},
+  '淀川小屋→宮之浦岳': {minutes:270, source:'屋久島町・屋久島山岳登山ルート（公式区間合算）', sourceType:'official'},
+  '宮之浦岳→淀川小屋': {minutes:235, source:'屋久島町・屋久島山岳登山ルート（公式区間合算）', sourceType:'official'},
+  '淀川登山口→宮之浦岳': {minutes:320, source:'屋久島町・屋久島山岳登山ルート', sourceType:'official'},
+  '宮之浦岳→淀川登山口': {minutes:285, source:'屋久島町・屋久島山岳登山ルート', sourceType:'official'}
+});
+
+// V1.4.37: 八ヶ岳・中信の主要区間 標準コースタイム（分）。
+// 公式情報で細かな方向別CTを確認できない区間は、ヤマレコ公開「山行計画」の標準CTを補助利用。
+// 速度倍率が明記された計画・実歩行実績は採用しない。
+const YATSUGATAKE_CHUSHIN_COURSE_TIMES = Object.freeze({
+  // 南八ヶ岳：行者小屋〜赤岳・阿弥陀、硫黄〜横岳縦走
+  '行者小屋→赤岳': {minutes:119, source:'ヤマレコ・赤岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤岳→行者小屋': {minutes:65, source:'ヤマレコ・赤岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤岳→赤岳天望荘': {minutes:20, source:'ヤマレコ・赤岳/横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤岳天望荘→赤岳': {minutes:38, source:'ヤマレコ・赤岳/横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤岳天望荘→横岳（八ヶ岳）': {minutes:50, source:'ヤマレコ・赤岳/横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '横岳（八ヶ岳）→赤岳天望荘': {minutes:50, source:'ヤマレコ・赤岳/横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '横岳（八ヶ岳）→硫黄岳山荘': {minutes:30, source:'ヤマレコ・横岳/硫黄岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '硫黄岳山荘→横岳（八ヶ岳）': {minutes:46, source:'ヤマレコ・横岳/硫黄岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '硫黄岳山荘→硫黄岳（八ヶ岳）': {minutes:26, source:'ヤマレコ・横岳/硫黄岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '硫黄岳（八ヶ岳）→硫黄岳山荘': {minutes:16, source:'ヤマレコ・横岳/硫黄岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤岳鉱泉→硫黄岳（八ヶ岳）': {minutes:128, source:'ヤマレコ・硫黄岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '硫黄岳（八ヶ岳）→赤岳鉱泉': {minutes:72, source:'ヤマレコ・硫黄岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤岳鉱泉→行者小屋': {minutes:43, source:'ヤマレコ・赤岳鉱泉/行者小屋 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '行者小屋→赤岳鉱泉': {minutes:29, source:'ヤマレコ・赤岳鉱泉/行者小屋 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '行者小屋→阿弥陀岳': {minutes:91, source:'ヤマレコ・赤岳/阿弥陀岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '阿弥陀岳→行者小屋': {minutes:48, source:'ヤマレコ・赤岳/阿弥陀岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 南八ヶ岳南端：観音平〜編笠〜青年小屋〜権現
+  '観音平→編笠山': {minutes:174, source:'ヤマレコ・編笠山/権現岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '編笠山→青年小屋': {minutes:14, source:'ヤマレコ・編笠山/権現岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '青年小屋→権現岳': {minutes:66, source:'ヤマレコ・編笠山/権現岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 北八ヶ岳：天狗岳
+  '渋の湯→黒百合ヒュッテ': {minutes:137, source:'ヤマレコ・天狗岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '黒百合ヒュッテ→渋の湯': {minutes:101, source:'ヤマレコ・天狗岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '黒百合ヒュッテ→天狗岳': {minutes:82, source:'ヤマレコ・天狗岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '天狗岳→黒百合ヒュッテ': {minutes:52, source:'ヤマレコ・天狗岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 北横岳
+  '北八ヶ岳ロープウェイ山頂駅→北横岳ヒュッテ': {minutes:35, source:'ヤマレコ・北横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '北横岳ヒュッテ→北八ヶ岳ロープウェイ山頂駅': {minutes:34, source:'ヤマレコ・北横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '北横岳ヒュッテ→北横岳': {minutes:22, source:'ヤマレコ・北横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '北横岳→北横岳ヒュッテ': {minutes:13, source:'ヤマレコ・北横岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 蓼科山
+  '蓼科山七合目登山口→蓼科山頂ヒュッテ': {minutes:140, source:'ヤマレコ・蓼科山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '蓼科山頂ヒュッテ→蓼科山七合目登山口': {minutes:78, source:'ヤマレコ・蓼科山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '女神茶屋→蓼科山頂ヒュッテ': {minutes:183, source:'ヤマレコ・蓼科山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '蓼科山頂ヒュッテ→女神茶屋': {minutes:105, source:'ヤマレコ・蓼科山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '蓼科山頂ヒュッテ→蓼科山': {minutes:3, source:'ヤマレコ・蓼科山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '蓼科山→蓼科山頂ヒュッテ': {minutes:2, source:'ヤマレコ・蓼科山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 中信：入笠山・霧ヶ峰・美ヶ原・鉢伏山
+  '沢入登山口→入笠山': {minutes:131, source:'ヤマレコ・入笠山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '入笠山→沢入登山口': {minutes:81, source:'ヤマレコ・入笠山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '車山肩→霧ヶ峰（車山）': {minutes:40, source:'ヤマレコ・霧ヶ峰/車山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '霧ヶ峰（車山）→車山肩': {minutes:30, source:'ヤマレコ・霧ヶ峰/車山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '八島ヶ原湿原→霧ヶ峰（車山）': {minutes:127, source:'ヤマレコ・霧ヶ峰/車山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '霧ヶ峰（車山）→八島ヶ原湿原': {minutes:94, source:'ヤマレコ・霧ヶ峰/車山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '山本小屋ふる里館→美ヶ原': {minutes:55, source:'ヤマレコ・美ヶ原/王ヶ頭 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '美ヶ原→山本小屋ふる里館': {minutes:49, source:'ヤマレコ・美ヶ原/王ヶ頭 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '扉温泉→鉢伏山': {minutes:231, source:'ヤマレコ・鉢伏山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '鉢伏山→扉温泉': {minutes:132, source:'ヤマレコ・鉢伏山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '鉢伏山荘→鉢伏山': {minutes:23, source:'ヤマレコ・鉢伏山 山行計画（標準CT補完）', sourceType:'yamareco'}
+});
+
+// V1.4.35: 中央アルプス・南アルプス主要区間 標準コースタイム（分）。
+// 公開情報で所要時間を確認できた区間のみ登録。推測値は使用しない。
+const CENTRAL_SOUTH_ALPS_COURSE_TIMES = Object.freeze({
+  // 中央アルプス（中央アルプス駒ヶ岳ロープウェイ／駒ヶ根観光協会／空木駒峰ヒュッテ）
+  '千畳敷→木曽駒ヶ岳': {minutes:120, source:'中央アルプス駒ヶ岳ロープウェイ・登山コース（公式区間合算）'},
+  '木曽駒ヶ岳→千畳敷': {minutes:110, source:'中央アルプス駒ヶ岳ロープウェイ・登山コース（公式区間合算）'},
+  '空木岳→檜尾岳': {minutes:320, source:'駒ヶ根観光協会・中央アルプス登山案内'},
+  '空木駒峰ヒュッテ→空木岳': {minutes:10, source:'空木駒峰ヒュッテ公式・池山尾根コース'},
+
+  // 南アルプス北部：甲斐駒ヶ岳・仙丈ヶ岳（南アルプス市芦安山岳館）
+  '北沢峠→長衛小屋': {minutes:10, source:'南アルプス市芦安山岳館・甲斐駒ヶ岳/仙水峠コース'},
+  '長衛小屋→北沢峠': {minutes:15, source:'南アルプス市芦安山岳館・甲斐駒ヶ岳/仙水峠コース'},
+  '長衛小屋→仙水小屋': {minutes:40, source:'南アルプス市芦安山岳館・仙水峠'},
+  '仙水小屋→長衛小屋': {minutes:30, source:'南アルプス市芦安山岳館・仙水峠'},
+  '北沢峠→甲斐駒ヶ岳': {minutes:260, source:'南アルプス市芦安山岳館・北沢峠-駒津峰コース（公式区間合算）'},
+  '甲斐駒ヶ岳→北沢峠': {minutes:195, source:'南アルプス市芦安山岳館・北沢峠-駒津峰コース（公式区間合算）'},
+  '北沢峠→仙丈ヶ岳': {minutes:240, source:'南アルプス市芦安山岳館・小仙丈コース（公式区間合算）'},
+  '仙丈ヶ岳→北沢峠': {minutes:160, source:'南アルプス市芦安山岳館・小仙丈コース（公式区間合算）'},
+  '馬の背ヒュッテ→仙丈小屋': {minutes:60, source:'南アルプス市芦安山岳館・藪沢コース'},
+  '仙丈小屋→馬の背ヒュッテ': {minutes:40, source:'南アルプス市芦安山岳館・藪沢コース'},
+  '仙丈小屋→仙丈ヶ岳': {minutes:30, source:'南アルプス市芦安山岳館・藪沢コース'},
+  '仙丈ヶ岳→仙丈小屋': {minutes:20, source:'南アルプス市芦安山岳館・藪沢コース'},
+
+  // 白峰三山・塩見（南アルプス市芦安山岳館）
+  '広河原→白根御池小屋': {minutes:180, source:'南アルプス市芦安山岳館・北岳 草すべりコース'},
+  '白根御池小屋→広河原': {minutes:90, source:'南アルプス市芦安山岳館・北岳 草すべりコース'},
+  '白根御池小屋→北岳肩の小屋': {minutes:180, source:'南アルプス市芦安山岳館・北岳 草すべりコース（公式区間合算）'},
+  '北岳肩の小屋→白根御池小屋': {minutes:110, source:'南アルプス市芦安山岳館・北岳 草すべりコース（公式区間合算）'},
+  '北岳肩の小屋→北岳': {minutes:50, source:'南アルプス市芦安山岳館・北岳 草すべりコース'},
+  '北岳→北岳肩の小屋': {minutes:40, source:'南アルプス市芦安山岳館・北岳 草すべりコース'},
+  '北岳→北岳山荘': {minutes:50, source:'南アルプス市芦安山岳館・北岳-間ノ岳縦走コース'},
+  '北岳山荘→北岳': {minutes:75, source:'南アルプス市芦安山岳館・北岳-間ノ岳縦走コース'},
+  '北岳山荘→間ノ岳': {minutes:100, source:'南アルプス市芦安山岳館・北岳-間ノ岳縦走コース'},
+  '間ノ岳→北岳山荘': {minutes:80, source:'南アルプス市芦安山岳館・北岳-間ノ岳縦走コース'},
+  '間ノ岳→農鳥小屋': {minutes:60, source:'南アルプス市芦安山岳館・農鳥岳縦走コース'},
+  '農鳥小屋→間ノ岳': {minutes:90, source:'南アルプス市芦安山岳館・農鳥岳縦走コース'},
+  '農鳥小屋→農鳥岳': {minutes:90, source:'南アルプス市芦安山岳館・農鳥岳縦走コース（公式区間合算）'},
+  '農鳥岳→農鳥小屋': {minutes:70, source:'南アルプス市芦安山岳館・農鳥岳縦走コース（公式区間合算）'},
+  '間ノ岳→熊ノ平小屋': {minutes:120, source:'南アルプス市芦安山岳館・間ノ岳-塩見岳縦走コース'},
+  '熊ノ平小屋→間ノ岳': {minutes:180, source:'南アルプス市芦安山岳館・間ノ岳-塩見岳縦走コース'},
+  '熊ノ平小屋→塩見岳': {minutes:180, source:'南アルプス市芦安山岳館・間ノ岳-塩見岳縦走コース'},
+  '塩見岳→熊ノ平小屋': {minutes:225, source:'南アルプス市芦安山岳館・間ノ岳-塩見岳縦走コース'},
+  '塩見岳→三伏峠小屋': {minutes:210, source:'南アルプス市芦安山岳館・間ノ岳-塩見岳縦走コース'},
+  '三伏峠小屋→塩見岳': {minutes:270, source:'南アルプス市芦安山岳館・間ノ岳-塩見岳縦走コース'},
+  '鳥倉登山口→塩見小屋': {minutes:390, source:'伊那市観光協会・塩見小屋案内（現行案内）'},
+
+  // 鳳凰三山（南アルプス市芦安山岳館）
+  '夜叉神峠登山口→南御室小屋': {minutes:340, source:'南アルプス市芦安山岳館・鳳凰山 夜叉神コース（公式区間合算）'},
+  '南御室小屋→夜叉神峠登山口': {minutes:230, source:'南アルプス市芦安山岳館・鳳凰山 夜叉神コース（公式区間合算）'},
+  '南御室小屋→薬師岳(鳳凰)': {minutes:90, source:'南アルプス市芦安山岳館・鳳凰山 夜叉神コース'},
+  '薬師岳(鳳凰)→南御室小屋': {minutes:70, source:'南アルプス市芦安山岳館・鳳凰山 夜叉神コース'},
+  '薬師岳(鳳凰)→観音岳(鳳凰)': {minutes:40, source:'南アルプス市芦安山岳館・鳳凰山 夜叉神コース'},
+  '観音岳(鳳凰)→薬師岳(鳳凰)': {minutes:30, source:'南アルプス市芦安山岳館・鳳凰山 夜叉神コース'},
+
+  // 南アルプス南部（静岡市公式「南アルプスへの交通案内」モデルコース／南プス）
+  '椹島→千枚小屋': {minutes:420, source:'静岡市公式・南アルプス南部モデルコース'},
+  '千枚小屋→荒川小屋': {minutes:300, source:'静岡市公式・南アルプス南部モデルコース'},
+  '荒川小屋→赤石小屋': {minutes:330, source:'静岡市公式・南アルプス南部モデルコース'},
+  '赤石小屋→椹島': {minutes:210, source:'静岡市公式・南アルプス南部モデルコース'},
+  '赤石小屋→赤石岳': {minutes:180, source:'静岡市公式・南アルプス南部案内（赤石小屋から赤石岳まで約3時間）'},
+  '光岳小屋→光岳': {minutes:15, source:'静岡市公式・南アルプス山小屋一覧'},
+  '茶臼小屋→茶臼岳': {minutes:30, source:'静岡市 南プス・茶臼小屋案内'},
+  '茶臼小屋→上河内岳': {minutes:120, source:'静岡市 南プス・茶臼小屋案内'}
+});
+
+
+
+// V1.4.36: 公式情報だけでは分割できなかった主要区間の補完CT。
+// 補助ソースはヤマケイオンライン、次いでヤマレコの公開「山行計画」標準CTを使用。
+// ヤマレコは速度倍率が明記された計画や実歩行実績を採用せず、複数の標準計画で整合する値を優先する。
+const SUPPLEMENTAL_COURSE_TIMES = Object.freeze({
+  // 中央アルプス：木曽駒〜宝剣〜空木縦走（ヤマレコ標準山行計画の区間CT）
+  '千畳敷→宝剣岳': {minutes:77, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '木曽駒ヶ岳→宝剣岳': {minutes:55, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '宝剣岳→木曽駒ヶ岳': {minutes:54, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '宝剣岳→檜尾岳': {minutes:156, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '檜尾岳→宝剣岳': {minutes:195, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '檜尾岳→檜尾小屋': {minutes:10, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '檜尾小屋→檜尾岳': {minutes:14, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '檜尾岳→熊沢岳': {minutes:107, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '熊沢岳→檜尾岳': {minutes:118, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '熊沢岳→東川岳': {minutes:89, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '東川岳→熊沢岳': {minutes:120, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '東川岳→木曽殿山荘': {minutes:21, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '木曽殿山荘→東川岳': {minutes:41, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '木曽殿山荘→空木岳': {minutes:91, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '空木岳→木曽殿山荘': {minutes:59, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '空木岳→空木駒峰ヒュッテ': {minutes:8, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+  '空木駒峰ヒュッテ→空木平避難小屋': {minutes:35, source:'ヤマレコ・山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 鳳凰三山：公式ページで直接分割されていなかった観音岳〜地蔵岳
+  '観音岳(鳳凰)→地蔵岳(鳳凰)': {minutes:66, source:'ヤマレコ・鳳凰三山 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '地蔵岳(鳳凰)→観音岳(鳳凰)': {minutes:79, source:'ヤマレコ・鳳凰三山 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 塩見岳：鳥倉〜三伏峠〜塩見小屋を標準計画の分割値で補完
+  '鳥倉登山口→三伏峠小屋': {minutes:205, source:'ヤマレコ・塩見岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三伏峠小屋→鳥倉登山口': {minutes:129, source:'ヤマレコ・塩見岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '三伏峠小屋→塩見小屋': {minutes:161, source:'ヤマレコ・塩見岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '塩見小屋→三伏峠小屋': {minutes:142, source:'ヤマレコ・塩見岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '塩見小屋→塩見岳': {minutes:79, source:'ヤマレコ・塩見岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '塩見岳→塩見小屋': {minutes:48, source:'ヤマレコ・塩見岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 荒川三山〜赤石岳：既存の小屋間公式値を山頂ポイントまで細分化
+  '千枚小屋→荒川岳': {minutes:139, source:'ヤマレコ・荒川三山/赤石岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '荒川岳→荒川小屋': {minutes:135, source:'ヤマレコ・荒川三山/赤石岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '荒川小屋→荒川岳': {minutes:178, source:'ヤマレコ・荒川三山/赤石岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '荒川小屋→赤石岳': {minutes:150, source:'ヤマレコ・荒川三山/赤石岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤石岳→荒川小屋': {minutes:102, source:'ヤマレコ・荒川三山/赤石岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '赤石岳→赤石小屋': {minutes:135, source:'ヤマレコ・荒川三山/赤石岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+
+  // 南アルプス南部：聖〜上河内〜茶臼〜光
+  '聖平小屋→聖岳': {minutes:179, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '聖岳→聖平小屋': {minutes:104, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '聖平小屋→上河内岳': {minutes:154, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '上河内岳→聖平小屋': {minutes:81, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '上河内岳→茶臼小屋': {minutes:77, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '茶臼小屋→光岳': {minutes:283, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '光岳→茶臼小屋': {minutes:268, source:'ヤマレコ・聖岳/光岳 山行計画（標準CT補完）', sourceType:'yamareco'},
+  '光岳→光岳小屋': {minutes:12, source:'ヤマレコ・光岳 山行計画（標準CT補完）', sourceType:'yamareco'}
+});
+
+function normalizeCourseTimePointName(name){
+  const raw=String(name||'').normalize('NFKC').replace(/\s+/g,'').trim();
+  const aliases={
+    '三股登山口':'三股',
+    '横尾山荘':'横尾',
+    '常念岳':'常念山頂',
+    '中房温泉登山口':'中房',
+    '中房登山口':'中房',
+    '中房登山口(燕岳・大天井岳表銀座ルート)':'中房',
+    '中房登山口（燕岳・大天井岳表銀座ルート）':'中房',
+    '白馬尻小屋跡':'白馬尻小屋',
+    '扇沢登山口':'扇沢',
+    '馬場島（早月尾根登山口）':'馬場島',
+    '一ノ沢登山口':'一ノ沢',
+    '一の沢登山口':'一ノ沢',
+    '朝日岳（新潟・富山）':'朝日岳',
+    '椹島ロッヂ':'椹島',
+    'ホテル千畳敷':'千畳敷',
+    '千畳敷駅':'千畳敷',
+    '南アルプス市長衛小屋':'長衛小屋',
+    '薬師岳（鳳凰）':'薬師岳(鳳凰)',
+    '観音岳（鳳凰）':'観音岳(鳳凰)',
+    '赤岳（八ヶ岳最高峰）':'赤岳',
+    '赤岳(八ヶ岳最高峰)':'赤岳',
+    '天狗岳（東天狗岳）':'天狗岳',
+    '天狗岳(東天狗岳)':'天狗岳',
+    '立山(雄山)':'立山（雄山）',
+    '横岳(八ヶ岳)':'横岳（八ヶ岳）',
+    '硫黄岳(八ヶ岳)':'硫黄岳（八ヶ岳）',
+    '女乃神茶屋（蓼科山登山口）':'女神茶屋',
+    '女乃神茶屋(蓼科山登山口)':'女神茶屋',
+    '女乃神茶屋・蓼科山登山口':'女神茶屋',
+    '入笠山登山口（沢入）':'沢入登山口',
+    '山本小屋ふる里館・町営駐車場':'山本小屋ふる里館',
+    '美ヶ原（王ヶ頭）':'美ヶ原'
+    ,'えびの高原・韓国岳登山口':'韓国岳登山口'
+    ,'えびの高原 韓国岳登山口':'韓国岳登山口'
+    ,'高千穂河原駐車場・高千穂峰登山口':'高千穂河原'
+    ,'見ノ越 剣山登山口':'見の越'
+    ,'見ノ越':'見の越'
+    ,'剣山観光登山リフト西島駅':'西島駅'
+    ,'剣山観光登山リフト 西島駅':'西島駅'
+    ,'名頃登山口 三嶺':'名頃登山口'
+    ,'坊村 武奈ヶ岳登山口':'坊村'
+    ,'夏山登山口 大山':'夏山登山口'
+    ,'夏山登山道・南光河原':'夏山登山口'
+    ,'福定親水公園 氷ノ山登山口':'福定親水公園'
+    ,'福定親水公園登山口':'福定親水公園'
+    ,'上蒜山登山口駐車場（上蒜山スキー場）':'上蒜山登山口駐車場'
+    ,'上蒜山登山口':'上蒜山登山口駐車場'
+    ,'月見ヶ丘登山口駐車場':'月見ヶ丘'
+    ,'月見ヶ丘駐車場 道後山':'月見ヶ丘'
+    ,'東の原登山口（さんべ観光リフト）':'東の原登山口'
+    ,'東の原 三瓶山':'東の原登山口'
+    ,'由布岳正面登山口駐車場':'由布岳正面登山口'
+    ,'北谷登山口 祖母山':'北谷登山口'
+    ,'北谷登山口駐車場・北谷登山口':'北谷登山口'
+    ,'仁田峠第一展望所駐車場・普賢岳登山口':'仁田峠'
+    ,'二分登山口':'二口登山口'
+  };
+  return aliases[raw]||raw;
+}
+const COURSE_TIME_TABLES = Object.freeze([
+  NORTH_ALPS_COURSE_TIMES,
+  CENTRAL_SOUTH_ALPS_COURSE_TIMES,
+  YATSUGATAKE_CHUSHIN_COURSE_TIMES,
+  WEST_JAPAN_COURSE_TIMES,
+  EAST_NORTH_COURSE_TIMES,
+  SUPPLEMENTAL_COURSE_TIMES
+]);
+let COURSE_TIME_GRAPH_CACHE=null;
+function normalizedCourseTimeSource(source=''){
+  const raw=String(source)
+    .replace(/（[^）]*区間合算[^）]*）/g,'')
+    .replace(/（[^）]*合算[^）]*）/g,'')
+    .trim();
+  // V1.4.62: 同じ公式提供元のページ別ラベルだけを同一資料系列として扱う。
+  // ヤマレコは計画ごとの差を混ぜないため、sourceType:'yamareco' 側ではこの統合を使わない。
+  const officialFamilies=[
+    '北アルプス山小屋友交会',
+    '燕山荘グループ',
+    '双六小屋グループ',
+    '南アルプス市芦安山岳館',
+    '静岡市公式'
+  ];
+  for(const family of officialFamilies){
+    if(raw===family||raw.startsWith(`${family}・`))return family;
+  }
+  return raw;
+}
+function directCourseTimeInfoByNames(fromName,toName){
+  const key=`${fromName}→${toName}`;
+  for(const table of COURSE_TIME_TABLES){
+    if(table[key])return table[key];
+  }
+  return null;
+}
+function courseTimeGraph(){
+  if(COURSE_TIME_GRAPH_CACHE)return COURSE_TIME_GRAPH_CACHE;
+  const graph=new Map();
+  const seen=new Set();
+  for(const table of COURSE_TIME_TABLES){
+    for(const [key,info] of Object.entries(table)){
+      if(seen.has(key))continue;
+      seen.add(key);
+      const sep=key.indexOf('→');
+      if(sep<1)continue;
+      const from=key.slice(0,sep),to=key.slice(sep+1);
+      if(!from||!to||!Number.isFinite(Number(info?.minutes)))continue;
+      if(!graph.has(from))graph.set(from,[]);
+      graph.get(from).push({from,to,info,sourceKey:normalizedCourseTimeSource(info?.source||'')});
+    }
+  }
+  COURSE_TIME_GRAPH_CACHE=graph;
+  return graph;
+}
+function composedCourseTimeInfo(fromName,toName){
+  if(!fromName||!toName||fromName===toName)return null;
+  const graph=courseTimeGraph();
+  const found=[];
+  const maxEdges=6;
+  function walk(current,path,minutes,mode,yamarecoSourceKey,sources){
+    if(path.length>maxEdges)return;
+    for(const edge of graph.get(current)||[]){
+      if(path.includes(edge.to))continue;
+      const isYamareco=edge.info.sourceType==='yamareco';
+      let nextMode=mode, nextYamarecoSourceKey=yamarecoSourceKey;
+      // V1.4.62: 確認済み固定CTは、端点が完全一致し経路が一意なら公開資料をまたいで合算可。
+      // ただしヤマレコは別計画を混ぜず、公式等の固定CTとも混在させない。
+      if(!mode){
+        nextMode=isYamareco?'yamareco':'fixed';
+        nextYamarecoSourceKey=isYamareco?edge.sourceKey:'';
+      }else if(mode==='yamareco'){
+        if(!isYamareco||edge.sourceKey!==yamarecoSourceKey)continue;
+      }else if(isYamareco){
+        continue;
+      }
+      const nextMinutes=minutes+Number(edge.info.minutes);
+      const nextSources=[...sources,edge.sourceKey].filter(Boolean);
+      const nextPath=[...path,edge.to];
+      if(edge.to===toName){
+        found.push({minutes:nextMinutes,path:nextPath,mode:nextMode,yamarecoSourceKey:nextYamarecoSourceKey,sources:nextSources});
+        continue;
+      }
+      walk(edge.to,nextPath,nextMinutes,nextMode,nextYamarecoSourceKey,nextSources);
+    }
+  }
+  walk(fromName,[fromName],0,'','',[]);
+  if(!found.length)return null;
+  // 同じ始終点に複数の経路が成立する場合は、合計CTが同じでも経路を推測しない。
+  const uniquePaths=new Map();
+  for(const item of found){
+    const sig=item.path.join('→');
+    if(!uniquePaths.has(sig))uniquePaths.set(sig,item);
+  }
+  if(uniquePaths.size!==1)return null;
+  const result=[...uniquePaths.values()][0];
+  const uniqueSources=[...new Set(result.sources)];
+  const source=result.mode==='yamareco'
+    ? `${result.yamarecoSourceKey}（確認済み区間合算）`
+    : uniqueSources.length===1
+      ? `${uniqueSources[0]}（確認済み区間合算）`
+      : `確認済み固定CT（複数公開資料・区間合算）`;
+  return {
+    minutes:result.minutes,
+    source,
+    sourceType:result.mode==='yamareco'?'yamareco':undefined,
+    composed:true,
+    via:result.path.slice(1,-1)
+  };
+}
+function courseTimeInfo(fromPoint,toPoint){
+  if(!fromPoint||!toPoint)return null;
+  const rawFrom=String(fromPoint.name||'').trim();
+  const rawTo=String(toPoint.name||'').trim();
+  // V1.4.66: 固定地点名とCT端点が完全一致する場合は、名称正規化より先に生の名称を優先する。
+  // 括弧の全角/半角変換などで確認済みCTキーを取りこぼすのを防ぐ。
+  const rawInfo=directCourseTimeInfoByNames(rawFrom,rawTo)||composedCourseTimeInfo(rawFrom,rawTo);
+  if(rawInfo)return rawInfo;
+  const fromName=normalizeCourseTimePointName(rawFrom);
+  const toName=normalizeCourseTimePointName(rawTo);
+  return directCourseTimeInfoByNames(fromName,toName)||composedCourseTimeInfo(fromName,toName)||null;
+}
+function formatCourseTimeMinutes(minutes){
+  const m=Math.max(0,Number(minutes)||0), h=Math.floor(m/60), r=m%60;
+  return h?`${h}:${String(r).padStart(2,'0')}`:`0:${String(r).padStart(2,'0')}`;
+}
+
+const LAST_ANALYSIS_STORAGE_KEY='traten:last-analysis:v1';
+function loadLastAnalysisSnapshot(){
+  try{
+    const raw=localStorage.getItem(LAST_ANALYSIS_STORAGE_KEY);
+    if(!raw)return null;
+    const data=JSON.parse(raw);
+    if(!data||!data.savedAt||!data.route||!Array.isArray(data.results)||!data.results.length)return null;
+    return data;
+  }catch(_){return null;}
+}
+function saveLastAnalysisSnapshot(mountain,points,results,overnight){
+  try{
+    const route={mountain,points:points.map(p=>({id:p.id||'',name:p.name||'',type:p.type||'peak',date:p.date,time:p.time,stay:!!p.stay,role:p.role||''}))};
+    const payload={savedAt:Date.now(),appVersion:APP_VERSION,route,results,overnight:overnight||[]};
+    localStorage.setItem(LAST_ANALYSIS_STORAGE_KEY,JSON.stringify(payload));
+    refreshLastAnalysisPanel();
+  }catch(e){console.warn('前回分析結果を保存できませんでした',e);}
+}
+function formatLastAnalysisSavedAt(ms){
+  try{return new Date(ms).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(_){return '';}
+}
+function refreshLastAnalysisPanel(){
+  const panel=$('lastAnalysisPanel'); if(!panel)return;
+  const data=loadLastAnalysisSnapshot();
+  panel.classList.toggle('hidden',!data);
+  if(!data)return;
+  const mountain=data.route?.mountain||'前回ルート';
+  const count=data.route?.points?.length||0;
+  const meta=$('lastAnalysisMeta');
+  if(meta)meta.textContent=`${mountain} / ${count}地点 / ${formatLastAnalysisSavedAt(data.savedAt)} 分析`;
+}
+function showLastAnalysisResult(){
+  const data=loadLastAnalysisSnapshot();
+  if(!data)return setStatus('前回分析結果はありません。',true);
+  try{
+    renderAll(data.results,data.overnight||[]);
+    if($('updatedAt'))$('updatedAt').textContent=`前回分析：${new Date(data.savedAt).toLocaleString('ja-JP')}（保存結果）`;
+    setStatus('前回の分析結果を表示しています。天気を更新する場合は「前回ルートを復元」後に再分析してください。');
+    scrollToSummaryResult();
+  }catch(e){setStatus(`前回分析結果を表示できませんでした：${e.message||e}`,true);}
+}
 
 const providers = [
   {id:'jma',name:'JMA MSM',kind:'openmeteo',endpoint:'https://api.open-meteo.com/v1/jma',model:'jma_msm',forecastDays:4,vars:['temperature_2m','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m']},
@@ -281,7 +1319,7 @@ const JAPAN_300_MOUNTAINS = [
   "鋸岳",
   "仙丈ヶ岳",
   "アサヨ峰",
-  "地蔵ヶ岳",
+  "地蔵岳(鳳凰)",
   "北岳",
   "間ノ岳",
   "農鳥岳",
@@ -383,6 +1421,8 @@ const MOUNTAIN_NAME_ALIAS = {
   '宮ノ浦岳':'宮之浦岳',
   '御嶽':'御嶽山',
   '八ヶ岳（赤岳）':'赤岳',
+  '鳳凰山':'薬師岳(鳳凰)',
+  '地蔵ヶ岳':'地蔵岳(鳳凰)',
   '大山（神奈川）':'大山（神奈川）',
   '朝日岳（群馬）':'朝日岳（群馬）',
   '朝日岳（新潟・富山）':'朝日岳（新潟・富山）',
@@ -831,6 +1871,34 @@ Object.assign(REGIONAL_CATALOG, {
     {id:'area-cku-komaho',type:'hut',name:'空木駒峰ヒュッテ',lat:35.719722,lon:137.818333,elevation:2800,source:'固定候補'},
     {id:'area-cku-utsugidaira',type:'hut',name:'空木平避難小屋',lat:35.721111,lon:137.828056,elevation:2517,source:'固定候補'},
     {id:'area-cku-ikeyama',type:'trailhead',name:'池山口登山口',lat:35.736861,lon:137.878032,elevation:1370,source:'固定候補'}
+  ]
+});
+
+// V1.4.16: 剣山〜三嶺 縦走回廊。
+// YAMAPの見ノ越-剣山-次郎笈-三嶺縦走コースと公開座標で確認した主要地点を固定。
+Object.assign(REGIONAL_CATALOG, {
+  shikoku_tsurugi_miune: [
+    {id:'area-tm-minokoshi',type:'trailhead',name:'見ノ越 剣山登山口',lat:33.866558,lon:134.089036,elevation:1394,source:'固定候補'},
+    {id:'area-tm-tsurugi',type:'peak',name:'剣山',lat:33.853611,lon:134.094167,elevation:1955,source:'固定候補'},
+    {id:'area-tm-jirogyu',type:'peak',name:'次郎笈',lat:33.843056,lon:134.086111,elevation:1930,source:'固定候補'},
+    {id:'area-tm-shiraga-hut',type:'hut',name:'白髪避難小屋',lat:33.821944,lon:134.001222,elevation:1666,source:'固定候補'},
+    {id:'area-tm-miune',type:'peak',name:'三嶺',lat:33.839444,lon:133.987778,elevation:1894,source:'固定候補'},
+    {id:'area-tm-miune-hut',type:'hut',name:'三嶺ヒュッテ',lat:33.840556,lon:133.991389,elevation:1845,source:'固定候補'},
+    {id:'area-tm-nagoro',type:'trailhead',name:'名頃登山口 三嶺',lat:33.852472,lon:134.023972,elevation:907,source:'固定候補'}
+  ]
+});
+
+
+// V1.4.17: 燧ヶ岳〜尾瀬ヶ原〜至仏山 縦走回廊。
+// 見晴・龍宮小屋・山ノ鼻を固定し、尾瀬の代表的な縦走動線を同一候補群として提示。
+Object.assign(REGIONAL_CATALOG, {
+  oze_hiuchi_shibutsu: [
+    {id:'area-ohs-hiuchi',type:'peak',name:'燧ヶ岳（柴安嵓）',lat:36.955102,lon:139.285334,elevation:2356,source:'固定候補'},
+    {id:'area-ohs-miharashi',type:'hut',name:'見晴（尾瀬小屋・見晴地区）',lat:36.940556,lon:139.251944,elevation:1418,source:'固定候補'},
+    {id:'area-ohs-ryugu',type:'hut',name:'龍宮小屋',lat:36.932500,lon:139.238333,elevation:1402,source:'固定候補'},
+    {id:'area-ohs-yamanohana',type:'trailhead',name:'山ノ鼻（至仏山東面登山道入口・登り専用）',lat:36.915833,lon:139.198056,elevation:1410,source:'固定候補'},
+    {id:'area-ohs-shibutsu',type:'peak',name:'至仏山',lat:36.903474,lon:139.173248,elevation:2228,source:'固定候補'},
+    {id:'area-ohs-hatomachi',type:'trailhead',name:'鳩待峠',lat:36.888750,lon:139.201027,elevation:1585,source:'固定候補'}
   ]
 });
 
@@ -1580,72 +2648,132 @@ Object.assign(BUILTIN_ROUTE_CATALOG, {
   ]
 });
 
+// V1.4.21: 未確定だった通過ポイントのうち、公開情報で位置を確認できた登山口・交通起点を固定化。
+// 既存固定点と同一地点の別名は CURATED_ACCESS_HINTS 側を既存名称へ統一し、重複表示を避ける。
+Object.assign(BUILTIN_ROUTE_CATALOG, {
+  '利尻山': [
+    {id:'fixed1421-rishiri-kutsugata',type:'trailhead',name:'沓形登山口',lat:45.182222,lon:141.192222,elevation:430,source:'固定候補'}
+  ],
+  '大雪山（旭岳）': [
+    {id:'fixed1421-asahidake-sugatami',type:'trailhead',name:'旭岳ロープウェイ姿見駅',lat:43.661917,lon:142.824767,elevation:1600,source:'固定候補'}
+  ],
+  'オプタテシケ山': [
+    {id:'fixed1421-optateshike-bogakudai',type:'trailhead',name:'望岳台',lat:43.447639,lon:142.649861,elevation:933,source:'固定候補'}
+  ],
+  '十勝岳': [
+    {id:'fixed1421-tokachi-fukiage',type:'trailhead',name:'吹上温泉登山口',lat:43.431750,lon:142.641944,elevation:1010,source:'固定候補'}
+  ],
+  '芦別岳': [
+    {id:'fixed1421-ashibetsu-taiyounosato',type:'trailhead',name:'山部自然公園太陽の里 芦別岳登山口',lat:43.248750,lon:142.340750,elevation:300,source:'固定候補'}
+  ],
+  '後方羊蹄山': [
+    {id:'fixed1421-yotei-kyogoku',type:'trailhead',name:'京極登山口',lat:42.844750,lon:140.854917,elevation:400,source:'固定候補'}
+  ],
+  '八甲田山': [
+    {id:'fixed1421-hakkoda-sancho',type:'trailhead',name:'八甲田ロープウェー山頂公園駅',lat:40.675904,lon:140.858690,elevation:1314,source:'固定候補'}
+  ],
+  '岩木山': [
+    {id:'fixed1421-iwaki-8th',type:'trailhead',name:'岩木山八合目',lat:40.653361,lon:140.292500,elevation:1243,source:'固定候補'}
+  ],
+  '乳頭山（烏帽子岳）': [
+    {id:'fixed1421-nyuto-kuroyu',type:'trailhead',name:'黒湯温泉',lat:39.799167,lon:140.808897,elevation:800,source:'固定候補'},
+    {id:'fixed1421-nyuto-ganiba',type:'trailhead',name:'蟹場温泉',lat:39.806070,lon:140.798740,elevation:786,source:'固定候補'}
+  ],
+  '秋田駒ヶ岳': [
+    {id:'fixed1421-akita-koma-8th',type:'trailhead',name:'八合目小屋 秋田駒ヶ岳',lat:39.768170,lon:140.807412,elevation:1304,source:'固定候補'}
+  ],
+  '栗駒山': [
+    {id:'fixed1421-kurikoma-sukawa',type:'trailhead',name:'須川高原温泉',lat:38.979944,lon:140.769306,elevation:1126,source:'固定候補'}
+  ],
+  '月山': [
+    {id:'fixed1421-gassan-ubasawa',type:'trailhead',name:'姥沢 月山リフト',lat:38.517333,lon:140.007111,elevation:1152,source:'固定候補'}
+  ],
+  '大朝日岳': [
+    {id:'fixed1421-oasahi-higuresawa',type:'trailhead',name:'日暮沢登山口駐車場（日暮沢小屋）',lat:38.320806,lon:139.943667,elevation:617,source:'固定候補'}
+  ],
+  '船形山': [
+    {id:'fixed1421-funagata-otaki',type:'trailhead',name:'大滝キャンプ場・船形山登山口',lat:38.458083,lon:140.644528,elevation:1042,source:'固定候補'}
+  ],
+  '蔵王山（熊野岳）': [
+    {id:'fixed1421-zao-jizo',type:'trailhead',name:'蔵王ロープウェイ地蔵山頂駅',lat:38.154781,lon:140.431075,elevation:1661,source:'固定候補'}
+  ],
+  '飯豊山': [
+    {id:'fixed1421-iide-dainichisugi',type:'trailhead',name:'大日杉登山口',lat:37.851306,lon:139.779833,elevation:610,source:'固定候補'}
+  ],
+  '磐梯山': [
+    {id:'fixed1421-bandai-inawashiro',type:'trailhead',name:'猪苗代登山口（猪苗代スキー場）',lat:37.574117,lon:140.094226,elevation:690,source:'固定候補'}
+  ],
+  '七ヶ岳': [
+    {id:'fixed1421-nanatsugatake-takatsue',type:'trailhead',name:'会津高原たかつえスキー場・七ヶ岳登山口',lat:37.110389,lon:139.614722,elevation:954,source:'固定候補'}
+  ]
+});
+
 // V1.10.0 全国主要山域強化。
 // 座標をハードコードせず、代表登山口・山小屋の「名称」を手登録し、選択時にOSM/Nominatimで座標解決する。
 // これにより全国の三百名山で手登録候補を持ちつつ、施設移転・名称差異にも自動探索で補完できる。
 const CURATED_ACCESS_HINTS = {
   // 北海道
-  '利尻山':{trailheads:['北麓野営場 利尻山登山口','沓形登山口'],huts:['利尻山避難小屋']},
-  '羅臼岳':{trailheads:['岩尾別温泉 羅臼岳登山口'],huts:['羅臼平']},
+  '利尻山':{trailheads:['利尻北麓野営場（鴛泊コース）','沓形登山口'],huts:['利尻山避難小屋']},
+  '羅臼岳':{trailheads:['岩尾別温泉・木下小屋登山口'],huts:['羅臼平']},
   '斜里岳':{trailheads:['清岳荘'],huts:['清岳荘']},
   '雄阿寒岳':{trailheads:['滝口 雄阿寒岳登山口']},
   '天塩岳':{trailheads:['天塩岳ヒュッテ 登山口'],huts:['天塩岳ヒュッテ']},
-  'ニセイカウシュッペ山':{trailheads:['古川林道 ニセイカウシュッペ山登山口']},
-  '大雪山（旭岳）':{trailheads:['旭岳ロープウェイ姿見駅','旭岳温泉'],huts:['旭岳石室']},
-  '石狩岳':{trailheads:['シュナイダーコース登山口','ユニ石狩岳登山口']},
-  'トムラウシ山':{trailheads:['トムラウシ温泉 短縮登山口'],huts:['ヒサゴ沼避難小屋']},
+  'ニセイカウシュッペ山':{trailheads:['ニセイカウシュッペ山登山口（古川林道・西尾根）']},
+  '大雪山（旭岳）':{trailheads:['旭岳ロープウェイ姿見駅','旭岳ロープウェイ山麓駅'],huts:['旭岳石室']},
+  '石狩岳':{trailheads:['シュナイダーコース登山口（音更川二十一ノ沢出合）','ユニ石狩岳登山口']},
+  'トムラウシ山':{trailheads:['トムラウシ短縮コース登山口'],huts:['ヒサゴ沼避難小屋']},
   'オプタテシケ山':{trailheads:['望岳台'],huts:['美瑛富士避難小屋']},
   '十勝岳':{trailheads:['望岳台','吹上温泉登山口'],huts:['十勝岳避難小屋']},
-  'ニペソツ山':{trailheads:['幌加温泉 ニペソツ山登山口']},
-  '幌尻岳':{trailheads:['とよぬか山荘','新冠ポロシリ山荘 登山口'],huts:['幌尻山荘','新冠ポロシリ山荘']},
+  'ニペソツ山':{trailheads:['幌加温泉コース登山口']},
+  '幌尻岳':{trailheads:['とよぬか山荘・シャトルバス乗り場','新冠ポロシリ山荘 登山口'],huts:['幌尻山荘','新冠ポロシリ山荘']},
   'カムイエクウチカウシ山':{trailheads:['札内川ヒュッテ'],huts:['札内川ヒュッテ']},
-  'ペテガリ岳':{trailheads:['神威山荘 ペテガリ岳登山口'],huts:['ペテガリ山荘']},
+  'ペテガリ岳':{trailheads:['神威山荘（ペテガリ岳アプローチ起点）'],huts:['ペテガリ山荘']},
   '神威岳':{trailheads:['神威山荘']},
   '芦別岳':{trailheads:['山部自然公園太陽の里 芦別岳登山口']},
-  '夕張岳':{trailheads:['夕張岳登山口'],huts:['夕張岳ヒュッテ']},
+  '夕張岳':{trailheads:['冷水・馬の背登山口（夕張岳ヒュッテ）'],huts:['夕張岳ヒュッテ']},
   '暑寒別岳':{trailheads:['暑寒荘'],huts:['暑寒荘']},
   '余市岳':{trailheads:['キロロ ゴンドラ山頂駅']},
-  '樽前山':{trailheads:['樽前山七合目登山口']},
-  '後方羊蹄山':{trailheads:['羊蹄山比羅夫登山口','真狩登山口','京極登山口'],huts:['羊蹄山避難小屋']},
-  'ニセコアンヌプリ':{trailheads:['ニセコアンヌプリ五色温泉登山口']},
-  '狩場山':{trailheads:['千走新道登山口']},
-  '渡島駒ヶ岳':{trailheads:['赤井川登山口 駒ヶ岳']},
-  '大千軒岳':{trailheads:['知内川コース登山口 大千軒岳']},
+  '樽前山':{trailheads:['7合目登山口']},
+  '後方羊蹄山':{trailheads:['比羅夫登山口・半月湖畔自然公園','真狩登山口・真狩キャンプ場','京極登山口'],huts:['羊蹄山避難小屋']},
+  'ニセコアンヌプリ':{trailheads:['五色温泉インフォメーションセンター']},
+  '狩場山':{trailheads:['千走登山口']},
+  '渡島駒ヶ岳':{trailheads:['赤井川登山口・6合目駐車場']},
+  '大千軒岳':{trailheads:['奥二股登山口駐車場']},
 
   // 東北
-  '八甲田山':{trailheads:['酸ヶ湯温泉','八甲田ロープウェー山頂公園駅'],huts:['仙人岱避難小屋']},
-  '岩木山':{trailheads:['岩木山八合目','嶽温泉 岩木山登山口']},
+  '八甲田山':{trailheads:['酸ヶ湯登山口','八甲田ロープウェー山頂公園駅'],huts:['仙人岱避難小屋']},
+  '岩木山':{trailheads:['岩木山八合目','嶽温泉・嶽コース登山口']},
   '白神岳':{trailheads:['白神岳登山口'],huts:['白神岳避難小屋']},
-  '八幡平':{trailheads:['八幡平山頂レストハウス']},
+  '八幡平':{trailheads:['八幡平見返峠・山頂レストハウス']},
   '乳頭山（烏帽子岳）':{trailheads:['黒湯温泉','蟹場温泉']},
   '秋田駒ヶ岳':{trailheads:['八合目小屋 秋田駒ヶ岳'],huts:['阿弥陀池避難小屋']},
   '岩手山':{trailheads:['馬返し登山口 岩手山','焼走り登山口'],huts:['八合目避難小屋']},
   '姫神山':{trailheads:['一本杉登山口 姫神山']},
   '早池峰山':{trailheads:['小田越登山口'],huts:['早池峰山避難小屋']},
   '五葉山':{trailheads:['赤坂峠 五葉山登山口'],huts:['石楠花荘']},
-  '和賀岳':{trailheads:['甘露水登山口 和賀岳']},
+  '和賀岳':{trailheads:['甘露水口・薬師岳登山口駐車場']},
   '焼石岳':{trailheads:['中沼登山口'],huts:['銀明水避難小屋']},
   '栗駒山':{trailheads:['いわかがみ平','須川高原温泉']},
   '神室山':{trailheads:['西ノ又登山口 神室山']},
   '森吉山':{trailheads:['阿仁ゴンドラ山頂駅']},
   '太平山':{trailheads:['旭又登山口 太平山']},
-  '鳥海山':{trailheads:['鉾立 鳥海山登山口','湯ノ台口'],huts:['御浜小屋','大物忌神社参籠所']},
+  '鳥海山':{trailheads:['鉾立登山口（象潟口）','湯ノ台口'],huts:['御浜小屋','大物忌神社参籠所']},
   '月山':{trailheads:['月山八合目','姥沢 月山リフト'],huts:['佛生池小屋']},
-  '摩耶山':{trailheads:['越沢登山口 摩耶山 山形']},
-  '以東岳':{trailheads:['泡滝ダム'],huts:['以東岳避難小屋','大鳥小屋']},
-  '大朝日岳':{trailheads:['古寺鉱泉 朝日岳登山口','日暮沢小屋'],huts:['大朝日小屋','竜門小屋']},
-  '祝瓶山':{trailheads:['祝瓶山荘 登山口'],huts:['祝瓶山荘']},
-  '船形山':{trailheads:['大滝キャンプ場 船形山登山口','旗坂キャンプ場'],huts:['升沢避難小屋']},
+  '摩耶山':{trailheads:['越沢口']},
+  '以東岳':{trailheads:['泡滝ダム・大鳥登山口'],huts:['以東岳避難小屋','大鳥小屋']},
+  '大朝日岳':{trailheads:['古寺案内センター（古寺コース）','日暮沢登山口駐車場（日暮沢小屋）'],huts:['大朝日小屋','竜門小屋']},
+  '祝瓶山':{trailheads:['祝瓶山荘駐車場・桑住平ルート'],huts:['祝瓶山荘']},
+  '船形山':{trailheads:['大滝キャンプ場・船形山登山口','旗坂キャンプ場駐車場（升沢コース）'],huts:['升沢避難小屋']},
   '泉ヶ岳':{trailheads:['泉ヶ岳大駐車場']},
   '蔵王山（熊野岳）':{trailheads:['蔵王ロープウェイ地蔵山頂駅','刈田峠']},
-  '飯豊山':{trailheads:['御沢登山口 飯豊山','大日杉登山口'],huts:['三国小屋','切合小屋','本山小屋']},
+  '飯豊山':{trailheads:['御沢登山口・御沢野営場','大日杉登山口'],huts:['三国小屋','切合小屋','本山小屋']},
   '西吾妻山':{trailheads:['天元台高原リフト北望台','グランデコ ゴンドラ山頂駅'],huts:['西吾妻小屋']},
   '一切経山':{trailheads:['浄土平'],huts:['酸ヶ平避難小屋']},
-  '安達太良山':{trailheads:['あだたら山ロープウェイ山頂駅','奥岳登山口'],huts:['くろがね小屋']},
-  '磐梯山':{trailheads:['八方台登山口','猪苗代登山口'],huts:['弘法清水小屋']},
+  '安達太良山':{trailheads:['あだたら山ロープウェイ山頂駅','奥岳登山口・あだたら山ロープウェイ'],huts:['くろがね小屋']},
+  '磐梯山':{trailheads:['八方台登山口','猪苗代登山口（猪苗代スキー場）'],huts:['弘法清水小屋']},
   '二岐山':{trailheads:['御鍋神社登山口 二岐山']},
-  '七ヶ岳':{trailheads:['たかつえスキー場 七ヶ岳登山口']},
-  '荒海山':{trailheads:['八総鉱山跡 荒海山登山口']},
+  '七ヶ岳':{trailheads:['会津高原たかつえスキー場・七ヶ岳登山口']},
+  '荒海山':{trailheads:['八総鉱山跡・荒海山登山駐車場']},
   '帝釈山':{trailheads:['馬坂峠 帝釈山登山口']},
   '会津駒ヶ岳':{trailheads:['滝沢登山口 会津駒ヶ岳'],huts:['駒の小屋']},
   '会津朝日岳':{trailheads:['赤倉沢登山口 会津朝日岳']},
@@ -1653,10 +2781,10 @@ const CURATED_ACCESS_HINTS = {
   '大滝根山':{trailheads:['仙台平 大滝根山登山口']},
 
   // 関東（代表的な未補強山）
-  '筑波山':{trailheads:['筑波山神社入口','筑波山つつじヶ丘駐車場','つつじヶ丘駅 筑波山ロープウェイ'],huts:[]},
+  '筑波山':{trailheads:['筑波山神社入口','筑波山つつじヶ丘駐車場','つつじヶ丘登山口'],huts:[]},
 
   // 近畿
-  '伊吹山':{trailheads:['伊吹山登山口 三之宮神社','伊吹山ドライブウェイ山頂駐車場']},
+  '伊吹山':{trailheads:['伊吹山 上野登山口（三之宮神社）','伊吹山ドライブウェイ山頂駐車場']},
   '藤原岳':{trailheads:['大貝戸登山口 藤原岳','孫太尾根登山口'],huts:['藤原山荘']},
   '御在所岳':{trailheads:['中登山道口 御在所岳','御在所ロープウエイ山上公園駅']},
   '倶留尊山':{trailheads:['曽爾高原 倶留尊山登山口']},
@@ -1673,7 +2801,7 @@ const CURATED_ACCESS_HINTS = {
   '金剛山':{trailheads:['千早本道登山口','水越峠 金剛山']},
   '武奈ヶ岳':{trailheads:['坊村 武奈ヶ岳登山口','イン谷口']},
   '蓬来山':{trailheads:['びわ湖バレイ山頂駅','蓬莱駅 登山口']},
-  '比叡山':{trailheads:['坂本ケーブル延暦寺駅','修学院 比叡山登山口']},
+  '比叡山':{trailheads:['坂本ケーブル延暦寺駅','雲母坂登山口（修学院）']},
   '愛宕山':{trailheads:['清滝 愛宕山登山口']},
   '六甲山':{trailheads:['芦屋川 高座の滝','有馬温泉 六甲山登山口']},
 
@@ -1792,7 +2920,11 @@ const MOUNTAIN_REGION = {
   '薬師岳':'yakushi_kurobe','黒部五郎岳':'yakushi_kurobe',
   // V1.12.56 中央アルプス縦走回廊
   '木曽駒ヶ岳':'central_kisokoma_utsugi','宝剣岳':'central_kisokoma_utsugi','檜尾岳':'central_kisokoma_utsugi',
-  '熊沢岳':'central_kisokoma_utsugi','東川岳':'central_kisokoma_utsugi','空木岳':'central_kisokoma_utsugi'
+  '熊沢岳':'central_kisokoma_utsugi','東川岳':'central_kisokoma_utsugi','空木岳':'central_kisokoma_utsugi',
+  // V1.4.16 四国 剣山〜三嶺縦走回廊
+  '剣山':'shikoku_tsurugi_miune','三嶺':'shikoku_tsurugi_miune',
+  // V1.4.17 尾瀬 燧ヶ岳〜至仏山縦走回廊
+  '燧ヶ岳':'oze_hiuchi_shibutsu','至仏山':'oze_hiuchi_shibutsu'
 };
 // typo-safe alias for the ura-ginza key used above.
 MOUNTAIN_REGION['鷲羽岳']='ushiroginza';
@@ -1977,6 +3109,16 @@ function regionalCandidates(mountain){
   if(['木曽駒ヶ岳','宝剣岳','檜尾岳','熊沢岳','東川岳','空木岳'].includes(mountain)){
     return mergeRegionalCatalogs('central_kisokoma_utsugi');
   }
+
+  // V1.4.16 剣山〜次郎笈〜白髪避難小屋〜三嶺を同一回廊として提示。
+  if(['剣山','三嶺'].includes(mountain)){
+    return mergeRegionalCatalogs('shikoku_tsurugi_miune');
+  }
+
+  // V1.4.17 燧ヶ岳〜見晴〜龍宮小屋〜山ノ鼻〜至仏山を同一回廊として提示。
+  if(['燧ヶ岳','至仏山'].includes(mountain)){
+    return mergeRegionalCatalogs('oze_hiuchi_shibutsu');
+  }
   return REGIONAL_CATALOG[key]||[];
 }
 
@@ -2109,7 +3251,7 @@ const FIXED_ECHIGO_OZE_V11224 = {
   '守門岳': [
     {id:'fixed24-sumon-peak',type:'peak',name:'守門岳',lat:37.397778,lon:139.136667,elevation:1537,source:'固定候補'},
     {id:'fixed24-sumon-hokkure',type:'trailhead',name:'保久礼登山口',lat:37.410139,lon:139.095361,elevation:781,source:'固定候補'},
-    {id:'fixed24-sumon-nibun',type:'trailhead',name:'二分登山口',lat:37.403806,lon:139.091944,elevation:586,source:'固定候補'}
+    {id:'fixed24-sumon-nibun',type:'trailhead',name:'二口登山口',lat:37.403806,lon:139.091944,elevation:586,source:'固定候補'}
   ],
   '浅草岳': [
     {id:'fixed24-asakusa-peak',type:'peak',name:'浅草岳',lat:37.343611,lon:139.233611,elevation:1585,source:'固定候補'},
@@ -2642,6 +3784,66 @@ for (const [mountain,pts] of Object.entries(V1228_NORTHERN_ALPS_ACCESS)) {
 }
 
 let pointSeq=0;
+
+// V1.4.23: くじゅう連山の主要4山頂追加 + 鳳凰三山の山頂名整理。
+// 山頂座標は国土地理院「日本の主な山岳」掲載値を採用。
+// 旧名称は MOUNTAIN_NAME_ALIAS で互換維持し、UIからは新名称のみ表示する。
+Object.assign(MOUNTAIN_PRESETS, {
+  '中岳(くじゅう)': {latitude:33.085833, longitude:131.248889},
+  '三俣山': {latitude:33.103889, longitude:131.246389},
+  '星生山': {latitude:33.090833, longitude:131.232500},
+  '薬師岳(鳳凰)': {latitude:35.696111, longitude:138.311667},
+  '観音岳(鳳凰)': {latitude:35.701667, longitude:138.304722},
+  '地蔵岳(鳳凰)': {latitude:35.712222, longitude:138.298611}
+});
+
+const V1423_KUJU_PEAKS = [
+  {id:'v1423-kuju-kuju',type:'peak',name:'久住山',lat:33.082187,lon:131.240871,elevation:1786,source:'固定候補'},
+  {id:'v1423-kuju-naka',type:'peak',name:'中岳(くじゅう)',lat:33.085833,lon:131.248889,elevation:1791,source:'固定候補'},
+  {id:'v1423-kuju-mimata',type:'peak',name:'三俣山',lat:33.103889,lon:131.246389,elevation:1744,source:'固定候補'},
+  {id:'v1423-kuju-taisen',type:'peak',name:'大船山',lat:33.095000,lon:131.280556,elevation:1786,source:'固定候補'},
+  {id:'v1423-kuju-hossho',type:'peak',name:'星生山',lat:33.090833,lon:131.232500,elevation:1762,source:'固定候補'}
+];
+const V1423_KUJU_ACCESS = [
+  {id:'v1423-kuju-makinoto',type:'trailhead',name:'牧ノ戸峠',lat:33.096111,lon:131.207861,elevation:1330,source:'固定候補'},
+  {id:'v1423-kuju-chojabaru',type:'trailhead',name:'長者原',lat:33.118694,lon:131.229583,elevation:1036,source:'固定候補'},
+  // YAMAPランドマークで位置確認し、大分県公式の「久住分かれにある久住山避難小屋」と照合。
+  {id:'v1423-kuju-wakare',type:'hut',name:'久住分かれ避難小屋',lat:33.086028,lon:131.238806,elevation:1638,source:'固定候補'},
+  {id:'v1423-kuju-hokkein',type:'hut',name:'法華院温泉山荘',lat:33.096353,lon:131.255433,elevation:1303,source:'固定候補'}
+];
+for (const mountainName of ['久住山','大船山','中岳(くじゅう)','三俣山','星生山']) {
+  const old=BUILTIN_ROUTE_CATALOG[mountainName]||[];
+  const merged=[...V1423_KUJU_PEAKS,...V1423_KUJU_ACCESS,...old];
+  const seen=new Set();
+  BUILTIN_ROUTE_CATALOG[mountainName]=merged.filter(p=>{
+    const k=`${p.type}:${p.name}`;
+    if(seen.has(k))return false;
+    seen.add(k); return true;
+  });
+}
+
+const V1423_HOUOU_COMMON = [
+  {id:'v1423-houou-yashajin',type:'trailhead',name:'夜叉神峠登山口',lat:35.652800,lon:138.331000,elevation:1380,source:'固定候補'},
+  {id:'v1423-houou-minamiomuro',type:'hut',name:'南御室小屋',lat:35.684900,lon:138.309200,elevation:2420,source:'固定候補'},
+  {id:'v1423-houou-yakushi',type:'peak',name:'薬師岳(鳳凰)',lat:35.696111,lon:138.311667,elevation:2780,source:'固定候補'},
+  {id:'v1423-houou-kannon',type:'peak',name:'観音岳(鳳凰)',lat:35.701667,lon:138.304722,elevation:2841,source:'固定候補'},
+  {id:'v1423-houou-jizo',type:'peak',name:'地蔵岳(鳳凰)',lat:35.712222,lon:138.298611,elevation:2764,source:'固定候補'}
+];
+Object.assign(BUILTIN_ROUTE_CATALOG, {
+  '薬師岳(鳳凰)': [...V1423_HOUOU_COMMON],
+  '観音岳(鳳凰)': [...V1423_HOUOU_COMMON],
+  '地蔵岳(鳳凰)': [
+    {id:'v1423-houou-jizo-th',type:'trailhead',name:'夜叉神峠登山口',lat:35.652800,lon:138.331000,elevation:1380,source:'固定候補'},
+    {id:'v1423-houou-jizo-hut',type:'hut',name:'南御室小屋',lat:35.684900,lon:138.309200,elevation:2420,source:'固定候補'},
+    {id:'v1423-houou-jizo-yakushi',type:'peak',name:'薬師岳(鳳凰)',lat:35.696111,lon:138.311667,elevation:2780,source:'固定候補'},
+    {id:'v1423-houou-jizo-kannon',type:'peak',name:'観音岳(鳳凰)',lat:35.701667,lon:138.304722,elevation:2841,source:'固定候補'},
+    {id:'v1423-houou-jizo-peak',type:'peak',name:'地蔵岳(鳳凰)',lat:35.712222,lon:138.298611,elevation:2764,source:'固定候補'}
+  ]
+});
+// 旧キーは過去保存ルート復元用に残すが、新規UIでは非表示。
+BUILTIN_ROUTE_CATALOG['鳳凰山']=BUILTIN_ROUTE_CATALOG['薬師岳(鳳凰)'];
+BUILTIN_ROUTE_CATALOG['地蔵ヶ岳']=BUILTIN_ROUTE_CATALOG['地蔵岳(鳳凰)'];
+
 const sessionId=(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
 
 document.addEventListener('DOMContentLoaded',init);
@@ -2656,7 +3858,8 @@ const MOUNTAIN_UI_AREAS = [
 const EXTRA_MOUNTAIN_UI_AREA = {
   '蝶ヶ岳':'northern_alps','西穂高岳':'northern_alps','南岳':'northern_alps','北穂高岳':'northern_alps','前穂高岳':'northern_alps',
   '赤岳':'yatsugatake_chushin','横岳（八ヶ岳）':'yatsugatake_chushin','硫黄岳（八ヶ岳）':'yatsugatake_chushin','阿弥陀岳':'yatsugatake_chushin','権現岳':'yatsugatake_chushin','編笠山':'yatsugatake_chushin','北横岳':'yatsugatake_chushin',
-  '鳳凰山':'southern_alps','御嶽山':'central_alps_ontake','宮之浦岳':'kyushu','大山':'chugoku'
+  '薬師岳(鳳凰)':'southern_alps','観音岳(鳳凰)':'southern_alps','御嶽山':'central_alps_ontake','宮之浦岳':'kyushu','大山':'chugoku',
+  '中岳(くじゅう)':'kyushu','三俣山':'kyushu','星生山':'kyushu'
 };
 function mountainUiArea(name){
   if(EXTRA_MOUNTAIN_UI_AREA[name])return EXTRA_MOUNTAIN_UI_AREA[name];
@@ -2669,13 +3872,147 @@ function mountainUiArea(name){
   if(i<=268)return 'chugoku'; if(i<=277)return 'shikoku'; return 'kyushu';
 }
 
+let deferredInstallPrompt=null;
+function isStandaloneApp(){
+  return window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone===true;
+}
+function isMobileDevice(){return window.matchMedia?.('(max-width: 900px)')?.matches;}
+function isIosDevice(){return /iphone|ipad|ipod/i.test(navigator.userAgent||'');}
+function openInstallGuide(){
+  const guide=$('installGuide');if(!guide)return;
+  const ios=$('installGuideIos'),generic=$('installGuideGeneric');
+  if(ios)ios.classList.toggle('hidden',!isIosDevice());
+  if(generic)generic.classList.toggle('hidden',isIosDevice());
+  guide.classList.remove('hidden');
+  document.body.classList.add('install-guide-open');
+}
+function closeInstallGuide(){
+  $('installGuide')?.classList.add('hidden');
+  document.body.classList.remove('install-guide-open');
+}
+function setupInstallApp(){
+  const btn=$('installAppBtn');if(!btn)return;
+  const refresh=()=>btn.classList.toggle('hidden',!isMobileDevice()||isStandaloneApp());
+  refresh();
+  window.addEventListener('resize',refresh,{passive:true});
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();deferredInstallPrompt=e;refresh();
+  });
+  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;btn.classList.add('hidden');closeInstallGuide();});
+  btn.addEventListener('click',async()=>{
+    if(isStandaloneApp()){btn.classList.add('hidden');return;}
+    if(deferredInstallPrompt){
+      const prompt=deferredInstallPrompt;deferredInstallPrompt=null;
+      try{await prompt.prompt();await prompt.userChoice;}catch(_){ }
+      refresh();return;
+    }
+    openInstallGuide();
+  });
+  document.querySelectorAll('[data-install-close]').forEach(el=>el.addEventListener('click',closeInstallGuide));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeInstallGuide();});
+}
+
+function currentMountainLabel(){return $('mountainPreset')?.value?.trim()||$('mountainSearch')?.value?.trim()||'';}
+function logMountainSelected(source='select'){
+  const mountain=currentMountainLabel();
+  if(!mountain)return;
+  logEvent('mountain_selected',{success:true,mountain,metadata:{source}});
+}
+function logPointSelected(row,p){
+  if(!p)return;
+  logEvent('point_selected',{success:true,mountain:currentMountainLabel(),metadata:{
+    point_name:p.name||'',point_type:row?.querySelector('.point-type')?.value||p.type||'other',
+    point_role:row?.dataset?.role||'',source:p.source||''
+  }});
+}
+
+let nationalOutlookMap=null;
+let nationalOutlookLayer=null;
+let nationalOutlookResults=new Map();
+
+function nationalMountainPoint(name){
+  const preset=MOUNTAIN_PRESETS[name];
+  if(!preset)return null;
+  const lat=Number(preset.latitude??preset.lat),lon=Number(preset.longitude??preset.lon);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+  const peak=(BUILTIN_ROUTE_CATALOG[name]||[]).find(x=>x.type==='peak'&&hasResolvedCoord(x));
+  return {name,lat,lon,elevation:Number.isFinite(Number(peak?.elevation))?Number(peak.elevation):null,eligible:representativeCourseOptions(name).length>0};
+}
+function nationalOutlookPoints(){return JAPAN_300_MOUNTAINS.map(nationalMountainPoint).filter(Boolean);}
+function nationalMarkerIcon(grade='?'){
+  const g=['A','B','C'].includes(grade)?grade:'?';
+  return L.divIcon({className:'national-marker-wrap',html:`<div class="national-marker grade-${g==='?'?'u':g.toLowerCase()}">${g}</div>`,iconSize:[26,26],iconAnchor:[13,13]});
+}
+function renderNationalOutlookMarkers(){
+  if(!nationalOutlookMap||!window.L)return;
+  if(nationalOutlookLayer)nationalOutlookLayer.remove();
+  nationalOutlookLayer=L.layerGroup().addTo(nationalOutlookMap);
+  for(const p of nationalOutlookPoints()){
+    const result=nationalOutlookResults.get(p.name);
+    const grade=result?.grade||'?';
+    const marker=L.marker([p.lat,p.lon],{icon:nationalMarkerIcon(grade),title:`${p.name} ${grade}`}).addTo(nationalOutlookLayer);
+    marker.on('click',()=>showNationalOutlookDetail(p,result));
+  }
+}
+function showNationalOutlookDetail(p,result){
+  const box=$('nationalOutlookDetail');if(!box)return;
+  if(!result){box.innerHTML=`<div class="national-detail-grade grade-u">?</div><div><h3>${esc(p.name)}</h3><p>${p.eligible?'まだ判定していません。':'代表コース未対応のため、全国簡易判定は対象外です。'}</p>${p.eligible?'<button type="button" class="secondary national-detail-open">この山を詳しく分析</button>':''}</div>`;}
+  else{
+    box.innerHTML=`<div class="national-detail-grade grade-${result.grade.toLowerCase()}">${result.grade}</div><div><h3>${esc(p.name)}</h3><p>${esc(result.summary||'')}</p><dl><div><dt>最大風速</dt><dd>${num(result.maxWind)} m/s</dd></div><div><dt>最大降水</dt><dd>${num(result.maxRain)} mm/h</dd></div><div><dt>雷指標</dt><dd>${esc(result.thunder||'–')}</dd></div><div><dt>最低気温</dt><dd>${num(result.minTemp)} ℃</dd></div><div><dt>最小視界</dt><dd>${Number.isFinite(result.minVisibility)?Math.round(result.minVisibility/100)/10+' km':'–'}</dd></div></dl><button type="button" class="primary national-detail-open">この山を詳しく分析</button></div>`;
+  }
+  box.querySelector('.national-detail-open')?.addEventListener('click',()=>openMountainFromNationalMap(p.name));
+}
+async function openMountainFromNationalMap(name){
+  const search=$('mountainSearch'); if(!search)return;
+  search.value=name; search.dispatchEvent(new Event('change',{bubbles:true}));
+  const d=$('nationalOutlookDate')?.value;
+  await new Promise(r=>setTimeout(r,50));
+  if(representativeCourseOptions(name).length){
+    await applyRepresentativeCourse();
+    const rows=[...document.querySelectorAll('#points .point-row')];
+    const first=rows[0]?.querySelector('.point-date')?.value;
+    if(d&&first){
+      const shift=Math.round((new Date(`${d}T00:00:00+09:00`).getTime()-new Date(`${first}T00:00:00+09:00`).getTime())/86400000);
+      rows.forEach(row=>{const input=row.querySelector('.point-date');if(!input?.value)return;const ms=new Date(`${input.value}T00:00:00+09:00`).getTime()+shift*86400000;input.value=formatJstInput(ms).date;});
+      updateForecastHorizon(); renderRouteMaps();
+    }
+  }
+  $('mountainPreset')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function runNationalOutlook(){
+  const date=$('nationalOutlookDate')?.value, status=$('nationalOutlookStatus'), btn=$('nationalOutlookRun');
+  if(!date){if(status)status.textContent='日付を選択してください。';return;}
+  const points=nationalOutlookPoints(); const eligible=points.filter(x=>x.eligible);
+  if(status)status.textContent=`${eligible.length}座を簡易判定中…`; if(btn)btn.disabled=true;
+  try{
+    const res=await fetch('/api/national-outlook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,points:eligible})});
+    const data=await res.json().catch(()=>({})); if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
+    nationalOutlookResults=new Map((data.results||[]).map(x=>[x.name,x]));
+    renderNationalOutlookMarkers();
+    const counts={A:0,B:0,C:0}; for(const r of nationalOutlookResults.values())if(counts[r.grade]!=null)counts[r.grade]++;
+    if(status)status.innerHTML=`判定完了：<b>A ${counts.A}座</b> / <b>B ${counts.B}座</b> / <b>C ${counts.C}座</b> / 対象外 ${points.length-nationalOutlookResults.size}座`;
+  }catch(e){if(status)status.textContent=`全国判定に失敗しました：${e.message||e}`;}
+  finally{if(btn)btn.disabled=false;}
+}
+function setupNationalOutlook(){
+  const el=$('nationalOutlookMap'),date=$('nationalOutlookDate'),btn=$('nationalOutlookRun'); if(!el||!window.L)return;
+  const today=new Date(); const local=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10); date.value=local;
+  const max=new Date(today.getTime()+15*86400000); date.max=new Date(max.getTime()-max.getTimezoneOffset()*60000).toISOString().slice(0,10); date.min=local;
+  nationalOutlookMap=L.map(el,{zoomControl:true,scrollWheelZoom:false}).setView([36.2,138.0],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:11,attribution:'&copy; OpenStreetMap contributors'}).addTo(nationalOutlookMap);
+  renderNationalOutlookMarkers(); btn?.addEventListener('click',runNationalOutlook);
+}
+
 function init(){
+  setupInstallApp();
+  setupNationalOutlook();
   const area=$('mountainArea');
   const select=$('mountainPreset');
   const search=$('mountainSearch');
   const list=$('mountainPresetList');
   const existing=Object.keys(MOUNTAIN_PRESETS);
-  const extra=existing.filter(n=>!JAPAN_300_MOUNTAINS.includes(n));
+  const hiddenCompat=new Set(['鳳凰山','地蔵ヶ岳']);
+  const extra=existing.filter(n=>!JAPAN_300_MOUNTAINS.includes(n)&&!hiddenCompat.has(n));
   const all=[...JAPAN_300_MOUNTAINS,...extra];
   area.innerHTML=`<option value="">山域を選択してください</option>${MOUNTAIN_UI_AREAS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}`;
   list.innerHTML=all.map(n=>`<option value="${esc(n)}"></option>`).join('');
@@ -2689,16 +4026,22 @@ function init(){
     $('mountainCount').textContent=areaKey?`${areaName}：${names.length}座を表示中 / 山名検索なら全国から直接選択できます`:`全国版：日本三百名山300座＋縦走主要ピーク${extra.length}座 / まず山域を選択`;
   };
   area.value=''; select.value=''; search.value=''; populateMountainSelect('');
+  refreshRepresentativeCourseButton();
   $('loadPoiBtn').addEventListener('click',loadCandidates);
+  $('representativeCourseBtn')?.addEventListener('click',applyRepresentativeCourse);
+  $('representativeCourseSelect')?.addEventListener('change',refreshRepresentativeCourseButton);
   $('addPointBtn').addEventListener('click',()=>addManualPointRow());
   $('analyzeBtn').addEventListener('click',analyze);
+  $('lastResultBtn')?.addEventListener('click',showLastAnalysisResult);
+  refreshLastAnalysisPanel();
 
   const resetForMountainChange=()=>{
     candidates=[];
     $('points').innerHTML=''; pointSeq=0;
     const selected=!!select.value.trim();
-    $('candidateState').textContent=selected?'「この山のルート候補を読み込む」を押してください':'';
+    $('candidateState').textContent=selected?'「通過ポイントを読み込む」を押してください':'';
     updateLoadButtonAppearance(false);
+    refreshRepresentativeCourseButton();
     updateForecastHorizon();
     renderRouteMaps();
   };
@@ -2711,6 +4054,7 @@ function init(){
   select.addEventListener('change',()=>{
     search.value=select.value;
     resetForMountainChange();
+    logMountainSelected('mountain_select');
   });
   const chooseFromSearch=(q,commit=false)=>{
     if(!q){area.value='';populateMountainSelect('');resetForMountainChange();return false;}
@@ -2723,12 +4067,35 @@ function init(){
     resetForMountainChange();
     return true;
   };
+  $('lastRouteBtn')?.addEventListener('click',async()=>{
+    const data=loadLastAnalysisSnapshot();
+    if(!data?.route?.mountain)return setStatus('復元できる前回ルートがありません。',true);
+    const mountain=data.route.mountain;
+    if(!chooseFromSearch(mountain,true))return setStatus(`${mountain} を現在の山一覧から復元できませんでした。`,true);
+    try{
+      await loadCandidates();
+      $('points').innerHTML=''; pointSeq=0;
+      for(const saved of data.route.points||[]){
+        let hit=candidates.find(p=>String(p.id)===String(saved.id));
+        if(!hit)hit=candidates.find(p=>p.type===saved.type&&p.name===saved.name);
+        if(!hit)continue;
+        addPointRow(saved.type,hit.id,saved.role||'',{date:saved.date,time:saved.time});
+        const row=$('points').lastElementChild;
+        if(row?.querySelector('.point-stay'))row.querySelector('.point-stay').checked=!!saved.stay;
+        updateMeta(row);
+      }
+      updateForecastHorizon(); renderRouteMaps();
+      setStatus(`前回ルート「${mountain}」を復元しました。最新の天気で再分析できます。`);
+      $('points')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(e){setStatus(`前回ルートを復元できませんでした：${e.message||e}`,true);}
+  });
+
   search.addEventListener('input',()=>{
     const q=search.value.trim();
     if(!q){area.value='';populateMountainSelect('');resetForMountainChange();return;}
     chooseFromSearch(q,false);
   });
-  search.addEventListener('change',()=>chooseFromSearch(search.value.trim(),true));
+  search.addEventListener('change',()=>{if(chooseFromSearch(search.value.trim(),true))logMountainSelected('mountain_search');});
   $('candidateState').textContent='';
   updateLoadButtonAppearance(false);
   updateForecastHorizon();
@@ -2741,6 +4108,7 @@ function updateLoadButtonAppearance(loaded){
   if(!btn)return;
   const hasMountain=!!$('mountainPreset')?.value?.trim();
   btn.disabled=!hasMountain;
+  btn.textContent=loaded?'読み込み済み':'通過ポイントを読み込む';
   btn.classList.toggle('primary',hasMountain&&!loaded);
   btn.classList.toggle('secondary',!hasMountain||loaded);
   btn.classList.toggle('route-load-needed',hasMountain&&!loaded);
@@ -2788,11 +4156,373 @@ function ensureCenterPeak(list,label,center){
   }
   return list;
 }
+// V1.4.66: 北・中央・南アルプス＋八ヶ岳の代表コース。
+// ここには固定候補の『地点順』だけを保持し、時刻は既存の確認済みCTから都度計算する。
+// 各隣接区間でCTが解決できない場合は代表コース自動入力自体を中止し、+1時間フォールバックを使わない。
+const REPRESENTATIVE_COURSES = Object.freeze({
+  // 北アルプス（V1.4.63）
+  '槍ヶ岳': {label:'上高地・槍沢ルート', points:[
+    ['trailhead','上高地','登山口'],['hut','槍沢ロッヂ','山小屋・避難小屋'],['hut','槍ヶ岳山荘','山小屋・避難小屋'],['peak','槍ヶ岳','山頂']
+  ]},
+  '奥穂高岳': {label:'上高地・涸沢ルート', points:[
+    ['trailhead','上高地','登山口'],['hut','横尾山荘','山小屋・避難小屋'],['hut','涸沢ヒュッテ','山小屋・避難小屋'],['hut','穂高岳山荘','山小屋・避難小屋'],['peak','奥穂高岳','山頂']
+  ]},
+  '燕岳': {label:'中房温泉・合戦尾根ルート', points:[
+    ['trailhead','中房温泉登山口','登山口'],['hut','合戦小屋','山小屋・避難小屋'],['hut','燕山荘','山小屋・避難小屋'],['peak','燕岳','山頂']
+  ]},
+  '常念岳': {label:'一ノ沢ルート', points:[
+    ['trailhead','一ノ沢登山口','登山口'],['hut','常念小屋','山小屋・避難小屋'],['peak','常念岳','山頂']
+  ]},
+  '蝶ヶ岳': {label:'三股ルート', points:[
+    ['trailhead','三股登山口','登山口'],['peak','蝶ヶ岳','山頂']
+  ]},
+  '白馬岳': {label:'猿倉・大雪渓ルート', points:[
+    ['trailhead','猿倉','登山口'],['hut','白馬尻小屋跡','山小屋・避難小屋'],['hut','白馬山荘','山小屋・避難小屋'],['peak','白馬岳','山頂']
+  ]},
+  '唐松岳': {label:'八方尾根ルート', points:[
+    ['trailhead','八方池山荘','登山口'],['hut','唐松岳頂上山荘','山小屋・避難小屋'],['peak','唐松岳','山頂']
+  ]},
+  '五竜岳': {label:'アルプス平ルート', points:[
+    ['trailhead','アルプス平','登山口'],['hut','五竜山荘','山小屋・避難小屋'],['peak','五竜岳','山頂']
+  ]},
+  '立山': {label:'室堂・一ノ越・雄山ルート', points:[
+    ['trailhead','室堂','登山口'],['hut','一の越山荘','山小屋・避難小屋'],['peak','立山（雄山）','山頂']
+  ]},
+  '薬師岳': {label:'折立・太郎平ルート', points:[
+    ['trailhead','折立登山口','登山口'],['hut','太郎平小屋','山小屋・避難小屋'],['hut','薬師岳山荘','山小屋・避難小屋'],['peak','薬師岳','山頂']
+  ]},
+  '黒部五郎岳': {label:'折立・太郎平ルート', points:[
+    ['trailhead','折立登山口','登山口'],['hut','太郎平小屋','山小屋・避難小屋'],['peak','黒部五郎岳','山頂']
+  ]},
+
+  // 中央アルプス（V1.4.66）
+  '木曽駒ヶ岳': {label:'千畳敷ルート', points:[
+    ['trailhead','千畳敷','登山口'],['peak','木曽駒ヶ岳','山頂']
+  ]},
+  '宝剣岳': {label:'千畳敷・宝剣岳ルート', points:[
+    ['trailhead','千畳敷','登山口'],['peak','宝剣岳','山頂']
+  ]},
+  '檜尾岳': {label:'千畳敷・宝剣岳縦走ルート', points:[
+    ['trailhead','千畳敷','登山口'],['peak','宝剣岳','山頂'],['peak','檜尾岳','山頂']
+  ]},
+  '熊沢岳': {label:'千畳敷・中央アルプス縦走ルート', points:[
+    ['trailhead','千畳敷','登山口'],['peak','宝剣岳','山頂'],['peak','檜尾岳','山頂'],['peak','熊沢岳','山頂']
+  ]},
+  '東川岳': {label:'千畳敷・中央アルプス縦走ルート', points:[
+    ['trailhead','千畳敷','登山口'],['peak','宝剣岳','山頂'],['peak','檜尾岳','山頂'],['peak','熊沢岳','山頂'],['peak','東川岳','山頂']
+  ]},
+  '空木岳': {label:'千畳敷・中央アルプス縦走ルート', points:[
+    ['trailhead','千畳敷','登山口'],['peak','宝剣岳','山頂'],['peak','檜尾岳','山頂'],['peak','熊沢岳','山頂'],['peak','東川岳','山頂'],['hut','木曽殿山荘','山小屋・避難小屋'],['peak','空木岳','山頂']
+  ]},
+
+  // 南アルプス（V1.4.66）
+  '甲斐駒ヶ岳': {label:'北沢峠ルート', points:[
+    ['trailhead','北沢峠','登山口'],['peak','甲斐駒ヶ岳','山頂']
+  ]},
+  '仙丈ヶ岳': {label:'北沢峠・小仙丈ルート', points:[
+    ['trailhead','北沢峠','登山口'],['peak','仙丈ヶ岳','山頂']
+  ]},
+  '北岳': {label:'広河原・草すべりルート', points:[
+    ['trailhead','広河原','登山口'],['hut','白根御池小屋','山小屋・避難小屋'],['hut','北岳肩の小屋','山小屋・避難小屋'],['peak','北岳','山頂']
+  ]},
+  '間ノ岳': {label:'広河原・北岳縦走ルート', points:[
+    ['trailhead','広河原','登山口'],['hut','白根御池小屋','山小屋・避難小屋'],['hut','北岳肩の小屋','山小屋・避難小屋'],['peak','北岳','山頂'],['hut','北岳山荘','山小屋・避難小屋'],['peak','間ノ岳','山頂']
+  ]},
+  '農鳥岳': {label:'広河原・白峰三山縦走ルート', points:[
+    ['trailhead','広河原','登山口'],['hut','白根御池小屋','山小屋・避難小屋'],['hut','北岳肩の小屋','山小屋・避難小屋'],['peak','北岳','山頂'],['hut','北岳山荘','山小屋・避難小屋'],['peak','間ノ岳','山頂'],['hut','農鳥小屋','山小屋・避難小屋'],['peak','農鳥岳','山頂']
+  ]},
+  '塩見岳': {label:'鳥倉・三伏峠ルート', points:[
+    ['trailhead','鳥倉登山口','登山口'],['hut','三伏峠小屋','山小屋・避難小屋'],['hut','塩見小屋','山小屋・避難小屋'],['peak','塩見岳','山頂']
+  ]},
+  '薬師岳(鳳凰)': {label:'夜叉神・南御室ルート', points:[
+    ['trailhead','夜叉神峠登山口','登山口'],['hut','南御室小屋','山小屋・避難小屋'],['peak','薬師岳(鳳凰)','山頂']
+  ]},
+  '観音岳(鳳凰)': {label:'夜叉神・鳳凰三山ルート', points:[
+    ['trailhead','夜叉神峠登山口','登山口'],['hut','南御室小屋','山小屋・避難小屋'],['peak','薬師岳(鳳凰)','山頂'],['peak','観音岳(鳳凰)','山頂']
+  ]},
+  '地蔵岳(鳳凰)': {label:'夜叉神・鳳凰三山縦走ルート', points:[
+    ['trailhead','夜叉神峠登山口','登山口'],['hut','南御室小屋','山小屋・避難小屋'],['peak','薬師岳(鳳凰)','山頂'],['peak','観音岳(鳳凰)','山頂'],['peak','地蔵岳(鳳凰)','山頂']
+  ]},
+  '荒川岳': {label:'椹島・千枚小屋ルート', points:[
+    ['trailhead','椹島','登山口'],['hut','千枚小屋','山小屋・避難小屋'],['peak','荒川岳','山頂']
+  ]},
+
+  // 八ヶ岳（V1.4.66）
+  '編笠山': {label:'観音平ルート', points:[
+    ['trailhead','観音平','登山口'],['peak','編笠山','山頂']
+  ]},
+  '権現岳': {label:'観音平・編笠山ルート', points:[
+    ['trailhead','観音平','登山口'],['peak','編笠山','山頂'],['hut','青年小屋','山小屋・避難小屋'],['peak','権現岳','山頂']
+  ]},
+  '天狗岳': {label:'渋の湯・黒百合ヒュッテルート', points:[
+    ['trailhead','渋の湯','登山口'],['hut','黒百合ヒュッテ','山小屋・避難小屋'],['peak','天狗岳','山頂']
+  ]},
+  '北横岳': {label:'北八ヶ岳ロープウェイルート', points:[
+    ['trailhead','北八ヶ岳ロープウェイ山頂駅','登山口'],['hut','北横岳ヒュッテ','山小屋・避難小屋'],['peak','北横岳','山頂']
+  ]},
+  '蓼科山': {label:'七合目登山口ルート', points:[
+    ['trailhead','蓼科山七合目登山口','登山口'],['hut','蓼科山頂ヒュッテ','山小屋・避難小屋'],['peak','蓼科山','山頂']
+  ]}
+});
+
+// V1.4.66: 三百名山一括監査で確認済みCTが連続する代表コースを追加。
+const AUTO_REPRESENTATIVE_COURSES_V1466 = Object.freeze({
+  '雄阿寒岳': [{label:'滝口・雄阿寒岳ルート', points:[['trailhead','滝口・雄阿寒岳登山口','登山口'],['peak','雄阿寒岳','山頂']]}],
+  '天塩岳': [{label:'天塩岳ヒュッテルート', points:[['trailhead','天塩岳ヒュッテ登山口','登山口'],['peak','天塩岳','山頂']]}],
+  'ニセイカウシュッペ山': [{label:'ニセイカウシュッペ山（古川林道・西尾根）ルート', points:[['trailhead','ニセイカウシュッペ山登山口（古川林道・西尾根）','登山口'],['peak','ニセイカウシュッペ山','山頂']]}],
+  '石狩岳': [{label:'シュナイダーコース（音更川二十一ノ沢出合）ルート', points:[['trailhead','シュナイダーコース登山口（音更川二十一ノ沢出合）','登山口'],['peak','石狩岳','山頂']]}],
+  'トムラウシ山': [{label:'トムラウシ短縮コースルート', points:[['trailhead','トムラウシ短縮コース登山口','登山口'],['peak','トムラウシ山','山頂']]}],
+  '夕張岳': [{label:'冷水・馬の背（夕張岳ヒュッテ）ルート', points:[['trailhead','冷水・馬の背登山口（夕張岳ヒュッテ）','登山口'],['peak','夕張岳','山頂']]}],
+  '暑寒別岳': [{label:'暑寒荘・暑寒別岳ルート', points:[['trailhead','暑寒荘・暑寒別岳登山口','登山口'],['peak','暑寒別岳','山頂']]}],
+  '樽前山': [{label:'7合目ルート', points:[['trailhead','7合目登山口','登山口'],['peak','樽前山','山頂']]}],
+  'ニセコアンヌプリ': [{label:'五色温泉インフォメーションセンタールート', points:[['trailhead','五色温泉インフォメーションセンター','登山口'],['peak','ニセコアンヌプリ','山頂']]}],
+  '狩場山': [{label:'千走ルート', points:[['trailhead','千走登山口','登山口'],['peak','狩場山','山頂']]}],
+  '岩木山': [{label:'岩木山八合目ルート', points:[['trailhead','岩木山八合目','登山口'],['peak','岩木山','山頂']]}],
+  '白神岳': [{label:'白神岳駐車場ルート', points:[['trailhead','白神岳登山口駐車場','登山口'],['peak','白神岳','山頂']]}],
+  '八幡平': [{label:'八幡平見返峠・山頂レストハウスルート', points:[['trailhead','八幡平見返峠・山頂レストハウス','登山口'],['peak','八幡平','山頂']]}],
+  '早池峰山': [{label:'小田越ルート', points:[['trailhead','小田越登山口','登山口'],['peak','早池峰山','山頂']]}],
+  '焼石岳': [{label:'中沼ルート', points:[['trailhead','中沼登山口','登山口'],['peak','焼石岳','山頂']]}],
+  '神室山': [{label:'有屋ルート', points:[['trailhead','有屋登山口','登山口'],['peak','神室山','山頂']]}],
+  '祝瓶山': [{label:'祝瓶山荘駐車場・桑住平ルートルート', points:[['trailhead','祝瓶山荘駐車場・桑住平ルート','登山口'],['peak','祝瓶山','山頂']]}],
+  '蔵王山（熊野岳）': [{label:'蔵王ロープウェイ地蔵山頂駅ルート', points:[['trailhead','蔵王ロープウェイ地蔵山頂駅','登山口'],['peak','蔵王山（熊野岳）','山頂']]}],
+  '一切経山': [{label:'浄土平ルート', points:[['trailhead','浄土平','登山口'],['peak','一切経山','山頂']]}],
+  '安達太良山': [{label:'奥岳・あだたら山ロープウェイルート', points:[['trailhead','奥岳登山口・あだたら山ロープウェイ','登山口'],['peak','安達太良山','山頂']]}],
+  '帝釈山': [{label:'馬坂峠ルート', points:[['trailhead','馬坂峠','登山口'],['peak','帝釈山','山頂']]}],
+  '会津駒ヶ岳': [{label:'滝沢ルート', points:[['trailhead','滝沢登山口','登山口'],['peak','会津駒ヶ岳','山頂']]}],
+  '二王子岳': [{label:'二王子神社ルート', points:[['trailhead','二王子神社登山口','登山口'],['peak','二王子岳','山頂']]}],
+  '粟ヶ岳': [{label:'粟ヶ岳中央（県民休養地）ルート', points:[['trailhead','粟ヶ岳中央登山口（県民休養地）','登山口'],['peak','粟ヶ岳','山頂']]}],
+  '御神楽岳': [{label:'室谷ルート', points:[['trailhead','室谷登山口','登山口'],['peak','御神楽岳','山頂']]}],
+  '守門岳': [{label:'二口ルート', points:[['trailhead','二口登山口','登山口'],['peak','守門岳','山頂']]},{label:'保久礼ルート', points:[['trailhead','保久礼登山口','登山口'],['peak','守門岳','山頂']]}],
+  '浅草岳': [{label:'ネズモチ平駐車場ルート', points:[['trailhead','ネズモチ平登山口駐車場','登山口'],['peak','浅草岳','山頂']]}],
+  '平ヶ岳': [{label:'鷹ノ巣・平ヶ岳ルート', points:[['trailhead','鷹ノ巣・平ヶ岳登山口','登山口'],['peak','平ヶ岳','山頂']]}],
+  '越後駒ヶ岳': [{label:'枝折峠ルート', points:[['trailhead','枝折峠','登山口'],['peak','越後駒ヶ岳','山頂']]}],
+  '中ノ岳': [{label:'十字峡登山センタールート', points:[['trailhead','十字峡登山センター','登山口'],['peak','中ノ岳','山頂']]}],
+  '苗場山': [{label:'小赤沢三合目ルート', points:[['trailhead','小赤沢三合目登山口','登山口'],['peak','苗場山','山頂']]}],
+  '佐武流山': [{label:'ドロノ木平ルート', points:[['trailhead','ドロノ木平登山口','登山口'],['peak','佐武流山','山頂']]}],
+  '鳥甲山': [{label:'ムジナ平ルート', points:[['trailhead','ムジナ平登山口','登山口'],['peak','鳥甲山','山頂']]},{label:'屋敷口ルート', points:[['trailhead','屋敷口','登山口'],['peak','鳥甲山','山頂']]}],
+  '金北山': [{label:'白雲台交流センタールート', points:[['trailhead','白雲台交流センター','登山口'],['peak','金北山','山頂']]}],
+  '米山': [{label:'大平ルート', points:[['trailhead','大平登山口','登山口'],['peak','米山','山頂']]}],
+  '至仏山': [{label:'鳩待峠ルート', points:[['trailhead','鳩待峠','登山口'],['peak','至仏山','山頂']]}],
+  '男体山': [{label:'二荒山神社中宮祠ルート', points:[['trailhead','二荒山神社中宮祠登山口','登山口'],['peak','男体山','山頂']]}],
+  '太郎山': [{label:'山王峠・太郎山ルート', points:[['trailhead','山王峠・太郎山登山口','登山口'],['peak','太郎山','山頂']]}],
+  '武尊山': [{label:'川場谷野営場ルート', points:[['trailhead','川場谷野営場登山口','登山口'],['peak','武尊山','山頂']]}],
+  '赤城山（黒檜山）': [{label:'黒檜山ルート', points:[['trailhead','黒檜山登山口','登山口'],['peak','赤城山（黒檜山）','山頂']]}],
+  '浅間隠山': [{label:'浅間隠山（二度上峠付近）ルート', points:[['trailhead','浅間隠山登山口（二度上峠付近）','登山口'],['peak','浅間隠山','山頂']]}],
+  '巻機山': [{label:'桜坂ルート', points:[['trailhead','桜坂登山口','登山口'],['peak','巻機山','山頂']]}],
+  '四阿山': [{label:'菅平牧場ルート', points:[['trailhead','菅平牧場登山口','登山口'],['peak','四阿山','山頂']]}],
+  '入笠山': [{label:'沢入ルート', points:[['trailhead','沢入登山口','登山口'],['peak','入笠山','山頂']]}],
+  '霧ヶ峰（車山）': [{label:'車山肩ルート', points:[['trailhead','車山肩','登山口'],['peak','霧ヶ峰（車山）','山頂']]}],
+  '鉢伏山': [{label:'扉温泉ルート', points:[['trailhead','扉温泉','登山口'],['peak','鉢伏山','山頂']]}],
+  '飯縄山': [{label:'一の鳥居苑地・飯縄山登山者駐車場ルート', points:[['trailhead','一の鳥居苑地・飯縄山登山者駐車場','登山口'],['peak','飯縄山','山頂']]}],
+  '戸隠山': [{label:'戸隠神社奥社ルート', points:[['trailhead','戸隠神社奥社登山口','登山口'],['peak','戸隠山','山頂']]}],
+  '高妻山': [{label:'戸隠キャンプ場・高妻山登山者駐車場ルート', points:[['trailhead','戸隠キャンプ場・高妻山登山者駐車場','登山口'],['peak','高妻山','山頂']]}],
+  '妙高山': [{label:'笹ヶ峰ルート', points:[['trailhead','笹ヶ峰登山口','登山口'],['peak','妙高山','山頂']]}],
+  '火打山': [{label:'笹ヶ峰ルート', points:[['trailhead','笹ヶ峰登山口','登山口'],['hut','高谷池ヒュッテ','山小屋・避難小屋'],['peak','火打山','山頂']]}],
+  '雨飾山': [{label:'雨飾高原キャンプ場ルート', points:[['trailhead','雨飾高原キャンプ場登山口','登山口'],['peak','雨飾山','山頂']]}],
+  '鹿島槍ヶ岳': [{label:'アルプス平ルート', points:[['trailhead','アルプス平','登山口'],['hut','五竜山荘','山小屋・避難小屋'],['peak','五竜岳','山頂'],['hut','キレット小屋','山小屋・避難小屋'],['peak','鹿島槍ヶ岳','山頂']]}],
+  '野口五郎岳': [{label:'高瀬ダムルート', points:[['trailhead','高瀬ダム','登山口'],['hut','烏帽子小屋','山小屋・避難小屋'],['peak','野口五郎岳','山頂']]}],
+  '三俣蓮華岳': [{label:'新穂高温泉ルート', points:[['trailhead','新穂高温泉','登山口'],['hut','鏡平山荘','山小屋・避難小屋'],['hut','双六小屋','山小屋・避難小屋'],['peak','三俣蓮華岳','山頂']]}],
+  '小秀山': [{label:'乙女渓谷（小秀山）ルート', points:[['trailhead','乙女渓谷（小秀山登山口）','登山口'],['peak','小秀山','山頂']]}],
+  '奥三界岳': [{label:'川上林道ゲート（夕森渓谷）ルート', points:[['trailhead','川上林道ゲート（夕森渓谷）','登山口'],['peak','奥三界岳','山頂']]}],
+  '経ヶ岳（長野）': [{label:'権兵衛峠ルート', points:[['trailhead','権兵衛峠登山口','登山口'],['peak','経ヶ岳','山頂']]}],
+  '恵那山': [{label:'神坂峠ルート', points:[['trailhead','神坂峠登山口','登山口'],['peak','恵那山','山頂']]}],
+  '武甲山': [{label:'生川・一の鳥居ルート', points:[['trailhead','生川・一の鳥居','登山口'],['peak','武甲山','山頂']]}],
+  '両神山': [{label:'日向大谷口ルート', points:[['trailhead','日向大谷口','登山口'],['peak','両神山','山頂']]}],
+  '雲取山': [{label:'鴨沢ルート', points:[['trailhead','鴨沢登山口','登山口'],['peak','雲取山','山頂']]}],
+  '甲武信ヶ岳': [{label:'毛木平ルート', points:[['trailhead','毛木平登山口','登山口'],['peak','甲武信ヶ岳','山頂']]}],
+  '国師ヶ岳': [{label:'大弛峠ルート', points:[['trailhead','大弛峠','登山口'],['peak','国師ヶ岳','山頂']]}],
+  '金峰山': [{label:'大弛峠ルート', points:[['trailhead','大弛峠','登山口'],['peak','金峰山','山頂']]}],
+  '瑞牆山': [{label:'瑞牆山荘・富士見平口ルート', points:[['trailhead','瑞牆山荘・富士見平口','登山口'],['peak','瑞牆山','山頂']]}],
+  '茅ヶ岳': [{label:'深田記念公園・茅ヶ岳ルート', points:[['trailhead','深田記念公園・茅ヶ岳登山口','登山口'],['peak','茅ヶ岳','山頂']]}],
+  '乾徳山': [{label:'徳和・乾徳山ルート', points:[['trailhead','徳和・乾徳山登山口','登山口'],['peak','乾徳山','山頂']]}],
+  '大菩薩嶺': [{label:'上日川峠ルート', points:[['trailhead','上日川峠','登山口'],['peak','大菩薩嶺','山頂']]}],
+  '大山（神奈川）': [{label:'ヤビツ峠ルート', points:[['trailhead','ヤビツ峠','登山口'],['peak','大山（神奈川）','山頂']]}],
+  '塔ノ岳': [{label:'大倉ルート', points:[['trailhead','大倉登山口','登山口'],['peak','塔ノ岳','山頂']]}],
+  '山伏': [{label:'百畳峠（百畳平）駐車場・山伏ルート', points:[['trailhead','百畳峠（百畳平）駐車場・山伏登山口','登山口'],['peak','山伏','山頂']]}],
+  '御正体山': [{label:'道坂トンネル都留側駐車場・御正体山ルート', points:[['trailhead','道坂トンネル都留側駐車場・御正体山登山口','登山口'],['peak','御正体山','山頂']]}],
+  '赤石岳': [{label:'椹島ルート', points:[['trailhead','椹島','登山口'],['hut','千枚小屋','山小屋・避難小屋'],['peak','荒川岳','山頂'],['hut','荒川小屋','山小屋・避難小屋'],['peak','赤石岳','山頂']]}],
+  '白木峰': [{label:'白木峰8合目駐車場ルート', points:[['trailhead','白木峰8合目駐車場','登山口'],['peak','白木峰','山頂']]}],
+  '人形山': [{label:'人形堂・中根平ルート', points:[['trailhead','人形堂・中根平登山口','登山口'],['peak','人形山','山頂']]}],
+  '経ヶ岳（福井）': [{label:'奥越高原青少年自然の家ルート', points:[['trailhead','奥越高原青少年自然の家','登山口'],['peak','経ヶ岳（福井）','山頂']]}],
+  '大日ヶ岳': [{label:'桧峠 大日ヶ岳ルート', points:[['trailhead','桧峠 大日ヶ岳登山口','登山口'],['peak','大日ヶ岳','山頂']]}],
+  '鷲ヶ岳': [{label:'鷲ヶ岳立石キャンプ場（林道ルート起点）ルート', points:[['trailhead','鷲ヶ岳立石キャンプ場（林道ルート起点）','登山口'],['peak','鷲ヶ岳','山頂']]}],
+  '位山': [{label:'ダナ平林道ルート', points:[['trailhead','ダナ平林道登山口','登山口'],['peak','位山','山頂']]}],
+  '荒島岳': [{label:'勝原コースルート', points:[['trailhead','勝原コース登山口','登山口'],['peak','荒島岳','山頂']]},{label:'中出コースルート', points:[['trailhead','中出コース登山口','登山口'],['peak','荒島岳','山頂']]}],
+  '冠山': [{label:'冠山峠ルート', points:[['trailhead','冠山峠','登山口'],['peak','冠山','山頂']]}],
+  '高見山': [{label:'高見峠ルート', points:[['trailhead','高見峠','登山口'],['peak','高見山','山頂']]}],
+  '八経ヶ岳': [{label:'行者還トンネル西口ルート', points:[['trailhead','行者還トンネル西口','登山口'],['hut','弥山小屋','山小屋・避難小屋'],['peak','八経ヶ岳','山頂']]}],
+  '大和葛城山': [{label:'水越峠ルート', points:[['trailhead','水越峠','登山口'],['peak','大和葛城山','山頂']]}],
+  '瓶ヶ森': [{label:'瓶ヶ森駐車場ルート', points:[['trailhead','瓶ヶ森駐車場','登山口'],['peak','瓶ヶ森','山頂']]}],
+  '久住山': [{label:'牧ノ戸峠ルート', points:[['trailhead','牧ノ戸峠','登山口'],['hut','久住分かれ避難小屋','山小屋・避難小屋'],['peak','久住山','山頂']]}],
+});
+
+// V1.4.66: 主要山の複数代表コース。
+const EXTRA_REPRESENTATIVE_COURSES_V1466 = Object.freeze({
+  '槍ヶ岳': [
+    {label:'新穂高・槍平ルート', points:[['trailhead','新穂高温泉','登山口'],['hut','槍平小屋','山小屋・避難小屋'],['hut','槍ヶ岳山荘','山小屋・避難小屋'],['peak','槍ヶ岳','山頂']]}
+  ],
+  '五竜岳': [
+    {label:'八方尾根・唐松岳経由ルート', points:[['trailhead','八方池山荘','登山口'],['hut','唐松岳頂上山荘','山小屋・避難小屋'],['hut','五竜山荘','山小屋・避難小屋'],['peak','五竜岳','山頂']]}
+  ]
+});
+
+function representativeCourseOptions(mountain){
+  const key=canonicalMountainName(mountain);
+  const manual=REPRESENTATIVE_COURSES[key];
+  const base=manual?(Array.isArray(manual)?manual:[manual]):(AUTO_REPRESENTATIVE_COURSES_V1466[key]||[]);
+  const extra=EXTRA_REPRESENTATIVE_COURSES_V1466[key]||[];
+  return [...base,...extra];
+}
+function representativeCourseFor(mountain){
+  const options=representativeCourseOptions(mountain);
+  const sel=$('representativeCourseSelect');
+  const idx=sel&&!sel.classList.contains('hidden')?Math.max(0,Number(sel.value)||0):0;
+  return options[idx]||options[0]||null;
+}
+function representativeCoursePathText(course){
+  if(!course||!Array.isArray(course.points))return '';
+  return course.points.map(([,name])=>name).join(' → ');
+}
+function refreshRepresentativeCourseButton(){
+  const btn=$('representativeCourseBtn');
+  const sel=$('representativeCourseSelect');
+  const choices=$('representativeCourseChoices');
+  const preview=$('representativeCoursePreview');
+  if(!btn)return;
+  const mountain=currentMountainLabel();
+  const options=representativeCourseOptions(mountain);
+  const hasCourse=options.length>0;
+  btn.classList.toggle('hidden',!hasCourse);
+  btn.disabled=!hasCourse;
+  let selectedIndex=0;
+  if(sel){
+    const prev=sel.value;
+    sel.innerHTML=options.map((course,i)=>`<option value="${i}">${escapeHtml(course.label)}</option>`).join('');
+    if(prev&&options[Number(prev)])sel.value=prev;else sel.value='0';
+    selectedIndex=Math.max(0,Number(sel.value)||0);
+    // V1.4.72: visible choices are buttons; keep select only as internal state/backward compatibility.
+    sel.classList.add('hidden');
+    sel.disabled=options.length<=1;
+  }
+  if(choices){
+    choices.innerHTML=options.length>1?options.map((course,i)=>`<button type="button" class="representative-course-choice${i===selectedIndex?' is-active':''}" data-course-index="${i}" aria-pressed="${i===selectedIndex?'true':'false'}">${escapeHtml(course.label)}</button>`).join(''):'';
+    choices.classList.toggle('hidden',options.length<=1);
+    choices.querySelectorAll('.representative-course-choice').forEach(choice=>{
+      choice.addEventListener('click',()=>{
+        const idx=Math.max(0,Number(choice.dataset.courseIndex)||0);
+        if(sel)sel.value=String(idx);
+        refreshRepresentativeCourseButton();
+      });
+    });
+  }
+  const course=representativeCourseFor(mountain);
+  const pathText=representativeCoursePathText(course);
+  btn.removeAttribute('title');
+  delete btn.dataset.courseTooltip;
+  if(preview){
+    preview.innerHTML=pathText?`<b>${escapeHtml(course?.label||'代表コース')}</b><span>${escapeHtml(pathText)}</span>`:'';
+    preview.classList.toggle('hidden',!hasCourse||!pathText);
+  }
+}
+function representativeCandidate(type,name){
+  return candidates.find(p=>p.type===type&&p.name===name&&hasResolvedCoord(p))||null;
+}
+async function applyRepresentativeCourse(){
+  const mountain=currentMountainLabel();
+  const course=representativeCourseFor(mountain);
+  if(!course)return setStatus(`${mountain||'選択中の山'} の代表コースはまだ登録されていません。`,true);
+  const btn=$('representativeCourseBtn');
+  if(btn){btn.disabled=true;btn.textContent='代表コースを準備中…';}
+  try{
+    let resolved=course.points.map(([type,name,role])=>({type,name,role,p:representativeCandidate(type,name)}));
+    if(resolved.some(x=>!x.p)){
+      await loadCandidates();
+      resolved=course.points.map(([type,name,role])=>({type,name,role,p:representativeCandidate(type,name)}));
+    }
+    const missing=resolved.filter(x=>!x.p).map(x=>x.name);
+    if(missing.length)return setStatus(`代表コースを読み込めませんでした。固定ポイント不足：${missing.join('、')}`,true);
+
+    const segments=[];
+    let totalMinutes=0;
+    for(let i=1;i<resolved.length;i++){
+      const info=courseTimeInfo(resolved[i-1].p,resolved[i].p);
+      if(!info)return setStatus(`代表コースを読み込めませんでした。${resolved[i-1].name} → ${resolved[i].name} の確認済みCTがありません。`,true);
+      segments.push(info);
+      totalMinutes+=Number(info.minutes)||0;
+    }
+
+    const rows=[...$('points').children];
+    const selectedRows=rows.filter(r=>r.querySelector('.point-select')?.value);
+    if(selectedRows.length&&typeof window!=='undefined'&&typeof window.confirm==='function'){
+      if(!window.confirm('現在の通過ポイントを代表コースで置き換えます。よろしいですか？'))return;
+    }
+    const firstRow=rows[0];
+    const start={
+      date:firstRow?.querySelector('.point-date')?.value||todayLocal(),
+      time:firstRow?.querySelector('.point-time')?.value||'06:00'
+    };
+    let cursorMs=new Date(`${start.date}T${start.time}:00+09:00`).getTime();
+    if(!Number.isFinite(cursorMs))cursorMs=new Date(`${todayLocal()}T06:00:00+09:00`).getTime();
+
+    $('points').innerHTML=''; pointSeq=0;
+    resolved.forEach((item,i)=>{
+      const dt=formatJstInput(cursorMs);
+      addPointRow(item.type,item.p.id,item.role,dt);
+      const row=$('points').lastElementChild;
+      if(i>0)row.dataset.courseTimeAuto='1';
+      if(i<segments.length)cursorMs+=Number(segments[i].minutes)*60*1000;
+    });
+    updateForecastHorizon();
+    renderRouteMaps();
+    setStatus(`${mountain}：${course.label} を入力しました。標準CT合計 ${formatCourseTimeMinutes(totalMinutes)}（無雪期・休憩含まず）。`);
+    logEvent('representative_course_loaded',{success:true,mountain,metadata:{course_label:course.label,point_count:resolved.length,total_minutes:totalMinutes}});
+  }finally{
+    if(btn){btn.textContent='代表コースを読み込む';refreshRepresentativeCourseButton();}
+  }
+}
+
+const CENTRAL_ALPS_AUTO_ROUTE_V121=[
+  ['trailhead','area-cku-senjojiki','登山口'],
+  ['peak','area-cku-kisokoma','山頂'],
+  ['hut','area-cku-chojo','山小屋・避難小屋'],
+  ['hut','area-cku-hoken-sanso','山小屋・避難小屋'],
+  ['peak','area-cku-hoken','山頂'],
+  ['peak','area-cku-hinokio','山頂'],
+  ['hut','area-cku-hinokio-hut','山小屋・避難小屋'],
+  ['peak','area-cku-kumazawa','山頂'],
+  ['peak','area-cku-higashikawa','山頂'],
+  ['hut','area-cku-kisodono','山小屋・避難小屋'],
+  ['peak','area-cku-utsugi','山頂'],
+  ['hut','area-cku-komaho','山小屋・避難小屋'],
+  ['trailhead','area-cku-ikeyama','下山口']
+];
+function centralAlpsAutoRouteFor(mountain){
+  const corridor=['木曽駒ヶ岳','宝剣岳','檜尾岳','熊沢岳','東川岳','空木岳'];
+  if(!corridor.includes(mountain))return null;
+  const route=[...CENTRAL_ALPS_AUTO_ROUTE_V121];
+  return mountain==='空木岳'?route.reverse():route;
+}
 function renderCandidateRows(label,center,{resetPoints=false}={}){
   candidates=ensureCenterPeak(dedupeCandidateList(candidates),label,center);
   refreshPointCandidateOptions();
   if(resetPoints){
     $('points').innerHTML=''; pointSeq=0;
+    const mountain=canonicalMountainName(label);
+    const autoRoute=centralAlpsAutoRouteFor(mountain);
+    if(autoRoute){
+      const available=new Map(candidates.map(p=>[p.id,p]));
+      let added=0;
+      for(const [type,id,role] of autoRoute){
+        if(!available.has(id))continue;
+        addPointRow(type,id,role);
+        added++;
+      }
+      if(added){
+        updateForecastHorizon();
+        renderRouteMaps();
+        return;
+      }
+    }
     const hasTrail=candidates.some(p=>p.type==='trailhead'), hasHut=candidates.some(p=>p.type==='hut');
     if(hasTrail)addPointRow('trailhead','','登山口');
     addPointRow('peak','','山頂');
@@ -2803,9 +4533,32 @@ function renderCandidateRows(label,center,{resetPoints=false}={}){
   }
 }
 
+function localFixedMountainCenter(label){
+  const canonical=canonicalMountainName(label);
+  const preset=MOUNTAIN_PRESETS[canonical];
+  if(preset&&Number.isFinite(Number(preset.latitude))&&Number.isFinite(Number(preset.longitude))){
+    return {latitude:Number(preset.latitude),longitude:Number(preset.longitude),source:'preset'};
+  }
+  const local=[
+    ...(BUILTIN_ROUTE_CATALOG[canonical]||[]),
+    ...(TRAVERSE_CATALOG[canonical]||[]),
+    ...regionalCandidates(canonical),
+    ...fixedNameFallbackCandidates(canonical)
+  ].filter(p=>hasResolvedCoord(p));
+  const peak=local.find(p=>p.type==='peak');
+  const fallback=peak||local.find(p=>p.source==='固定候補')||local[0];
+  if(!fallback)return null;
+  return {latitude:Number(fallback.lat),longitude:Number(fallback.lon),source:peak?'fixed-peak':'fixed-access'};
+}
+
 async function resolveMountainCenter(label){
   const canonical=canonicalMountainName(label);
-  if(MOUNTAIN_PRESETS[canonical])return MOUNTAIN_PRESETS[canonical];
+  const localCenter=localFixedMountainCenter(canonical);
+  if(localCenter){
+    const center={latitude:localCenter.latitude,longitude:localCenter.longitude};
+    if(!MOUNTAIN_PRESETS[canonical])MOUNTAIN_PRESETS[canonical]=center;
+    return center;
+  }
   const cacheKey=`center:${mountainCacheKey(label)}`;
   const cached=routeCacheGet(cacheKey,365*24*60*60*1000);
   if(cached&&Number.isFinite(Number(cached.latitude))&&Number.isFinite(Number(cached.longitude))){
@@ -2957,8 +4710,7 @@ async function loadCandidates(){
   }
   const mountain=canonicalMountainName(label);
   const btn=$('loadPoiBtn');
-  const before=btn.textContent;
-  btn.disabled=true; btn.textContent='基本候補を表示中…';
+  btn.disabled=true; btn.textContent='通過ポイントを出力中…';
   try{
     const center=await resolveMountainCenter(label);
     if(!MOUNTAIN_PRESETS[mountain])MOUNTAIN_PRESETS[mountain]=center;
@@ -2967,66 +4719,58 @@ async function loadCandidates(){
     const embeddedNames=new Set(embeddedBase.map(p=>`${p.type}|${accessNameKey(p.name,mountain)}`));
     const fixedNameFallback=fixedNameFallbackCandidates(mountain).filter(p=>!embeddedNames.has(`${p.type}|${accessNameKey(p.name,mountain)}`));
     const staticBase=[...embeddedBase,...fixedNameFallback];
-    const fullCacheKey=`full:${mountainCacheKey(mountain)}`;
-    const cachedFull=routeCacheGet(fullCacheKey,7*24*60*60*1000);
+    // V1.4.20: 座標未確定の固定候補はユーザーに表示しない。
+    // 未確定候補は内部データには残し、公開情報で確認できた時点で固定候補へ昇格する。
+    const resolvedStaticBase=staticBase.filter(hasResolvedCoord);
 
-    if(Array.isArray(cachedFull)&&cachedFull.length){
-      candidates=[...staticBase,...cachedFull];
+    // 確定済み固定候補が1件でもあれば、それを即時出力して外部の追加候補探索は行わない。
+    // 日本三百名山は固定登山口300/300を整備済みのため、通常はこちらを通る。
+    if(resolvedStaticBase.length){
+      candidates=[...resolvedStaticBase];
       renderCandidateRows(label,center,{resetPoints:true});
-      const trailCount=candidates.filter(p=>p.type==='trailhead').length, hutCount=candidates.filter(p=>p.type==='hut').length, peakCount=candidates.filter(p=>p.type==='peak').length;
-      $('candidateState').textContent=`${label}：登山口 ${trailCount} / 山小屋・避難小屋 ${hutCount} / 山頂・周辺ピーク ${peakCount}（キャッシュから高速表示）`;
+      $('candidateState').textContent='';
       updateLoadButtonAppearance(true);
-      logEvent('route_candidates_loaded',{success:true,metadata:{mountain:label,candidate_count:candidates.length,cache_hit:true}});
+      logEvent('route_candidates_loaded',{success:true,mountain:label,metadata:{candidate_count:candidates.length,hidden_unresolved_count:staticBase.length-resolvedStaticBase.length,source:'fixed',external_search:false}});
       return;
     }
 
-    // まずローカル固定データだけで即表示。外部検索待ちでUIを止めない。
-    candidates=[...staticBase];
-    renderCandidateRows(label,center,{resetPoints:true});
-    const initialCount=candidates.length;
-    $('candidateState').textContent=`${label}：基本候補 ${initialCount}件を表示済み。登山口・山小屋を追加探索中…`;
-    updateLoadButtonAppearance(true);
-    btn.textContent='追加候補を検索中…';
+    // 固定候補がまったく無い山だけ、非常用フォールバックとして従来の外部探索を実施。
+    $('candidateState').textContent='固定ポイントがないため通過ポイントを検索中…';
+    btn.textContent='通過ポイントを検索中…';
+    const fullCacheKey=`full:${mountainCacheKey(mountain)}`;
+    const cachedFull=routeCacheGet(fullCacheKey,7*24*60*60*1000);
+    if(Array.isArray(cachedFull)&&cachedFull.length){
+      candidates=[...cachedFull];
+      renderCandidateRows(label,center,{resetPoints:true});
+      $('candidateState').textContent='';
+      updateLoadButtonAppearance(true);
+      logEvent('route_candidates_loaded',{success:true,mountain:label,metadata:{candidate_count:candidates.length,cache_hit:true,source:'external_fallback'}});
+      return;
+    }
 
-    // 手登録名称の座標解決と24km探索を並行化。
-    const [curated,dynamicPrimary]=await Promise.all([
-      resolveCuratedCandidates(mountain,center),
-      discoverNearbyCandidates(center,24000)
-    ]);
-    let dynamic=[...dynamicPrimary];
+    let dynamic=await discoverNearbyCandidates(center,24000);
     let trailSearchStage='24km';
     const hasTrailIn=(arr)=>arr.some(p=>p.type==='trailhead');
-    if(!hasTrailIn([...staticBase,...curated,...dynamic])){
-      const extended=await discoverNearbyCandidates(center,45000);
-      dynamic=[...dynamic,...extended];
+    if(!hasTrailIn(dynamic)){
+      dynamic=[...dynamic,...await discoverNearbyCandidates(center,45000)];
       trailSearchStage='45km';
     }
-    if(!hasTrailIn([...staticBase,...curated,...dynamic])){
-      const named=await discoverTrailheadsByName(label,center);
-      dynamic=[...dynamic,...named];
+    if(!hasTrailIn(dynamic)){
+      dynamic=[...dynamic,...await discoverTrailheadsByName(label,center)];
       trailSearchStage='山名検索';
     }
-
-    const resolvedNames=new Set(curated.map(p=>`${p.type}|${p.name}`));
-    const staticResolved=staticBase.filter(p=>!p.unresolved||!resolvedNames.has(`${p.type}|${p.name}`));
-    candidates=[...staticResolved,...curated,...dynamic];
-    renderCandidateRows(label,center,{resetPoints:false});
-    routeCachePut(fullCacheKey,[...curated,...dynamic]);
-
-    const trailCount=candidates.filter(p=>p.type==='trailhead').length, hutCount=candidates.filter(p=>p.type==='hut').length, peakCount=candidates.filter(p=>p.type==='peak').length;
-    const resolvedTrailCount=candidates.filter(p=>p.type==='trailhead'&&hasResolvedCoord(p)).length;
-    const trailNote=resolvedTrailCount?`登山口探索 ${trailSearchStage}`:(trailCount?'固定候補あり・一部座標確認中':'登山口候補を検出できませんでした');
-    $('candidateState').textContent=`${label}：登山口 ${trailCount} / 山小屋・避難小屋 ${hutCount} / 山頂・周辺ピーク ${peakCount}（追加探索完了 / 固定候補 ${curated.length}件 / ${trailNote}）`;
-    if(!trailCount)setStatus(`${label} の登山口候補が見つかりませんでした。`,true);
-    else if(!resolvedTrailCount)setStatus(`${label} は代表登山口名を固定候補として表示しています。座標確認が完了した候補を選んでください。`,false);
-    updateLoadButtonAppearance(true);
-    logEvent('route_candidates_loaded',{success:true,metadata:{mountain:label,candidate_count:candidates.length,dynamic_count:dynamic.length,curated_count:curated.length,cache_hit:false}});
+    candidates=[...dynamic];
+    renderCandidateRows(label,center,{resetPoints:true});
+    routeCachePut(fullCacheKey,dynamic);
+    $('candidateState').textContent=candidates.length?'':'通過ポイント候補を検出できませんでした';
+    if(!candidates.length)setStatus(`${label} の通過ポイント候補が見つかりませんでした。`,true);
+    updateLoadButtonAppearance(!!candidates.length);
+    logEvent('route_candidates_loaded',{success:!!candidates.length,mountain:label,metadata:{candidate_count:candidates.length,source:'external_fallback',trail_search_stage:trailSearchStage}});
   }catch(e){
-    $('candidateState').textContent=`${label}：候補を読み込めませんでした（${e.message||e}）`;
+    $('candidateState').textContent=`${label}：通過ポイントを読み込めませんでした（${e.message||e}）`;
     setStatus(`山頂座標の取得に失敗しました：${e.message||e}`,true);
     updateLoadButtonAppearance(false);
   }finally{
-    btn.textContent=before;
     btn.disabled=!$('mountainPreset').value.trim();
   }
 }
@@ -3064,73 +4808,26 @@ function formatLocalTime(dt){
 
 function typeOptions(selected){return Object.entries(TYPE_LABEL).map(([v,l])=>`<option value="${v}" ${v===selected?'selected':''}>${l}</option>`).join('');}
 
-async function resolveSingleCandidateCoordinate(candidate,mountainLabel){
-  if(!candidate||hasResolvedCoord(candidate))return candidate;
-  const mountain=canonicalMountainName(mountainLabel||$('mountainPreset')?.value||'');
-  let center=null;
-  try{center=await resolveMountainCenter(mountain);}catch(_){ }
-  const terms=[
-    `${candidate.name} ${mountain} 日本`,
-    `${candidate.name} 日本`,
-    candidate.name
-  ];
-  let best=null;
-  for(const term of terms){
-    try{
-      const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=jp&limit=8&addressdetails=1&q=${encodeURIComponent(term)}`;
-      const res=await proxyFetch(url);
-      if(!res.ok)continue;
-      const rows=await res.json();
-      const found=(Array.isArray(rows)?rows:[]).map(r=>({r,lat:Number(r.lat),lon:Number(r.lon)})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon));
-      if(center){
-        found.sort((a,b)=>haversineMeters(center.latitude,center.longitude,a.lat,a.lon)-haversineMeters(center.latitude,center.longitude,b.lat,b.lon));
-        best=found.find(x=>haversineMeters(center.latitude,center.longitude,x.lat,x.lon)<=70000)||null;
-      }else best=found[0]||null;
-      if(best)break;
-    }catch(_){ }
-  }
-  if(!best)return null;
-  candidate.lat=best.lat;
-  candidate.lon=best.lon;
-  candidate.unresolved=false;
-  candidate.source='固定候補（座標取得済み）';
-  const cacheKey=`singlecoord:${mountainCacheKey(mountain)}:${candidate.name}`;
-  routeCachePut(cacheKey,{lat:best.lat,lon:best.lon});
-  return candidate;
-}
-
-async function ensureCandidateCoordinateForRow(row,{manual=false}={}){
-  const select=row?.querySelector('.point-select');
-  const meta=row?.querySelector('.point-meta');
-  const p=selectedCandidate(select?.value);
-  if(!p||hasResolvedCoord(p)){ updateMeta(row); return !!p; }
-  const mountain=$('mountainPreset')?.value?.trim()||'';
-  const cacheKey=`singlecoord:${mountainCacheKey(mountain)}:${p.name}`;
-  const cached=routeCacheGet(cacheKey,365*24*60*60*1000);
-  if(cached&&Number.isFinite(Number(cached.lat))&&Number.isFinite(Number(cached.lon))){
-    p.lat=Number(cached.lat); p.lon=Number(cached.lon); p.unresolved=false; p.source='固定候補（キャッシュ）';
-    refreshPointCandidateOptions(); updateMeta(row); return true;
-  }
-  if(meta)meta.innerHTML=`<span class="coord-loading">${esc(p.name)} / 座標を取得中…</span>`;
-  const resolved=await resolveSingleCandidateCoordinate(p,mountain);
-  if(resolved){
-    refreshPointCandidateOptions();
-    updateMeta(row);
-    setStatus(`${p.name} の座標を取得しました。`);
-    renderRouteMaps();
-    return true;
-  }
-  if(meta)meta.innerHTML=`<span>${esc(p.name)} / 固定候補・座標未確定</span><button class="coord-retry-btn" type="button">座標を再取得</button>`;
-  const retry=meta?.querySelector('.coord-retry-btn');
-  retry?.addEventListener('click',()=>ensureCandidateCoordinateForRow(row,{manual:true}));
-  if(manual)setStatus(`${p.name} の座標を取得できませんでした。時間をおいて再試行するか、別の候補を選択してください。`,true);
-  renderRouteMaps();
-  return false;
-}
+// V1.4.20: 座標未確定候補はUIに出さないため、個別の再取得処理は廃止。
 
 function candidateOptions(type,selected=''){
-  const list=candidates.filter(p=>p.type===type);
+  const list=candidates.filter(p=>p.type===type&&hasResolvedCoord(p));
   return `<option value="">地点を選択</option>`+list.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}${p.elevation?` / ${p.elevation}m`:''}</option>`).join('');
+}
+
+function preservePointRowViewport(row,action){
+  if(!row||typeof action!=='function'){ action?.(); return; }
+  const anchorTop=row.getBoundingClientRect().top;
+  action();
+  const restore=()=>{
+    if(!row.isConnected)return;
+    const nowTop=row.getBoundingClientRect().top;
+    const delta=nowTop-anchorTop;
+    if(Math.abs(delta)>1)window.scrollBy({top:delta,left:0,behavior:'auto'});
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(restore));
+  setTimeout(restore,90);
+  setTimeout(restore,260);
 }
 function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
   pointSeq++;
@@ -3139,14 +4836,27 @@ function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
     <label class="point-type-label"><span class="field-caption">種類</span><select class="point-type">${typeOptions(type)}</select></label>
     <label class="point-name-label"><span class="field-caption">地点</span><select class="point-select">${candidateOptions(type,selected)}</select></label>
     <label class="datetime-label date-label"><span class="field-caption">通過日</span><span class="date-control"><input class="point-date" type="date" value="${initialDateTime?.date||todayLocal()}"><button class="date-picker-btn" type="button" title="カレンダーを開く" aria-label="カレンダーを開く">📅</button></span></label>
-    <label class="datetime-label time-label"><span class="field-caption">通過時刻</span><input class="point-time" type="time" value="${initialDateTime?.time||'06:00'}"></label>
+    <label class="datetime-label time-label"><span class="field-caption">通過時刻</span><span class="time-control-with-ct"><input class="point-time" type="time" value="${initialDateTime?.time||'06:00'}"><span class="course-time-missing-badge hidden" title="直前地点からの標準CTが未登録です">CT情報なし</span></span></label>
     <label class="stay-option ${type==='hut'?'':'hidden'}"><span>宿泊</span><span class="stay-toggle"><input class="point-stay" type="checkbox"><b><span class="stay-label-desktop">ここに泊まる</span><span class="stay-label-mobile">泊まる</span></b></span></label>
     <button class="move up" type="button" title="上へ">↑</button><button class="move down" type="button" title="下へ">↓</button><button class="remove" type="button" title="削除">×</button>
     <div class="point-meta">地点を選択してください</div>`;
   $('points').appendChild(row); renumber();
   const typeSel=row.querySelector('.point-type'), pointSel=row.querySelector('.point-select'), stay=row.querySelector('.stay-option');
-  typeSel.addEventListener('change',()=>{pointSel.innerHTML=candidateOptions(typeSel.value); stay.classList.toggle('hidden',typeSel.value!=='hut'); if(typeSel.value!=='hut')row.querySelector('.point-stay').checked=false; updateMeta(row);});
-  pointSel.addEventListener('change',()=>{updateMeta(row); const p=selectedCandidate(pointSel.value); if(p&&!hasResolvedCoord(p))ensureCandidateCoordinateForRow(row);});
+  typeSel.addEventListener('change',()=>preservePointRowViewport(row,()=>{pointSel.innerHTML=candidateOptions(typeSel.value); stay.classList.toggle('hidden',typeSel.value!=='hut'); if(typeSel.value!=='hut')row.querySelector('.point-stay').checked=false; updateMeta(row); refreshAllCourseTimeMissingBadges();}));
+  pointSel.addEventListener('change',()=>preservePointRowViewport(row,()=>{
+    const p=selectedCandidate(pointSel.value);
+    if(p){
+      logPointSelected(row,p);
+      applyCourseTimeFromPrevious(row,{announce:true});
+      updateMeta(row);
+      refreshCourseTimeMissingBadge(row);
+      ensureNextPointIsLater(row);
+      refreshAllCourseTimeMissingBadges();
+    }else{
+      updateMeta(row);
+      refreshAllCourseTimeMissingBadges();
+    }
+  }));
   const dateInput=row.querySelector('.point-date'), timeInput=row.querySelector('.point-time');
   const pickerBtn=row.querySelector('.date-picker-btn');
   const openDatePicker=()=>{
@@ -3160,17 +4870,20 @@ function addPointRow(type='peak',selected='',roleLabel='',initialDateTime=null){
       row.dataset.datetimeBefore=rowDateTimeValue(row)||'';
       updateForecastHorizon();
       renderRouteMaps();
+      refreshAllCourseTimeMissingBadges();
     });
   });
   row.querySelector('.point-stay').addEventListener('change',()=>{
     syncNextPointInitialTime(row);
     updateForecastHorizon();
     renderRouteMaps();
+    refreshAllCourseTimeMissingBadges();
   });
-  row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();updateForecastHorizon();renderRouteMaps();});
-  row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();renderRouteMaps();});
-  row.querySelector('.down').addEventListener('click',()=>{const n=row.nextElementSibling;if(n)row.parentNode.insertBefore(n,row);renumber();renderRouteMaps();});
+  row.querySelector('.remove').addEventListener('click',()=>{row.remove();renumber();updateForecastHorizon();renderRouteMaps();refreshAllCourseTimeMissingBadges();});
+  row.querySelector('.up').addEventListener('click',()=>{const p=row.previousElementSibling;if(p)row.parentNode.insertBefore(row,p);renumber();renderRouteMaps();refreshAllCourseTimeMissingBadges();});
+  row.querySelector('.down').addEventListener('click',()=>{const n=row.nextElementSibling;if(n)row.parentNode.insertBefore(n,row);renumber();renderRouteMaps();refreshAllCourseTimeMissingBadges();});
   updateMeta(row);
+  refreshCourseTimeMissingBadge(row);
   renderRouteMaps();
 }
 function renumber(){[...$('points').children].forEach((r,i)=>r.querySelector('.point-no').textContent=String(i+1).padStart(2,'0'));}
@@ -3183,6 +4896,63 @@ function formatJstInput(ms){
   const pad=n=>String(n).padStart(2,'0');
   return {date:`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`,time:`${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`};
 }
+function ensureNextPointIsLater(row){
+  const next=row?.nextElementSibling;
+  const current=rowDateTimeValue(row);
+  if(!next||!current)return;
+  const currentMs=new Date(current).getTime();
+  if(Number.isNaN(currentMs))return;
+  const nextValue=rowDateTimeValue(next);
+  const nextMs=nextValue?new Date(nextValue).getTime():NaN;
+  // 次のポイントが未設定、同時刻、または前の時刻の場合だけ自動補正する。
+  // すでにユーザーが後の時刻を設定している場合は上書きしない。
+  if(!nextValue||Number.isNaN(nextMs)||nextMs<=currentMs){
+    syncNextPointInitialTime(row);
+  }
+}
+
+function refreshCourseTimeMissingBadge(row){
+  const badge=row?.querySelector('.course-time-missing-badge');
+  if(!badge)return;
+  const prev=row.previousElementSibling;
+  if(!prev||prev.querySelector('.point-stay')?.checked){
+    badge.classList.add('hidden');
+    return;
+  }
+  const from=selectedCandidate(prev.querySelector('.point-select')?.value);
+  const to=selectedCandidate(row.querySelector('.point-select')?.value);
+  if(!from||!to){
+    badge.classList.add('hidden');
+    return;
+  }
+  const info=courseTimeInfo(from,to);
+  badge.classList.toggle('hidden',!!info);
+}
+function refreshAllCourseTimeMissingBadges(){
+  [...$('points').children].forEach(refreshCourseTimeMissingBadge);
+}
+
+function applyCourseTimeFromPrevious(row,{announce=false}={}){
+  const prev=row?.previousElementSibling;
+  if(!prev||prev.querySelector('.point-stay')?.checked)return false;
+  const from=selectedCandidate(prev.querySelector('.point-select')?.value);
+  const to=selectedCandidate(row.querySelector('.point-select')?.value);
+  const info=courseTimeInfo(from,to);
+  const baseValue=rowDateTimeValue(prev);
+  if(!info||!baseValue)return false;
+  const base=new Date(baseValue);
+  if(Number.isNaN(base.getTime()))return false;
+  const shifted=formatJstInput(base.getTime()+info.minutes*60*1000);
+  row.querySelector('.point-date').value=shifted.date;
+  row.querySelector('.point-time').value=shifted.time;
+  row.dataset.datetimeBefore=`${shifted.date}T${shifted.time}:00+09:00`;
+  row.dataset.courseTimeAuto='1';
+  if(announce)setStatus(`${from.name} → ${to.name}：標準CT ${formatCourseTimeMinutes(info.minutes)}${info.sourceType==='yamareco'?'（補助ソース）':''} を加算して ${shifted.time} にしました。`);
+  updateForecastHorizon();
+  refreshCourseTimeMissingBadge(row);
+  return true;
+}
+
 function syncNextPointInitialTime(row){
   const next=row.nextElementSibling;
   const current=rowDateTimeValue(row);
@@ -3196,13 +4966,16 @@ function syncNextPointInitialTime(row){
     next.querySelector('.point-date').value=nextDate;
     next.querySelector('.point-time').value='05:00';
     next.dataset.datetimeBefore=`${nextDate}T05:00:00+09:00`;
+    next.dataset.courseTimeAuto='';
     setStatus(`宿泊の次のポイントを翌朝 5:00 にしました。`);
-  }else{
+  }else if(!applyCourseTimeFromPrevious(next)){
     const shifted=formatJstInput(dt.getTime()+60*60*1000);
     next.querySelector('.point-date').value=shifted.date;
     next.querySelector('.point-time').value=shifted.time;
     next.dataset.datetimeBefore=`${shifted.date}T${shifted.time}:00+09:00`;
+    next.dataset.courseTimeAuto='';
   }
+  refreshCourseTimeMissingBadge(next);
 }
 function updateForecastHorizon(){
   const el=$('forecastHorizonCurrent');
@@ -3228,12 +5001,15 @@ function updateMeta(row){
   const meta=row.querySelector('.point-meta');
   if(!p){meta.textContent='地点を選択してください';renderRouteMaps();return;}
   if(hasResolvedCoord(p)){
-    meta.textContent=`${p.name} / ${p.elevation||'標高自動'}m / ${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)}`;
+    const prev=row.previousElementSibling;
+    const from=prev?selectedCandidate(prev.querySelector('.point-select')?.value):null;
+    const ct=courseTimeInfo(from,p);
+    const ctText=ct?` / 標準CT +${formatCourseTimeMinutes(ct.minutes)}（無雪期・休憩含まず${ct.sourceType==='yamareco'?'・補助ソース':''}）`:'';
+    meta.textContent=`${p.name} / ${p.elevation||'標高自動'}m / ${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)}${ctText}`;
     renderRouteMaps();
     return;
   }
-  meta.innerHTML=`<span>${esc(p.name)} / 固定候補・座標未確定</span><button class="coord-retry-btn" type="button">座標を再取得</button>`;
-  meta.querySelector('.coord-retry-btn')?.addEventListener('click',()=>ensureCandidateCoordinateForRow(row,{manual:true}));
+  meta.textContent=`${p.name} / 座標未確定のため利用対象外`;
   renderRouteMaps();
 }
 function collectPoints(){
@@ -3242,7 +5018,7 @@ function collectPoints(){
     if(!p) return null; // 最初から表示する4枠は、使わない枠を空欄のままにできる
     const date=row.querySelector('.point-date').value, time=row.querySelector('.point-time').value;
     if(!date||!time) throw new Error(`${p.name} の通過日・通過時刻を入力してください。`);
-    if(!hasResolvedCoord(p)) throw new Error(`${p.name} の座標がまだ確定していません。地点欄の「座標を再取得」を押してください。`);
+    if(!hasResolvedCoord(p)) throw new Error(`${p.name} の座標が確定していないため利用できません。別の確定済み地点を選択してください。`);
     return {...p,date,time,type:row.querySelector('.point-type').value,stay:!!row.querySelector('.point-stay')?.checked,role:row.dataset.role||''};
   }).filter(Boolean);
 }
@@ -3434,20 +5210,24 @@ async function analyze(){
       setStatus(`宿泊分析：${stayPoints.length}泊分をまとめて取得しています…`);
       try{overnight=await analyzeOvernightsBatch(stayPoints);}catch(e){overnightWarning=` / 宿泊詳細は取得できませんでした（${e?.message||'取得失敗'}）`;}
     }
-    renderAll(results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}${overnightWarning}（一括取得）`,false); scrollToSummaryResult();
-    logEvent('weather_analysis',{success:true,duration_ms:performance.now()-started,route_points:points.length,metadata:{provider_count:providers.length,manual_datetime:true,batch_weather:true}});
-  }catch(e){setStatus(e.message||String(e),true);logEvent('weather_analysis',{success:false,duration_ms:performance.now()-started,route_points:points.length,error_message:e.message||String(e)});}
+    const mountain=currentMountainLabel();
+    renderAll(results,overnight); saveLastAnalysisSnapshot(mountain,points,results,overnight); setStatus(`分析完了：${points.length}地点${stayPoints.length?` / 宿泊 ${stayPoints.length}泊`:''}${overnightWarning}（一括取得）`,false); scrollToSummaryResult();
+    points.forEach(p=>logEvent('route_point_used',{success:true,mountain,metadata:{point_name:p.name||'',point_type:p.type||'other',point_role:p.role||'',source:p.source||''}}));
+    logEvent('weather_analysis',{success:true,duration_ms:performance.now()-started,mountain,route_points:points.length,stay_count:stayPoints.length,metadata:{provider_count:providers.length,manual_datetime:true,batch_weather:true}});
+  }catch(e){setStatus(e.message||String(e),true);logEvent('weather_analysis',{success:false,duration_ms:performance.now()-started,mountain:currentMountainLabel(),route_points:points.length,error_message:e.message||String(e)});}
   finally{$('analyzeBtn').disabled=false;}
 }
 function analyzeOvernightJson(point,nightNo,j){
   const next=addDays(point.date,1), h=j?.hourly||{}, d=j?.daily||{};
   const sunset=d.sunset?.find(x=>String(x).startsWith(point.date))||d.sunset?.[0]||`${point.date}T18:00`;
   const sunrise=d.sunrise?.find(x=>String(x).startsWith(next))||d.sunrise?.[1]||`${next}T05:00`;
-  const allRows=(h.time||[]).map((t,i)=>({time:t,temp:numberOrNaN(h.temperature_2m?.[i]),apparent:numberOrNaN(h.apparent_temperature?.[i]),rh:numberOrNaN(h.relative_humidity_2m?.[i]),rain:numberOrNaN(h.precipitation?.[i]),cloud:numberOrNaN(h.cloud_cover?.[i]),wind:numberOrNaN(h.wind_speed_10m?.[i]),gust:numberOrNaN(h.wind_gusts_10m?.[i]),visibility:numberOrNaN(h.visibility?.[i])}));
+  const allRows=(h.time||[]).map((t,i)=>({time:t,temp:numberOrNaN(h.temperature_2m?.[i]),apparent:numberOrNaN(h.apparent_temperature?.[i]),rh:numberOrNaN(h.relative_humidity_2m?.[i]),dew:numberOrNaN(h.dew_point_2m?.[i]),rain:numberOrNaN(h.precipitation?.[i]),cloud:numberOrNaN(h.cloud_cover?.[i]),lowCloud:numberOrNaN(h.cloud_cover_low?.[i]),midCloud:numberOrNaN(h.cloud_cover_mid?.[i]),highCloud:numberOrNaN(h.cloud_cover_high?.[i]),wind:numberOrNaN(h.wind_speed_10m?.[i]),gust:numberOrNaN(h.wind_gusts_10m?.[i]),visibility:numberOrNaN(h.visibility?.[i])}));
   const startMs=new Date(`${point.date}T${point.time}`).getTime(), endMs=new Date(`${next}T08:00`).getTime();
   const rows=allRows.filter(x=>{const t=new Date(x.time).getTime();return t>=startMs&&t<=endMs;});
   const morningStartMs=new Date(`${next}T00:00`).getTime(), morningEndMs=new Date(`${next}T08:00`).getTime();
   const morningRows=allRows.filter(x=>{const t=new Date(x.time).getTime();return t>=morningStartMs&&t<=morningEndMs;});
+  const sunsetMs=new Date(sunset).getTime();
+  const eveningRows=allRows.filter(x=>Math.abs(new Date(x.time).getTime()-sunsetMs)<=120*60000);
   const sunsetRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunset)]||null, sunriseRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunrise)]||null;
   const sunsetView=horizonVisibility(sunsetRow), sunriseView=horizonVisibility(sunriseRow);
   const darkStart=new Date(sunset).getTime()+90*60000, darkEnd=new Date(sunrise).getTime()-90*60000;
@@ -3459,7 +5239,7 @@ function analyzeOvernightJson(point,nightNo,j){
   const dawnTarget=`${next}T05:00`;
   const dawnRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),dawnTarget)]||morningRows[0]||null;
   const dawnVisual=dawnRow?weatherVisual({cloud:dawnRow.cloud,rain:dawnRow.rain,thunder:'LOW'}):{icon:'',label:'--',cls:'partly'};
-  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis,fogRisk,moon,best,score,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,label:dawnVisual.label,cls:dawnVisual.cls},milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
+  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis,fogRisk,moon,best,score,_astroRows:astroRows,_morningRows:morningRows,_eveningRows:eveningRows,_darkStart:darkStart,_darkEnd:darkEnd,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,label:dawnVisual.label,cls:dawnVisual.cls},milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい'};
 }
 function metNoRows(payload){
   const ts=payload?.properties?.timeseries;
@@ -3469,7 +5249,7 @@ function metNoRows(payload){
     const temp=numberOrNaN(d.air_temperature), wind=numberOrNaN(d.wind_speed), rh=numberOrNaN(d.relative_humidity);
     let rain=numberOrNaN(n1.precipitation_amount);
     if(!Number.isFinite(rain)){const r6=numberOrNaN(n6.precipitation_amount); rain=Number.isFinite(r6)?r6/6:NaN;}
-    return {time:item.time,temp,apparent:apparentTempApprox(temp,wind),rh,rain,cloud:numberOrNaN(d.cloud_area_fraction),wind,gust:numberOrNaN(d.wind_speed_of_gust),visibility:NaN};
+    const cloud=numberOrNaN(d.cloud_area_fraction),lowCloud=numberOrNaN(d.cloud_area_fraction_low),midCloud=numberOrNaN(d.cloud_area_fraction_medium),highCloud=numberOrNaN(d.cloud_area_fraction_high);return {time:item.time,temp,apparent:apparentTempApprox(temp,wind),rh,dew:dewPointApprox(temp,rh),rain,cloud,lowCloud:Number.isFinite(lowCloud)?lowCloud:cloud,midCloud,highCloud,wind,gust:numberOrNaN(d.wind_speed_of_gust),visibility:NaN};
   }).filter(x=>x.time);
 }
 function apparentTempApprox(temp,wind){
@@ -3501,6 +5281,8 @@ function analyzeOvernightMetNo(point,nightNo,payload){
   const morningRows=allRows.filter(x=>{const t=new Date(x.time).getTime();return t>=morningStartMs&&t<=morningEndMs;});
   if(!rows.length)throw new Error('MET Norway: 宿泊時間帯の予報なし');
   const sunset=solarTimeApprox(point.date,Number(point.lat),Number(point.lon),false), sunrise=solarTimeApprox(next,Number(point.lat),Number(point.lon),true);
+  const sunsetMs=new Date(sunset).getTime();
+  const eveningRows=allRows.filter(x=>Math.abs(new Date(x.time).getTime()-sunsetMs)<=120*60000);
   const sunsetRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunset)]||null, sunriseRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),sunrise)]||null;
   const sunsetView=horizonVisibility(sunsetRow), sunriseView=horizonVisibility(sunriseRow);
   const darkStart=new Date(sunset).getTime()+90*60000, darkEnd=new Date(sunrise).getTime()-90*60000;
@@ -3511,7 +5293,7 @@ function analyzeOvernightMetNo(point,nightNo,payload){
   const dawnTarget=`${next}T05:00:00+09:00`;
   const dawnRow=allRows[nearestTimeIndex(allRows.map(x=>x.time),dawnTarget)]||morningRows[0]||null;
   const dawnVisual=dawnRow?weatherVisual({cloud:dawnRow.cloud,rain:dawnRow.rain,thunder:'LOW'}):{icon:'',label:'--',cls:'partly'};
-  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis:NaN,fogRisk,moon,best,score,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,label:dawnVisual.label,cls:dawnVisual.cls},milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい',source:'MET Norway（予備）'};
+  return {nightNo,point,sunset,sunrise,sunsetView,sunriseView,minTemp,morningMinTemp,minApp,maxWind,maxGust,maxRain,avgCloud,avgWind,maxRh,minVis:NaN,fogRisk,moon,best,score,_astroRows:astroRows,_morningRows:morningRows,_eveningRows:eveningRows,_darkStart:darkStart,_darkEnd:darkEnd,dawn:{time:dawnRow?.time||dawnTarget,temp:dawnRow?.temp,rain:dawnRow?.rain,cloud:dawnRow?.cloud,wind:dawnRow?.wind,label:dawnVisual.label,cls:dawnVisual.cls},milkyLabel:score>=75?'期待大':score>=55?'見える可能性あり':score>=35?'条件次第':'厳しい',source:'MET Norway（予備）'};
 }
 async function analyzeOvernightsMetNo(points){
   const out=[];
@@ -3525,21 +5307,513 @@ async function analyzeOvernightsMetNo(points){
 }
 async function analyzeOvernightsBatch(points){
   if(!points.length)return [];
-  const vars=['temperature_2m','apparent_temperature','relative_humidity_2m','precipitation','cloud_cover','wind_speed_10m','wind_gusts_10m','visibility'];
+  const vars=['temperature_2m','apparent_temperature','relative_humidity_2m','dew_point_2m','precipitation','cloud_cover','cloud_cover_low','cloud_cover_mid','cloud_cover_high','wind_speed_10m','wind_gusts_10m','visibility'];
   const starts=points.map(p=>p.date).sort(), ends=points.map(p=>addDays(p.date,1)).sort();
   const q=new URLSearchParams({
     latitude:points.map(p=>p.lat).join(','),longitude:points.map(p=>p.lon).join(','),elevation:points.map(p=>Number(p.elevation)||'nan').join(','),
     hourly:vars.join(','),daily:'sunrise,sunset',timezone:'Asia/Tokyo',start_date:starts[0],end_date:ends[ends.length-1],wind_speed_unit:'ms'
   });
   const r=await proxyFetch(`https://api.open-meteo.com/v1/forecast?${q}`);
+  let baseItems;
   if(!r.ok){
-    if(r.status===429)return await analyzeOvernightsMetNo(points);
-    throw new Error(`宿泊予報 HTTP ${r.status}`);
+    if(r.status===429)baseItems=await analyzeOvernightsMetNo(points);
+    else throw new Error(`宿泊予報 HTTP ${r.status}`);
+  }else{
+    const raw=await r.json(), locations=Array.isArray(raw)?raw:[raw];
+    if(locations.length!==points.length)throw new Error(`宿泊予報の地点数不一致 (${locations.length}/${points.length})`);
+    baseItems=points.map((p,i)=>({...analyzeOvernightJson(p,i+1,locations[i]),source:'Open-Meteo'}));
   }
-  const raw=await r.json(), locations=Array.isArray(raw)?raw:[raw];
-  if(locations.length!==points.length)throw new Error(`宿泊予報の地点数不一致 (${locations.length}/${points.length})`);
-  return points.map((p,i)=>({...analyzeOvernightJson(p,i+1,locations[i]),source:'Open-Meteo'}));
+  return await enrichOvernightsWithMilky(baseItems);
 }
+
+const GALACTIC_CENTER={ra:266.41683,dec:-29.00781};
+const LIGHT_POLLUTION_CENTERS=[
+  ['札幌',43.0618,141.3545,1970000],['旭川',43.7706,142.3650,325000],['函館',41.7687,140.7288,245000],['青森',40.8222,140.7474,270000],['弘前',40.6031,140.4638,165000],['盛岡',39.7036,141.1527,285000],['秋田',39.7200,140.1026,300000],['仙台',38.2682,140.8694,1090000],['山形',38.2404,140.3633,245000],['福島',37.7608,140.4747,280000],
+  ['新潟',37.9161,139.0364,770000],['富山',36.6953,137.2113,410000],['金沢',36.5613,136.6562,460000],['福井',36.0641,136.2196,260000],['長野',36.6486,138.1948,370000],['松本',36.2380,137.9720,235000],['甲府',35.6623,138.5682,190000],['前橋',36.3895,139.0634,330000],['宇都宮',36.5551,139.8828,515000],['東京',35.6762,139.6503,14000000],
+  ['横浜',35.4437,139.6380,3770000],['さいたま',35.8617,139.6455,1340000],['千葉',35.6074,140.1065,980000],['静岡',34.9756,138.3828,680000],['浜松',34.7108,137.7261,790000],['名古屋',35.1815,136.9066,2330000],['岐阜',35.4233,136.7607,400000],['京都',35.0116,135.7681,1450000],['大阪',34.6937,135.5023,2750000],['神戸',34.6901,135.1955,1500000],
+  ['奈良',34.6851,135.8048,350000],['和歌山',34.2305,135.1708,350000],['鳥取',35.5011,134.2351,185000],['松江',35.4681,133.0484,200000],['岡山',34.6551,133.9195,720000],['広島',34.3853,132.4553,1200000],['山口',34.1785,131.4737,190000],['高松',34.3428,134.0466,420000],['松山',33.8392,132.7657,505000],['高知',33.5597,133.5311,320000],
+  ['徳島',34.0703,134.5548,250000],['福岡',33.5902,130.4017,1610000],['北九州',33.8834,130.8751,920000],['佐賀',33.2635,130.3009,230000],['長崎',32.7503,129.8777,400000],['熊本',32.8031,130.7079,740000],['大分',33.2396,131.6093,475000],['宮崎',31.9077,131.4202,400000],['鹿児島',31.5966,130.5571,590000],['那覇',26.2124,127.6809,315000]
+];
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function jdFromDate(d){return d.getTime()/86400000+2440587.5;}
+function gmstDeg(d){const x=jdFromDate(d)-2451545.0;return ((280.46061837+360.98564736629*x)%360+360)%360;}
+function equatorialAltitude(date,lat,lon,raDeg,decDeg){
+  const rad=Math.PI/180, lst=(gmstDeg(date)+Number(lon)+360)%360, h=((lst-raDeg+540)%360)-180;
+  const s=Math.sin(Number(lat)*rad)*Math.sin(decDeg*rad)+Math.cos(Number(lat)*rad)*Math.cos(decDeg*rad)*Math.cos(h*rad);
+  return Math.asin(clamp(s,-1,1))/rad;
+}
+function moonEquatorial(date){
+  const rad=Math.PI/180,d=jdFromDate(date)-2451545.0,e=23.4397*rad;
+  const L=(218.316+13.176396*d)*rad,M=(134.963+13.064993*d)*rad,F=(93.272+13.229350*d)*rad;
+  const l=L+6.289*rad*Math.sin(M),b=5.128*rad*Math.sin(F);
+  const ra=Math.atan2(Math.sin(l)*Math.cos(e)-Math.tan(b)*Math.sin(e),Math.cos(l));
+  const dec=Math.asin(Math.sin(b)*Math.cos(e)+Math.cos(b)*Math.sin(e)*Math.sin(l));
+  return {ra:(ra/rad+360)%360,dec:dec/rad};
+}
+function moonAltitudeAt(date,lat,lon){const m=moonEquatorial(date);return equatorialAltitude(date,lat,lon,m.ra,m.dec);}
+function isoTime(ms){return new Date(ms).toISOString();}
+function galacticCenterDetails(point,startMs,endMs){
+  if(!Number.isFinite(startMs)||!Number.isFinite(endMs)||endMs<=startMs)return null;
+  let best={alt:-90,time:startMs},first=null,last=null;
+  for(let t=startMs;t<=endMs;t+=10*60000){
+    const alt=equatorialAltitude(new Date(t),point.lat,point.lon,GALACTIC_CENTER.ra,GALACTIC_CENTER.dec);
+    if(alt>best.alt)best={alt,time:t};
+    if(alt>=15){if(first===null)first=t;last=t;}
+  }
+  return {peakTime:isoTime(best.time),maxAltitude:best.alt,visibleStart:first===null?null:isoTime(first),visibleEnd:last===null?null:isoTime(last)};
+}
+function moonNightDetails(point,sunset,sunrise,moon,bestTime){
+  const start=new Date(sunset).getTime(),end=new Date(sunrise).getTime();
+  if(!Number.isFinite(start)||!Number.isFinite(end))return {impact:'判定不可',bestAltitude:NaN};
+  let prevT=start,prevAlt=moonAltitudeAt(new Date(start),point.lat,point.lon),rise=null,set=null,maxAlt=-90;
+  for(let t=start+10*60000;t<=end;t+=10*60000){
+    const alt=moonAltitudeAt(new Date(t),point.lat,point.lon);maxAlt=Math.max(maxAlt,alt);
+    if(prevAlt<=0&&alt>0&&rise===null)rise=t;
+    if(prevAlt>0&&alt<=0&&set===null)set=t;
+    prevT=t;prevAlt=alt;
+  }
+  const bestDate=bestTime?new Date(bestTime):new Date((start+end)/2),bestAltitude=moonAltitudeAt(bestDate,point.lat,point.lon);
+  const active=Math.max(0,Math.sin(Math.max(0,bestAltitude)*Math.PI/180));
+  const effective=moon.illum*active;
+  const impact=effective<8?'ほぼなし':effective<25?'小':effective<55?'中':'大';
+  const allAbove=!rise&&!set&&moonAltitudeAt(new Date(start),point.lat,point.lon)>0;
+  const allBelow=!rise&&!set&&moonAltitudeAt(new Date(start),point.lat,point.lon)<=0;
+  return {rise:rise?isoTime(rise):null,set:set?isoTime(set):null,maxAltitude:maxAlt,bestAltitude,impact,effective,allAbove,allBelow};
+}
+function lightPollutionEstimate(point){
+  let nearest=null,bestEff=Infinity;
+  for(const [name,lat,lon,pop] of LIGHT_POLLUTION_CENTERS){
+    const km=haversineMeters(Number(point.lat),Number(point.lon),lat,lon)/1000;
+    const weight=1+Math.max(0,Math.log10(pop/100000))*0.38;
+    const eff=km/weight+(Number(point.elevation)||0)/160;
+    if(eff<bestEff){bestEff=eff;nearest={name,km,pop};}
+  }
+  let score,label;
+  if(bestEff>=95){score=15;label='非常に少ない';}
+  else if(bestEff>=70){score=13;label='少ない';}
+  else if(bestEff>=45){score=10;label='やや少ない';}
+  else if(bestEff>=28){score=7;label='中程度';}
+  else {score=4;label='やや多い';}
+  return {score,label,nearest,effectiveDistance:bestEff,note:'周辺主要市街地との距離・規模・標高からの簡易推定'};
+}
+async function fetchAirQualityForPoint(point){
+  const next=addDays(point.date,1);
+  const q=new URLSearchParams({latitude:point.lat,longitude:point.lon,hourly:'pm10,pm2_5,aerosol_optical_depth,european_aqi',timezone:'Asia/Tokyo',start_date:point.date,end_date:next});
+  const r=await proxyFetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${q}`);
+  if(!r.ok)throw new Error(`空気質 HTTP ${r.status}`);
+  return await r.json();
+}
+function airQualitySummary(payload,startMs,endMs){
+  const h=payload?.hourly||{},rows=(h.time||[]).map((t,i)=>({time:t,pm25:numberOrNaN(h.pm2_5?.[i]),pm10:numberOrNaN(h.pm10?.[i]),aod:numberOrNaN(h.aerosol_optical_depth?.[i]),aqi:numberOrNaN(h.european_aqi?.[i])})).filter(r=>{const x=new Date(r.time).getTime();return x>=startMs&&x<=endMs;});
+  if(!rows.length)return {available:false,label:'取得不可',score:7};
+  const pm25=mean(rows.map(x=>x.pm25)),pm10=mean(rows.map(x=>x.pm10)),aod=mean(rows.map(x=>x.aod)),aqi=mean(rows.map(x=>x.aqi));
+  let score=10,label='非常に良い';
+  if((Number.isFinite(pm25)&&pm25>25)||(Number.isFinite(aqi)&&aqi>60)){score=3;label='霞みやすい';}
+  else if((Number.isFinite(pm25)&&pm25>15)||(Number.isFinite(aqi)&&aqi>40)){score=5;label='やや霞む';}
+  else if((Number.isFinite(pm25)&&pm25>8)||(Number.isFinite(aqi)&&aqi>25)||(Number.isFinite(aod)&&aod>0.18)){score=7;label='良い';}
+  return {available:true,label,score,pm25,pm10,aod,aqi};
+}
+function milkySkyComponent(row){
+  let s=30;
+  if(Number.isFinite(row?.cloud))s-=row.cloud*.24;
+  if(Number.isFinite(row?.rain))s-=Math.min(12,row.rain*6);
+  if(Number.isFinite(row?.visibility)&&row.visibility<15000)s-=Math.min(7,(15000-row.visibility)/1800);
+  if(Number.isFinite(row?.rh)&&row.rh>93)s-=Math.min(5,(row.rh-93)*.7);
+  return clamp(s,0,30);
+}
+function milkyDetailedScore(row,point,moon,galactic,air,light){
+  const t=new Date(row.time),gcAlt=equatorialAltitude(t,point.lat,point.lon,GALACTIC_CENTER.ra,GALACTIC_CENTER.dec),moonAlt=moonAltitudeAt(t,point.lat,point.lon);
+  const sky=milkySkyComponent(row);
+  const moonEffective=moon.illum*Math.max(0,Math.sin(Math.max(0,moonAlt)*Math.PI/180));
+  const moonPts=25*(1-clamp(moonEffective/100,0,1));
+  const galPts=20*clamp((gcAlt-5)/40,0,1);
+  const airPts=air?.score??7,lightPts=light?.score??10;
+  return {score:clamp(sky+moonPts+galPts+airPts+lightPts,0,100),gcAlt,moonAlt,sky,moonPts,galPts,airPts,lightPts};
+}
+function milkyLabelFromScore(score){return score>=80?'期待大':score>=65?'見頃':score>=50?'見える可能性あり':score>=35?'条件次第':'厳しい';}
+function formatTimeRange(a,b){return a&&b?`${timeOnly(a)}〜${timeOnly(b)}`:'判定不可';}
+function milkyAdvice(m){
+  const bits=[];
+  if(m.moon?.impact==='ほぼなし'||m.moon?.impact==='小')bits.push('月明かりの影響は小さめ');
+  else if(m.moon?.impact)bits.push(`月明かりの影響は${m.moon.impact}`);
+  if(m.air?.available)bits.push(`空気質は${m.air.label}`);
+  bits.push(`光害は${m.light.label}目安`);
+  return bits.join('。')+'。';
+}
+
+function dewPointApprox(temp,rh){
+  if(!Number.isFinite(temp)||!Number.isFinite(rh)||rh<=0)return NaN;
+  const a=17.62,b=243.12,g=Math.log(clamp(rh,1,100)/100)+(a*temp)/(b+temp);
+  return (b*g)/(a-g);
+}
+function cloudSeaRowScore(row){
+  const low=Number.isFinite(row?.lowCloud)?row.lowCloud:Number(row?.cloud);
+  const total=Number(row?.cloud);
+  const upper=Number.isFinite(total)&&Number.isFinite(low)?clamp(total-low,0,100):Number.isFinite(total)?total:50;
+  const clearAbove=100-upper;
+  const dew=Number.isFinite(row?.dew)?row.dew:dewPointApprox(Number(row?.temp),Number(row?.rh));
+  const spread=Number.isFinite(dew)&&Number.isFinite(row?.temp)?Math.max(0,row.temp-dew):NaN;
+  const wind=Number(row?.wind),rain=Number(row?.rain),rh=Number(row?.rh);
+  let lowPts=0;if(Number.isFinite(low)){lowPts=low>=55?30:low>=35?23:low>=20?14:low>=10?7:2;}
+  let clearPts=Number.isFinite(clearAbove)?25*clamp((clearAbove-25)/65,0,1):12;
+  let moisturePts=10;
+  if(Number.isFinite(spread))moisturePts=20*clamp((4.5-spread)/4.0,0,1);
+  else if(Number.isFinite(rh))moisturePts=20*clamp((rh-72)/26,0,1);
+  let windPts=7;if(Number.isFinite(wind)){windPts=wind<=1.5?15:wind<=3?13:wind<=5?8:wind<=7?3:0;}
+  let precipPts=8;if(Number.isFinite(rain)){precipPts=rain<=0.05?10:rain<=0.3?8:rain<=1?4:0;}
+  const score=clamp(lowPts+clearPts+moisturePts+windPts+precipPts,0,100);
+  return {score,lowCloud:low,upperCloud:upper,clearAbove,dew,dewSpread:spread,wind,rain,rh};
+}
+function cloudSeaLabel(score){return score>=80?'期待大':score>=65?'期待できる':score>=50?'可能性あり':score>=35?'条件次第':'厳しい';}
+function cloudSeaRadiative(detail){
+  if(!detail)return '判定不可';
+  const c=Number(detail.clearAbove),w=Number(detail.wind),r=Number(detail.rain);
+  if(c>=70&&w<=2.5&&r<=0.1)return '良好';
+  if(c>=50&&w<=4&&r<=0.3)return 'やや良好';
+  return '弱め';
+}
+function cloudSeaAdvice(c){
+  if(!c?.bestDetail)return '早朝の予報条件を十分に評価できませんでした。';
+  const d=c.bestDetail,b=[];
+  if(Number.isFinite(d.lowCloud)&&d.lowCloud>=55)b.push('低層雲が多い');
+  else if(Number.isFinite(d.lowCloud)&&d.lowCloud<20)b.push('低層雲が少ない');
+  if(Number.isFinite(d.clearAbove)&&d.clearAbove>=70)b.push('上空は比較的抜ける');
+  if(Number.isFinite(d.dewSpread)&&d.dewSpread<=2)b.push('気温と露点が近く霧が生じやすい');
+  if(Number.isFinite(d.wind)&&d.wind<=3)b.push('風が弱く雲が滞留しやすい');
+  if(Number.isFinite(d.rain)&&d.rain>0.5)b.push('見頃時間帯の降水が不利');
+  const lead=b.length?b.slice(0,3).join('・'):'決め手となる条件は弱め';
+  return `${lead}予報です。${c.score>=65?'日の出前後に雲海が見られる可能性があります。':c.score>=50?'条件が揃えば雲海になる可能性があります。':'現時点では雲海の条件は強くありません。'}`;
+}
+function buildCloudSeaAnalysis(o){
+  const rows=(Array.isArray(o._morningRows)?o._morningRows:[]).filter(r=>{const h=Number(String(r.time||'').slice(11,13));return Number.isFinite(h)&&h>=3&&h<=8;});
+  if(!rows.length)return {score:0,label:'判定不可',best:null,bestDetail:null,windowStart:null,windowEnd:null,advice:'早朝予報を取得できませんでした。'};
+  let best=null,bestDetail=null;
+  const scored=rows.map(row=>{const detail=cloudSeaRowScore(row);if(!bestDetail||detail.score>bestDetail.score){best=row;bestDetail=detail;}return {row,detail};});
+  const score=bestDetail?.score||0,threshold=Math.max(50,score-10);
+  const good=scored.filter(x=>x.detail.score>=threshold);
+  const c={score,label:cloudSeaLabel(score),best,bestDetail,windowStart:good[0]?.row.time||best?.time||null,windowEnd:good[good.length-1]?.row.time||best?.time||null,radiative:cloudSeaRadiative(bestDetail)};
+  c.advice=cloudSeaAdvice(c);return c;
+}
+function cloudSeaIcon(){return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 32h36"/><path d="M8 30l9-10 6 7 6-5 11 8"/><path d="M10 38c4-3 8-3 12 0s8 3 12 0 6-2 8-1"/><path d="M12 42c4-2 7-2 10 0s7 2 10 0 6-2 9-1"/></svg>';}
+function renderCloudSeaDetail(o){
+  const c=o.cloudSea;if(!c)return '';
+  const d=c.bestDetail||{};
+  const low=Number.isFinite(d.lowCloud)?`${Math.round(d.lowCloud)}%`:'--';
+  const upper=Number.isFinite(d.clearAbove)?`${Math.round(d.clearAbove)}%`:'--';
+  const spread=Number.isFinite(d.dewSpread)?`${num(d.dewSpread,1)}℃`:'--';
+  const wind=Number.isFinite(d.wind)?`${num(d.wind,1)}m/s`:'--';
+  const tone=c.score>=65?'good':c.score>=50?'fair':c.score>=35?'caution':'hard';
+  return `<section class="cloudsea-panel ${tone}">
+    <div class="cloudsea-head"><div class="cloudsea-title"><div class="cloudsea-symbol">${cloudSeaIcon()}</div><div><small>翌朝の雲海予測</small><b>${Math.round(c.score)} / 100　${esc(c.label)}</b></div></div><span>${formatTimeRange(c.windowStart,c.windowEnd)}</span></div>
+    <div class="cloudsea-grid">
+      <div class="cloudsea-card"><small>低層雲</small><b>${low}</b><span>${Number(d.lowCloud)>=55?'多い':Number(d.lowCloud)>=30?'やや多い':'少ない'}</span></div>
+      <div class="cloudsea-card"><small>上空の抜け</small><b>${upper}</b><span>${Number(d.clearAbove)>=70?'良好':Number(d.clearAbove)>=45?'まずまず':'雲が多い'}</span></div>
+      <div class="cloudsea-card"><small>気温−露点差</small><b>${spread}</b><span>${Number(d.dewSpread)<=2?'霧が生じやすい':Number(d.dewSpread)<=4?'湿り気あり':'乾き気味'}</span></div>
+      <div class="cloudsea-card"><small>風 / 放射冷却</small><b>${wind}</b><span>放射冷却 ${esc(c.radiative||'--')}</span></div>
+    </div>
+    <div class="cloudsea-advice"><strong>☁ 雲海の目安</strong><p>${esc(c.advice||'')}</p></div>
+    <p class="cloudsea-note">※ 雲海期待度は低層雲・上空の雲・湿度/露点・風・降水から算出した気象条件の目安です。谷地形・局地風・実際の雲底高度によって見え方は変わります。</p>
+  </section>`;
+}
+
+
+function sunDeclinationApprox(date){
+  const d=new Date(`${date}T12:00:00+09:00`),start=new Date(d.getFullYear(),0,0),n=Math.floor((d-start)/86400000);
+  return -23.44*Math.cos((2*Math.PI/365)*(n+10));
+}
+function sunriseAzimuthApprox(date,lat){
+  const rad=Math.PI/180,dec=sunDeclinationApprox(date)*rad,phi=Number(lat)*rad,alt=-0.833*rad;
+  const cosA=(Math.sin(dec)-Math.sin(phi)*Math.sin(alt))/(Math.cos(phi)*Math.cos(alt));
+  return Math.acos(clamp(cosA,-1,1))/rad;
+}
+function compass16(deg){
+  const dirs=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+  return dirs[Math.round(((Number(deg)%360)+360)%360/22.5)%16];
+}
+const TERRAIN_RAY_DISTANCES_KM=[0.25,0.5,1,2,3,5,7.5,10,15,20,30];
+const TERRAIN_RAY_OFFSETS_DEG=[-4,0,4];
+const terrainHorizonCache=new Map();
+function destinationPoint(lat,lon,bearingDeg,distanceKm){
+  const R=6371,rad=Math.PI/180,br=Number(bearingDeg)*rad,d=Number(distanceKm)/R,p1=Number(lat)*rad,l1=Number(lon)*rad;
+  const p2=Math.asin(Math.sin(p1)*Math.cos(d)+Math.cos(p1)*Math.sin(d)*Math.cos(br));
+  const l2=l1+Math.atan2(Math.sin(br)*Math.sin(d)*Math.cos(p1),Math.cos(d)-Math.sin(p1)*Math.sin(p2));
+  return {lat:p2/rad,lon:((l2/rad+540)%360)-180};
+}
+function terrainOpening(angle){
+  if(!Number.isFinite(Number(angle)))return {label:'判定不可',mark:'–',score:70};
+  const a=Number(angle);
+  if(a<=1.5)return {label:'開けている',mark:'◎',score:100};
+  if(a<=4)return {label:'比較的開けている',mark:'○',score:82};
+  if(a<=8)return {label:'稜線の影響あり',mark:'△',score:55};
+  return {label:'大きく遮られる',mark:'×',score:25};
+}
+function terrainProfileFromSamples(point,azimuth,samples){
+  const obs=Number(point.elevation),R=6371000;
+  if(!Number.isFinite(obs)||!samples.length)return {available:false,opening:terrainOpening(NaN)};
+  let maxAngle=-90,dominant=null;
+  for(const s of samples){
+    const d=Number(s.distanceKm)*1000,e=Number(s.elevation);
+    if(!Number.isFinite(d)||d<=0||!Number.isFinite(e))continue;
+    const curvature=(d*d)/(2*R);
+    const apparentRise=e-obs-curvature;
+    const angle=Math.atan2(apparentRise,d)*180/Math.PI;
+    if(angle>maxAngle){maxAngle=angle;dominant={...s,angle};}
+  }
+  if(!dominant)return {available:false,opening:terrainOpening(NaN)};
+  const effective=Math.max(0,maxAngle),opening=terrainOpening(effective);
+  return {available:true,azimuth:Number(azimuth),horizonAngle:effective,rawHorizonAngle:maxAngle,opening,dominant};
+}
+async function fetchTerrainHorizonForOvernight(o){
+  const next=addDays(o.point.date,1),morningAz=sunriseAzimuthApprox(next,o.point.lat),eveningAz=sunsetAzimuthApprox(o.point.date,o.point.lat);
+  const key=[Number(o.point.lat).toFixed(4),Number(o.point.lon).toFixed(4),Math.round(Number(o.point.elevation)||0),Math.round(morningAz),Math.round(eveningAz)].join('|');
+  if(terrainHorizonCache.has(key))return terrainHorizonCache.get(key);
+  const requests=[];
+  for(const scene of [{name:'morning',az:morningAz},{name:'evening',az:eveningAz}]){
+    for(const off of TERRAIN_RAY_OFFSETS_DEG){
+      for(const distanceKm of TERRAIN_RAY_DISTANCES_KM){
+        const bearing=(scene.az+off+360)%360,p=destinationPoint(o.point.lat,o.point.lon,bearing,distanceKm);
+        requests.push({scene:scene.name,az:scene.az,bearing,distanceKm,lat:p.lat,lon:p.lon});
+      }
+    }
+  }
+  try{
+    const q=new URLSearchParams({latitude:requests.map(x=>x.lat.toFixed(6)).join(','),longitude:requests.map(x=>x.lon.toFixed(6)).join(',')});
+    const r=await proxyFetch(`https://api.open-meteo.com/v1/elevation?${q}`);
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const j=await r.json(),elev=Array.isArray(j?.elevation)?j.elevation:[];
+    const grouped={morning:[],evening:[]};
+    requests.forEach((req,i)=>{const e=Number(elev[i]);if(Number.isFinite(e))grouped[req.scene].push({...req,elevation:e});});
+    const result={morning:terrainProfileFromSamples(o.point,morningAz,grouped.morning),evening:terrainProfileFromSamples(o.point,eveningAz,grouped.evening),source:'Copernicus DEM GLO-90 / Open-Meteo'};
+    terrainHorizonCache.set(key,result);return result;
+  }catch(e){
+    const result={morning:{available:false,opening:terrainOpening(NaN)},evening:{available:false,opening:terrainOpening(NaN)},source:'取得不可',error:e?.message||String(e)};
+    terrainHorizonCache.set(key,result);return result;
+  }
+}
+function solarAltitudeApprox(date,lat,lon){
+  const rad=Math.PI/180,jst=new Date(date.getTime()+9*3600000),year=jst.getUTCFullYear(),start=Date.UTC(year,0,0),day=Math.floor((Date.UTC(year,jst.getUTCMonth(),jst.getUTCDate())-start)/86400000);
+  const hour=jst.getUTCHours()+jst.getUTCMinutes()/60+jst.getUTCSeconds()/3600;
+  const gamma=2*Math.PI/365*(day-1+(hour-12)/24);
+  const eq=229.18*(0.000075+0.001868*Math.cos(gamma)-0.032077*Math.sin(gamma)-0.014615*Math.cos(2*gamma)-0.040849*Math.sin(2*gamma));
+  const dec=0.006918-0.399912*Math.cos(gamma)+0.070257*Math.sin(gamma)-0.006758*Math.cos(2*gamma)+0.000907*Math.sin(2*gamma)-0.002697*Math.cos(3*gamma)+0.00148*Math.sin(3*gamma);
+  let tst=hour*60+eq+4*Number(lon)-60*9;tst=((tst%1440)+1440)%1440;
+  let ha=tst/4-180;if(ha<-180)ha+=360;
+  const phi=Number(lat)*rad,cosz=Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.cos(ha*rad);
+  return 90-Math.acos(clamp(cosz,-1,1))/rad;
+}
+function terrainAdjustedSolarTime(baseIso,point,terrain,isSunrise){
+  const base=new Date(baseIso).getTime();
+  if(!Number.isFinite(base)||!terrain?.available||Number(terrain.horizonAngle)<=1.5)return {time:baseIso,deltaMin:0,adjusted:false};
+  const threshold=Number(terrain.horizonAngle),start=isSunrise?base:base-180*60000,end=isSunrise?base+180*60000:base;
+  let found=null;
+  for(let t=start;t<=end;t+=60000){
+    if(solarAltitudeApprox(new Date(t),point.lat,point.lon)>=threshold){if(isSunrise){found=t;break;}found=t;}
+  }
+  if(found===null)return {time:baseIso,deltaMin:0,adjusted:false};
+  const delta=Math.round((found-base)/60000);
+  return {time:new Date(found).toISOString(),deltaMin:delta,adjusted:Math.abs(delta)>=2};
+}
+function terrainSceneAdvice(terrain,solar){
+  if(!terrain?.available)return '周辺地形データを取得できなかったため、地形遮蔽は評価に含めていません。';
+  const a=Number(terrain.horizonAngle),open=terrain.opening;
+  if(a<=1.5)return `地形開放度は${open.mark}${open.label}で、周辺稜線による大きな遮蔽は少ない見込みです。`;
+  const timing=solar?.adjusted?` 地形を考慮すると太陽が見える目安は ${timeOnly(solar.time)} 頃です。`:'';
+  return `地形開放度は${open.mark}${open.label}（遮蔽角 約${a.toFixed(1)}°）です。${timing}`;
+}
+
+function sunriseGlowScore(row){
+  if(!row)return 0;
+  const total=Number(row.cloud),low=Number(row.lowCloud),mid=Number(row.midCloud),high=Number(row.highCloud),rain=Number(row.rain),vis=Number(row.visibility);
+  const upper=Number.isFinite(mid)||Number.isFinite(high)?Math.max(Number.isFinite(mid)?mid:0,Number.isFinite(high)?high:0):Number.isFinite(total)&&Number.isFinite(low)?clamp(total-low,0,100):Number.isFinite(total)?total:40;
+  let s=50;
+  if(Number.isFinite(upper)){const ideal=45;s+=35*(1-Math.min(1,Math.abs(upper-ideal)/55));}
+  if(Number.isFinite(low))s-=Math.max(0,low-35)*.55;
+  if(Number.isFinite(rain))s-=Math.min(25,rain*15);
+  if(Number.isFinite(vis)&&vis<10000)s-=Math.min(20,(10000-vis)/500);
+  return clamp(s,0,100);
+}
+function sunriseScore(row,view){
+  if(!row)return 0;
+  let s=Number(view?.score)||50;
+  if(Number.isFinite(row.lowCloud))s-=Math.max(0,row.lowCloud-45)*.35;
+  if(Number.isFinite(row.rain))s-=Math.min(20,row.rain*12);
+  return clamp(s,0,100);
+}
+function morningSceneLabel(score){return score>=80?'期待大':score>=65?'期待できる':score>=50?'可能性あり':score>=35?'条件次第':'厳しい';}
+function buildMorningScene(o,terrain=null){
+  const rows=Array.isArray(o._morningRows)?o._morningRows:[];
+  const sunriseMs=new Date(o.sunrise).getTime();
+  const near=rows.filter(r=>Math.abs(new Date(r.time).getTime()-sunriseMs)<=90*60000);
+  const sunriseRow=rows[nearestTimeIndex(rows.map(r=>r.time),o.sunrise)]||near[0]||null;
+  const cloudSea=buildCloudSeaAnalysis(o);
+  const riseWeatherScore=sunriseScore(sunriseRow,o.sunriseView),glowScore=sunriseGlowScore(sunriseRow);
+  const terrainScore=terrain?.available?Number(terrain.opening?.score):null;
+  const riseScore=terrain?.available?clamp(riseWeatherScore*.72+terrainScore*.28,0,100):riseWeatherScore;
+  const combined=clamp(riseScore*.4+(cloudSea.score||0)*.4+glowScore*.2,0,100);
+  const next=addDays(o.point.date,1),az=sunriseAzimuthApprox(next,o.point.lat);
+  const windowStart=new Date(sunriseMs-30*60000).toISOString(),windowEnd=new Date(sunriseMs+45*60000).toISOString();
+  const temp=Number(sunriseRow?.temp),apparent=Number(sunriseRow?.apparent),wind=Number(sunriseRow?.wind),rain=Number(sunriseRow?.rain),vis=Number(sunriseRow?.visibility),low=Number(sunriseRow?.lowCloud);
+  const adviceBits=[];
+  if(riseScore>=65)adviceBits.push('日の出は見えやすい条件'); else if(riseScore<40)adviceBits.push('日の出方向の雲に注意');
+  if(cloudSea.score>=65)adviceBits.push('雲海も期待'); else if(cloudSea.score>=50)adviceBits.push('雲海の可能性あり');
+  if(glowScore>=65)adviceBits.push('朝焼けにも期待');
+  const terrainSolar=terrainAdjustedSolarTime(o.sunrise,o.point,terrain,true);
+  const baseAdvice=`${adviceBits.length?adviceBits.join('・'):'朝景条件はやや不安定'}です。${cloudSea.score>=65&&riseScore>=65?'日の出と雲海を同時に楽しめる可能性があります。':riseScore>=65?'日の出を中心に狙いやすい予報です。':cloudSea.score>=65?'雲海条件は良好ですが、日の出そのものは雲の影響を受ける可能性があります。':'現時点では大きな好条件は揃っていません。'}`;
+  const advice=`${baseAdvice} ${terrainSceneAdvice(terrain,terrainSolar)}`;
+  return {score:combined,label:morningSceneLabel(combined),sunriseScore:riseScore,sunriseWeatherScore:riseWeatherScore,glowScore,cloudSea,azimuth:az,azimuthLabel:compass16(az),windowStart,windowEnd,temp,apparent,wind,rain,visibility:vis,lowCloud:low,terrain,terrainSolar,advice};
+}
+function renderSceneTerrainStrip(terrain,solar,scene){
+  const isMorning=scene==='morning',label=isMorning?'地形を考慮した日の出':'地形を考慮した日の入り';
+  if(!terrain?.available)return `<div class="scene-terrain-strip unavailable"><div><small>地形開放度</small><b>– 判定不可</b></div><div><small>遮蔽角</small><b>--</b></div><div><small>${label}</small><b>地形データ取得不可</b></div></div>`;
+  const opening=terrain.opening||terrainOpening(terrain.horizonAngle),delta=Number(solar?.deltaMin)||0;
+  let deltaText='天文時刻とほぼ同じ';
+  if(solar?.adjusted)deltaText=isMorning?`天文時刻より約${Math.abs(delta)}分後`:`天文時刻より約${Math.abs(delta)}分前`;
+  return `<div class="scene-terrain-strip"><div><small>地形開放度</small><b>${opening.mark} ${esc(opening.label)}</b></div><div><small>地形遮蔽角</small><b>${Number(terrain.horizonAngle).toFixed(1)}°</b><span>${terrain.dominant?`${num(terrain.dominant.distanceKm,1)}km先の稜線が最大`:'周辺稜線を解析'}</span></div><div><small>${label}</small><b>${timeOnly(solar?.time)}</b><span>${esc(deltaText)}</span></div></div>`;
+}
+
+function morningSceneIcon(){return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 34h38"/><path d="M10 31l9-11 6 7 5-5 8 9"/><path d="M17 17a8 8 0 0 1 14 0"/><path d="M24 6v5M10 16h5M33 16h5"/></svg>';}
+function renderMorningScene(o){
+  const m=o.morningScene;if(!m)return '';const c=m.cloudSea||{},d=c.bestDetail||{};
+  const vis=Number.isFinite(m.visibility)?(m.visibility>=10000?`${(m.visibility/1000).toFixed(0)}km`:`${(m.visibility/1000).toFixed(1)}km`):'--';
+  const tone=m.score>=65?'good':m.score>=50?'fair':m.score>=35?'caution':'hard';
+  return `<section class="morning-scene-panel ${tone}">
+    <div class="morning-scene-head"><div class="morning-scene-title"><div class="morning-scene-symbol">${morningSceneIcon()}</div><div><small>朝景分析</small><b>${Math.round(m.score)} / 100　${esc(m.label)}</b></div></div><span>ベスト ${formatTimeRange(m.windowStart,m.windowEnd)}</span></div>
+    <div class="morning-scene-summary">
+      <div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${esc(m.azimuthLabel)} ${Math.round(m.azimuth)}°</span></div>
+      <div><small>日の出期待度</small><b>${Math.round(m.sunriseScore)} / 100</b><span>${m.sunriseScore>=65?'見えやすい':m.sunriseScore>=45?'可能性あり':'雲に注意'}</span></div>
+      <div><small>雲海期待度</small><b>${Math.round(c.score||0)} / 100</b><span>${esc(c.label||'--')}</span></div>
+      <div><small>朝焼け期待度</small><b>${Math.round(m.glowScore)} / 100</b><span>${m.glowScore>=65?'期待できる':m.glowScore>=45?'可能性あり':'弱め'}</span></div>
+    </div>
+    ${renderSceneTerrainStrip(m.terrain,m.terrainSolar,'morning')}
+    <div class="morning-scene-grid">
+      <div><small>東側・低層雲</small><b>${Number.isFinite(m.lowCloud)?Math.round(m.lowCloud)+'%':'--'}</b></div>
+      <div><small>視界</small><b>${vis}</b></div>
+      <div><small>気温 / 体感</small><b>${num(m.temp,1)}℃ / ${num(m.apparent,1)}℃</b></div>
+      <div><small>風 / 降水</small><b>${num(m.wind,1)}m/s / ${num(m.rain,1)}mm/h</b></div>
+    </div>
+    <div class="morning-scene-advice"><strong>☀ 朝景の見どころ</strong><p>${esc(m.advice)}</p></div>
+    <p class="morning-scene-note">※ 朝景分析は気象条件に加え、周辺山岳地形による日の出方向の遮蔽を評価します。地形標高は Copernicus DEM GLO-90（Open-Meteo、約90m解像度）を使用。建物・樹木・直近の岩壁や局地雲は反映されません。</p>
+  </section>`;
+}
+
+
+function sunsetAzimuthApprox(date,lat){return 360-sunriseAzimuthApprox(date,lat);}
+function solarTwilightTimeApprox(date,lat,lon,zenithDeg){
+  const base=new Date(`${date}T12:00:00+09:00`),start=new Date(base.getFullYear(),0,0),n=Math.floor((base-start)/86400000);
+  const rad=Math.PI/180,lngHour=Number(lon)/15,t=n+((18-lngHour)/24);
+  const M=(0.9856*t)-3.289;
+  let L=M+1.916*Math.sin(M*rad)+0.020*Math.sin(2*M*rad)+282.634;L=(L+360)%360;
+  let RA=Math.atan(0.91764*Math.tan(L*rad))/rad;RA=(RA+360)%360;
+  const Lq=Math.floor(L/90)*90,RAq=Math.floor(RA/90)*90;RA=(RA+(Lq-RAq))/15;
+  const sinDec=0.39782*Math.sin(L*rad),cosDec=Math.cos(Math.asin(sinDec));
+  const cosH=(Math.cos(Number(zenithDeg)*rad)-(sinDec*Math.sin(Number(lat)*rad)))/(cosDec*Math.cos(Number(lat)*rad));
+  if(cosH>1||cosH<-1)return null;
+  const H=(Math.acos(cosH)/rad)/15,T=H+RA-(0.06571*t)-6.622,UT=(T-lngHour+24)%24,jst=(UT+9)%24;
+  const mins=Math.round(jst*60),hh=Math.floor(mins/60)%24,mm=mins%60;
+  return `${date}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00+09:00`;
+}
+function sunsetGlowScore(row){
+  if(!row)return 0;
+  const total=Number(row.cloud),low=Number(row.lowCloud),mid=Number(row.midCloud),high=Number(row.highCloud),rain=Number(row.rain),vis=Number(row.visibility);
+  const upper=Number.isFinite(mid)||Number.isFinite(high)?Math.max(Number.isFinite(mid)?mid:0,Number.isFinite(high)?high:0):Number.isFinite(total)&&Number.isFinite(low)?clamp(total-low,0,100):Number.isFinite(total)?total:40;
+  let s=48;
+  if(Number.isFinite(upper)){const ideal=48;s+=38*(1-Math.min(1,Math.abs(upper-ideal)/55));}
+  if(Number.isFinite(low))s-=Math.max(0,low-35)*.6;
+  if(Number.isFinite(rain))s-=Math.min(28,rain*16);
+  if(Number.isFinite(vis)&&vis<10000)s-=Math.min(20,(10000-vis)/500);
+  return clamp(s,0,100);
+}
+function sunsetSceneScore(row,view){
+  if(!row)return 0;
+  let s=Number(view?.score)||50;
+  if(Number.isFinite(row.lowCloud))s-=Math.max(0,row.lowCloud-40)*.4;
+  if(Number.isFinite(row.rain))s-=Math.min(22,row.rain*14);
+  if(Number.isFinite(row.visibility)&&row.visibility<8000)s-=Math.min(18,(8000-row.visibility)/450);
+  return clamp(s,0,100);
+}
+function eveningSceneLabel(score){return score>=80?'期待大':score>=65?'期待できる':score>=50?'可能性あり':score>=35?'条件次第':'厳しい';}
+function buildEveningScene(o,terrain=null){
+  const rows=Array.isArray(o._eveningRows)?o._eveningRows:[];
+  const sunsetMs=new Date(o.sunset).getTime();
+  const sunsetRow=rows[nearestTimeIndex(rows.map(r=>r.time),o.sunset)]||null;
+  const sunWeatherScore=sunsetSceneScore(sunsetRow,o.sunsetView),glowScore=sunsetGlowScore(sunsetRow);
+  const terrainScore=terrain?.available?Number(terrain.opening?.score):null;
+  const sunScore=terrain?.available?clamp(sunWeatherScore*.72+terrainScore*.28,0,100):sunWeatherScore;
+  const scored=rows.filter(r=>{const dt=new Date(r.time).getTime()-sunsetMs;return dt>=-60*60000&&dt<=75*60000;}).map(r=>{
+    const proximity=Math.max(0,1-Math.abs(new Date(r.time).getTime()-sunsetMs)/(90*60000));
+    return {row:r,score:clamp(sunsetSceneScore(r,horizonVisibility(r))*.45+sunsetGlowScore(r)*.45+proximity*10,0,100)};
+  });
+  scored.sort((a,b)=>a.row.time.localeCompare(b.row.time));
+  const bestScore=scored.length?Math.max(...scored.map(x=>x.score)):clamp(sunScore*.55+glowScore*.45,0,100);
+  const threshold=Math.max(50,bestScore-10),good=scored.filter(x=>x.score>=threshold);
+  const defaultStart=new Date(sunsetMs-35*60000).toISOString(),defaultEnd=new Date(sunsetMs+45*60000).toISOString();
+  const windowStart=good[0]?.row.time||defaultStart,windowEnd=good[good.length-1]?.row.time||defaultEnd;
+  const combined=clamp(sunScore*.55+glowScore*.45,0,100);
+  const az=sunsetAzimuthApprox(o.point.date,o.point.lat);
+  const temp=Number(sunsetRow?.temp),apparent=Number(sunsetRow?.apparent),wind=Number(sunsetRow?.wind),rain=Number(sunsetRow?.rain),vis=Number(sunsetRow?.visibility),low=Number(sunsetRow?.lowCloud);
+  const mid=Number(sunsetRow?.midCloud),high=Number(sunsetRow?.highCloud),upper=(Number.isFinite(mid)||Number.isFinite(high))?Math.max(Number.isFinite(mid)?mid:0,Number.isFinite(high)?high:0):NaN;
+  const civil=solarTwilightTimeApprox(o.point.date,o.point.lat,o.point.lon,96),nautical=solarTwilightTimeApprox(o.point.date,o.point.lat,o.point.lon,102),astro=solarTwilightTimeApprox(o.point.date,o.point.lat,o.point.lon,108);
+  const bits=[];
+  if(sunScore>=65)bits.push('夕日は見えやすい条件');else if(sunScore<40)bits.push('日没方向の低い雲に注意');
+  if(glowScore>=70)bits.push('夕焼けは期待大');else if(glowScore>=55)bits.push('夕焼けにも期待');
+  if(Number.isFinite(upper)&&upper>=25&&upper<=70)bits.push('中高層雲が色づきやすい');
+  if(Number.isFinite(low)&&low>65)bits.push('低層雲が多め');
+  const terrainSolar=terrainAdjustedSolarTime(o.sunset,o.point,terrain,false);
+  const baseAdvice=`${bits.length?bits.join('・'):'夕景条件はやや不安定'}です。${sunScore>=65&&glowScore>=65?'夕日から日没後の夕焼けまで連続して楽しめる可能性があります。':glowScore>=65?'夕日そのものより、日没後の空の色づきに期待できます。':sunScore>=65?'夕日を中心に狙いやすい予報です。':'雲の切れ間や局地的な変化に左右されやすい条件です。'}`;
+  const advice=`${baseAdvice} ${terrainSceneAdvice(terrain,terrainSolar)}`;
+  return {score:combined,label:eveningSceneLabel(combined),sunsetScore:sunScore,sunsetWeatherScore:sunWeatherScore,glowScore,azimuth:az,azimuthLabel:compass16(az),windowStart,windowEnd,temp,apparent,wind,rain,visibility:vis,lowCloud:low,upperCloud:upper,civil,nautical,astro,terrain,terrainSolar,advice};
+}
+function eveningSceneIcon(){return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 34h38"/><path d="M9 31l10-10 6 7 6-5 8 8"/><path d="M17 25a8 8 0 0 0 14 0"/><path d="M24 8v5M10 18h5M33 18h5"/></svg>';}
+function renderEveningScene(o){
+  const e=o.eveningScene;if(!e)return '';
+  const vis=Number.isFinite(e.visibility)?(e.visibility>=10000?`${(e.visibility/1000).toFixed(0)}km`:`${(e.visibility/1000).toFixed(1)}km`):'--';
+  const tone=e.score>=65?'good':e.score>=50?'fair':e.score>=35?'caution':'hard';
+  const twilight=[e.civil?`市民薄明 ${timeOnly(e.civil)}`:null,e.nautical?`航海薄明 ${timeOnly(e.nautical)}`:null,e.astro?`天文薄明 ${timeOnly(e.astro)}`:null].filter(Boolean).join(' / ');
+  return `<section class="evening-scene-panel ${tone}">
+    <div class="evening-scene-head"><div class="evening-scene-title"><div class="evening-scene-symbol">${eveningSceneIcon()}</div><div><small>夕景分析</small><b>${Math.round(e.score)} / 100　${esc(e.label)}</b></div></div><span>ベスト ${formatTimeRange(e.windowStart,e.windowEnd)}</span></div>
+    <div class="evening-scene-summary">
+      <div><small>日の入り</small><b>${timeOnly(o.sunset)}</b><span>${esc(e.azimuthLabel)} ${Math.round(e.azimuth)}°</span></div>
+      <div><small>夕日期待度</small><b>${Math.round(e.sunsetScore)} / 100</b><span>${e.sunsetScore>=65?'見えやすい':e.sunsetScore>=45?'可能性あり':'雲に注意'}</span></div>
+      <div><small>夕焼け期待度</small><b>${Math.round(e.glowScore)} / 100</b><span>${e.glowScore>=70?'期待大':e.glowScore>=55?'期待できる':'弱め'}</span></div>
+      <div><small>中高層雲</small><b>${Number.isFinite(e.upperCloud)?Math.round(e.upperCloud)+'%':'--'}</b><span>${Number(e.upperCloud)>=25&&Number(e.upperCloud)<=70?'色づき好条件':Number(e.upperCloud)>70?'多め':'少なめ'}</span></div>
+    </div>
+    ${renderSceneTerrainStrip(e.terrain,e.terrainSolar,'evening')}
+    <div class="evening-scene-grid">
+      <div><small>西側地平線・雲目安</small><b>${Number.isFinite(e.lowCloud)?Math.round(e.lowCloud)+'%':'--'}</b></div>
+      <div><small>視界</small><b>${vis}</b></div>
+      <div><small>気温 / 体感</small><b>${num(e.temp,1)}℃ / ${num(e.apparent,1)}℃</b></div>
+      <div><small>風 / 降水</small><b>${num(e.wind,1)}m/s / ${num(e.rain,1)}mm/h</b></div>
+    </div>
+    <div class="evening-scene-twilight"><small>日没後の薄明</small><b>${esc(twilight||'--')}</b></div>
+    <div class="evening-scene-advice"><strong>☀ 夕景の見どころ</strong><p>${esc(e.advice)}</p></div>
+    <p class="evening-scene-note">※ 夕景分析は気象条件に加え、周辺山岳地形による日の入り方向の遮蔽を評価します。地形標高は Copernicus DEM GLO-90（Open-Meteo、約90m解像度）を使用。「西側地平線・雲目安」は低層雲量の代用値です。建物・樹木・直近の岩壁や局地雲は反映されません。</p>
+  </section>`;
+}
+
+async function enrichOvernightsWithMilky(items){
+  const [airResults,terrainResults]=await Promise.all([
+    Promise.all(items.map(async o=>{try{return await fetchAirQualityForPoint(o.point);}catch(_){return null;}})),
+    Promise.all(items.map(async o=>{try{return await fetchTerrainHorizonForOvernight(o);}catch(_){return {morning:{available:false,opening:terrainOpening(NaN)},evening:{available:false,opening:terrainOpening(NaN)}};}}))
+  ]);
+  return items.map((o,i)=>{
+    const rows=Array.isArray(o._astroRows)?o._astroRows:[];
+    const start=Number(o._darkStart)||new Date(o.sunset).getTime()+90*60000,end=Number(o._darkEnd)||new Date(o.sunrise).getTime()-90*60000;
+    const air=airQualitySummary(airResults[i],start,end),light=lightPollutionEstimate(o.point),galactic=galacticCenterDetails(o.point,start,end);
+    let best=null,bestDetail=null;
+    for(const row of rows){const d=milkyDetailedScore(row,o.point,o.moon,galactic,air,light);if(!bestDetail||d.score>bestDetail.score){best=row;bestDetail=d;}}
+    const score=bestDetail?bestDetail.score:0;
+    const moon=moonNightDetails(o.point,o.sunset,o.sunrise,o.moon,best?.time||galactic?.peakTime);
+    const goodRows=rows.filter(row=>milkyDetailedScore(row,o.point,o.moon,galactic,air,light).score>=Math.max(55,score-8));
+    const windowStart=goodRows[0]?.time||galactic?.visibleStart||best?.time||null,windowEnd=goodRows[goodRows.length-1]?.time||galactic?.visibleEnd||best?.time||null;
+    const milky={score,best,bestDetail,galactic,moon,air,light,windowStart,windowEnd,advice:null};milky.advice=milkyAdvice(milky);
+    const cloudSea=buildCloudSeaAnalysis(o);
+    const terrain=terrainResults[i]||{};
+    const morningScene=buildMorningScene({...o,cloudSea},terrain.morning);
+    const eveningScene=buildEveningScene(o,terrain.evening);
+    const clean={...o,best,score,milkyLabel:milkyLabelFromScore(score),milky,cloudSea,morningScene,eveningScene,terrain};delete clean._astroRows;delete clean._morningRows;delete clean._eveningRows;delete clean._darkStart;delete clean._darkEnd;return clean;
+  });
+}
+
 function addDays(date,n){const d=new Date(`${date}T12:00:00`);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function minFinite(v){const x=v.filter(Number.isFinite);return x.length?Math.min(...x):NaN;}
 function timeOnly(s){
@@ -3609,54 +5883,6 @@ function overnightDawnIcon(dawn){
   return 'sunrise';
 }
 
-function overnightDawnIllustration(dawn){
-  const icon=overnightDawnIcon(dawn);
-  const rain=Number(dawn&&dawn.rain);
-  const cloud=Number(dawn&&dawn.cloud);
-  const cloudy=icon==='cloud' || (Number.isFinite(cloud) && cloud>=70);
-  const rainy=icon==='rain' || (Number.isFinite(rain) && rain>=0.5);
-  const skyTop=rainy?'#d9e7f5':cloudy?'#e5eef7':'#d8edff';
-  const skyMid=rainy?'#edf4fb':cloudy?'#eef3f8':'#eef7ff';
-  const skyBottom=rainy?'#f7e1c9':cloudy?'#f9e8d2':'#ffe7c8';
-  const sun=rainy
-    ? '<g opacity="0.55"><circle cx="138" cy="46" r="20" fill="#ffd88d"/><circle cx="138" cy="46" r="28" fill="none" stroke="#ffe7b7" stroke-width="8" opacity="0.42"/></g>'
-    : '<g><circle cx="142" cy="44" r="20" fill="#ffcb58"/><circle cx="142" cy="44" r="30" fill="none" stroke="#ffe7a9" stroke-width="8" opacity="0.48"/></g>';
-  const clouds=cloudy || rainy
-    ? '<g fill="#ffffff" opacity="0.94"><ellipse cx="118" cy="54" rx="26" ry="14"/><ellipse cx="99" cy="58" rx="14" ry="10"/><ellipse cx="136" cy="59" rx="13" ry="9"/><ellipse cx="84" cy="44" rx="18" ry="11" opacity="0.88"/></g>'
-    : '<g fill="#ffffff" opacity="0.82"><ellipse cx="110" cy="56" rx="24" ry="13"/><ellipse cx="92" cy="59" rx="12" ry="9"/><ellipse cx="127" cy="60" rx="11" ry="8"/></g>';
-  const rainMarks=rainy
-    ? '<g stroke="#4f86d6" stroke-width="3" stroke-linecap="round" opacity="0.95"><path d="M98 76l-6 14"/><path d="M116 78l-6 14"/><path d="M134 76l-6 14"/></g>'
-    : '';
-  return `<svg viewBox="0 0 220 140" class="od70-scene-svg" aria-hidden="true">
-    <defs>
-      <linearGradient id="od70Sky" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="${skyTop}"/>
-        <stop offset="58%" stop-color="${skyMid}"/>
-        <stop offset="100%" stop-color="${skyBottom}"/>
-      </linearGradient>
-      <linearGradient id="od70HillBack" x1="0" x2="1" y1="0" y2="1">
-        <stop offset="0%" stop-color="#86b3eb"/>
-        <stop offset="100%" stop-color="#5d8fc9"/>
-      </linearGradient>
-      <linearGradient id="od70HillFront" x1="0" x2="1" y1="0" y2="1">
-        <stop offset="0%" stop-color="#4b79b8"/>
-        <stop offset="100%" stop-color="#315b96"/>
-      </linearGradient>
-    </defs>
-    <rect x="0" y="0" width="220" height="140" rx="24" fill="url(#od70Sky)"/>
-    ${sun}
-    ${clouds}
-    ${rainMarks}
-    <path d="M0 114C20 108 38 96 52 88c14-8 25-7 37 4 8 8 14 12 25 13 18 3 27-9 38-19 12-10 22-11 35-1 10 8 19 18 33 23v32H0z" fill="url(#od70HillBack)"/>
-    <path d="M0 122c18-5 32-16 45-28 11-10 22-11 34 0 6 6 12 15 22 16 14 2 25-10 35-20 10-10 20-14 32-7 15 9 25 25 52 39v18H0z" fill="url(#od70HillFront)"/>
-    <path d="M25 118c12-8 18-18 24-30 8 10 12 18 17 30" fill="none" stroke="#dfeeff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
-    <g transform="translate(22 20)">
-      <circle cx="18" cy="18" r="17" fill="rgba(255,255,255,0.84)" stroke="rgba(53,121,212,0.2)"/>
-      <path d="M18 9v10l7 4" fill="none" stroke="#2866b9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-  </svg>`;
-}
-
 function formatOvernightDate(dateStr){
   if(!dateStr)return '';
   const d=new Date(`${dateStr}T00:00:00+09:00`);
@@ -3677,6 +5903,38 @@ function overnightMetric(icon,label,value,sub='',tone='blue'){
   return `<div class="overnight-v2-metric tone-${tone}"><div class="metric-icon">${overnightIcon(icon)}</div><div><small>${esc(label)}</small><b>${value}</b>${sub?`<em>${esc(sub)}</em>`:''}</div></div>`;
 }
 
+
+function milkyDetailIcon(kind){
+  if(kind==='galaxy')return overnightIcon('milky');
+  if(kind==='moon')return overnightIcon('moon');
+  if(kind==='air')return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 18h23c6 0 6-9 0-9-4 0-5 2-5 5M6 26h31c6 0 6 9 0 9-4 0-5-2-5-5M6 34h18"/></svg>';
+  if(kind==='light')return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 31h14M19 36h10M20 40h8"/><path d="M15 21a9 9 0 1 1 18 0c0 5-4 7-6 10h-6c-2-3-6-5-6-10z"/><path d="M24 4v4M8 21H4M44 21h-4M11 8l3 3M37 8l-3 3"/></svg>';
+  return overnightIcon('cloud');
+}
+function milkySceneIcon(){return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 33c3-8 11-13 20-13 4 0 7 1 10 3-3 0-6 2-7 5 0 2 1 4 3 5H8z"/><path d="M31 12l1.2 2.8L35 16l-2.8 1.2L31 20l-1.2-2.8L27 16l2.8-1.2L31 12z"/><path d="M15 11l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9.9-2z"/><path d="M22 7l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7L22 7z"/></svg>';}
+function renderMilkyDetail(o){
+  const m=o.milky;if(!m)return '';
+  const moon=m.moon||{},air=m.air||{},light=m.light||{},g=m.galactic||{};
+  const moonEvent=moon.allBelow?'夜間は月なし':moon.allAbove?'一晩中月あり':moon.set?`月没 ${timeOnly(moon.set)}`:moon.rise?`月出 ${timeOnly(moon.rise)}`:'月の出入りなし';
+  const airSub=air.available?`PM2.5 ${num(air.pm25,1)} μg/m³${Number.isFinite(air.aod)?` / AOD ${num(air.aod,2)}`:''}`:'空気質APIを取得できませんでした';
+  const near=light.nearest?`${light.nearest.name} 約${Math.round(light.nearest.km)}km`:'周辺市街地から推定';
+  return `<section class="milky-detail-panel">
+    <div class="milky-detail-head"><div class="milky-detail-title"><div class="milky-detail-symbol">${milkySceneIcon()}</div><div><small>星空・天の川分析</small><b>${Math.round(m.score)} / 100　${esc(o.milkyLabel)}</b></div></div><span><em>見頃時間</em>${formatTimeRange(m.windowStart,m.windowEnd)}</span></div>
+    <div class="milky-detail-summary">
+      <div><small>天の川スコア</small><b>${Math.round(m.score)} / 100</b><span>${esc(o.milkyLabel)}</span></div>
+      <div><small>おすすめ時間帯</small><b>${formatTimeRange(m.windowStart,m.windowEnd)}</b><span>${Number.isFinite(g.maxAltitude)?`銀河中心が高い時間帯`:'観察条件が良い時間帯'}</span></div>
+      <div><small>月明かり</small><b>${esc(moon.impact||'判定不可')}</b><span>${esc(o.moon.phase)} ${Math.round(o.moon.illum)}% / ${moonEvent}</span></div>
+    </div>
+    <div class="milky-detail-grid">
+      <div class="milky-detail-card tone-purple"><div class="milky-detail-icon">${milkyDetailIcon('galaxy')}</div><div><small>天頂に近づく時刻</small><b>${timeOnly(g.peakTime)}</b><span>最大高度 ${Number.isFinite(g.maxAltitude)?Math.round(g.maxAltitude)+'°':'--'}</span></div></div>
+      <div class="milky-detail-card tone-air"><div class="milky-detail-icon">${milkyDetailIcon('air')}</div><div><small>空気質・透明度</small><b>${esc(air.label||'取得不可')}</b><span>${esc(airSub)}</span></div></div>
+      <div class="milky-detail-card tone-light"><div class="milky-detail-icon">${milkyDetailIcon('light')}</div><div><small>光害目安</small><b>${esc(light.label||'判定不可')}</b><span>${esc(near)} / 簡易推定</span></div></div>
+    </div>
+    <div class="milky-detail-advice"><span>✦</span><p><b>観察の目安</b>${esc(m.advice||'')}</p></div>
+    <p class="milky-detail-note">※ 天の川スコアは、雲・雨、銀河中心の高度、月明かり、空気質、光害目安を組み合わせた観察条件の総合評価です。光害は周辺市街地等からの簡易推定で、地形遮蔽や局地雲は反映しません。</p>
+  </section>`;
+}
+
 function renderOvernights(items){
   const section=$('overnightSection');
   if(!items.length){section.classList.add('hidden');$('overnightCards').innerHTML='';return;}
@@ -3684,32 +5942,24 @@ function renderOvernights(items){
   $('overnightCards').innerHTML=items.map(o=>{
     const dawn=o.dawn||{};
     const comfort=overnightComfort(o);
-    const milkyClass=o.score>=75?'good':o.score>=55?'fair':o.score>=35?'caution':'hard';
     const dawnIcon=overnightDawnIcon(dawn);
     return `<article class="overnight-card overnight-v2">
       <div class="overnight-v2-head">
         <span class="night-badge">${o.nightNo}泊目</span>
         <div class="overnight-v2-place"><div class="hut-mark">⌂</div><div><h3>${esc(o.point.name)}</h3><p>${formatOvernightDate(o.point.date)} / 標高 ${Math.round(o.point.elevation||0).toLocaleString('ja-JP')}m${o.source?` ・ ${esc(o.source)}`:''}</p></div></div>
       </div>
-      <div class="overnight-v2-hero">
-        <div class="overnight-v2-key key-sunset"><div class="key-icon">${overnightIcon('sunset')}</div><small>日の入り</small><b>${timeOnly(o.sunset)}</b><span>${o.sunsetView.mark} ${esc(o.sunsetView.label)}</span></div>
-        <div class="overnight-v2-key key-milky ${milkyClass}"><div class="key-icon">${overnightIcon('milky')}</div><small>天の川</small><b>${esc(o.milkyLabel)}</b><span>${Math.round(o.score)} / 100${o.best?` ・ ${timeOnly(o.best.time)}頃`:''}</span></div>
-        <div class="overnight-v2-key key-sunrise"><div class="key-icon">${overnightIcon('sunrise')}</div><small>日の出</small><b>${timeOnly(o.sunrise)}</b><span>${o.sunriseView.mark} ${esc(o.sunriseView.label)}</span></div>
-      </div>
-      <div class="overnight-dawn-v70 ${esc(dawn.cls||'partly')}">
-        <div class="od70-main">
-          <div class="od70-heading">
-            <div class="od70-badge">朝5時の空</div>
-            <div class="od70-time">${timeOnly(dawn.time)||'05:00'}</div>
-            <div class="od70-weather"><span class="od70-weather-icon">${overnightIcon(dawnIcon)}</span><b>${esc(dawn.label||'--')}</b></div>
-          </div>
-          <div class="od70-stats">
-            <div class="od70-stat"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
-            <div class="od70-stat"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
-            <div class="od70-stat"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
-          </div>
+      ${renderEveningScene(o)}
+      ${renderMilkyDetail(o)}
+      ${renderMorningScene(o)}
+      <div class="overnight-dawn-strip-v69 ${esc(dawn.cls||'partly')}">
+        <div class="ods69-hero">
+          <div class="ods69-icon">${overnightIcon(dawnIcon)}</div>
+          <div class="ods69-item ods69-main"><small>朝5時の空</small><b>${timeOnly(dawn.time)||'05:00'}</b></div>
         </div>
-        <div class="od70-art">${overnightDawnIllustration(dawn)}</div>
+        <div class="ods69-item ods69-weather"><small>天気</small><b>${esc(dawn.label||'--')}</b></div>
+        <div class="ods69-item ods69-temp"><small>気温</small><b>${num(dawn.temp,1)}℃</b></div>
+        <div class="ods69-item ods69-wind"><small>風</small><b>${num(dawn.wind,1)}m/s</b></div>
+        <div class="ods69-item ods69-rain"><small>雨</small><b>${num(dawn.rain,1)}mm/h</b></div>
       </div>
       <div class="overnight-v2-metrics">
         ${overnightMetric('thermometer','到着時気温',`${num(o.arrivalTemp)}℃`,`${o.point.time||'--:--'} 到着`,'green')}
@@ -3723,9 +5973,8 @@ function renderOvernights(items){
         ${overnightMetric('fog','ガス・霧',esc(o.fogRisk),'','blue')}
         ${overnightMetric('moon','月明かり',`${esc(o.moon.phase)} ${Math.round(o.moon.illum)}%`,'','purple')}
       </div>
-      <div class="overnight-v2-footer">
+      <div class="overnight-v2-footer solo">
         <div class="comfort-box"><div class="footer-icon">${overnightIcon('shield')}</div><div><small>総合快適度（到着〜翌朝）</small><div class="comfort-stars">${overnightStars(comfort.score)}</div><b>${comfort.label}</b><p>${comfort.note}</p></div></div>
-        <div class="milky-note"><div class="bulb-mark">☼</div><div><small>天の川スコアについて</small><p>夜間の雲量・降水・視程・湿度と月明かりから算出した目安です。地形による空の開け方や局地的な雲は反映しません。</p></div></div>
       </div>
     </article>`;
   }).join('');
@@ -3825,12 +6074,41 @@ function renderDecisionCommentary(points){
   const el=$('decisionCommentary');
   if(!el)return;
   const c=buildDecisionCommentary(points);
+  const {active}=routeCommentaryData(points); const top=active[0];
+  const highlight=top?`<div class="decision-highlight"><span>⚡</span><div><b>${esc(top.label)}リスク ${HAZARD_LABEL[top.level]||top.level}</b><strong>${esc(top.point.time||'')} ${esc(top.point.name)} が最大の注意点</strong></div></div>`:'';
   el.className=`decision-commentary ${c.tone}`;
-  el.innerHTML=`<div class="decision-commentary-icon">💬</div><div><small>分析結果から自動生成</small><b>${esc(c.title)}</b><p>${esc(c.body)}</p><em>※ 気象予報値に基づく参考コメントです。登山可否を保証するものではありません。</em></div>`;
+  el.innerHTML=`<div class="decision-commentary-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 9h30v22H22l-9 8v-8H9Z"/><path d="M17 20h2m5 0h2m5 0h2"/></svg></div><div class="decision-commentary-copy"><small>分析結果から自動生成</small><b>${esc(c.title)}</b>${highlight}<p>${esc(c.body)}</p><em>✓ 最新の予報をもとに自動生成した解説です。登山可否を保証するものではありません。</em></div>`;
 }
 function assessConfidence(rows){const spread=k=>{const v=rows.map(x=>x[k]).filter(Number.isFinite);return v.length>1?Math.max(...v)-Math.min(...v):0;};if(spread('wind')>7||spread('rain')>4||spread('temp')>6)return'LOW';if(spread('wind')>3.5||spread('rain')>1.5||spread('temp')>3)return'MEDIUM';return'HIGH';}
+
+// V1.4.67: 地点別予測の予測信頼度。
+// 的中率ではなく、モデル一致度・比較モデル数・予報リードタイムをまとめた相対指標。
+function pointForecastConfidence(result){
+  const rows=Array.isArray(result?.providerRows)?result.providerRows:[];
+  const lead=Math.max(0,daysAhead(result?.point?.date||todayLocal()));
+  const fallbackOnly=rows.length>0&&rows.every(x=>x.provider?.kind==='fallback');
+  let level=result?.confidence==='LOW'?'LOW':result?.confidence==='MEDIUM'?'MEDIUM':'HIGH';
+  const reasons=[];
+  if(fallbackOnly){
+    level='LOW';
+    reasons.push('予備モデル中心');
+  }else{
+    if(rows.length<=1){level='LOW';reasons.push('比較1モデル');}
+    else if(rows.length===2&&level==='HIGH'){level='MEDIUM';reasons.push('比較2モデル');}
+    else reasons.push(`${rows.length}モデル比較`);
+    if(result?.confidence==='LOW')reasons.push('モデル差が大きい');
+    else if(result?.confidence==='MEDIUM')reasons.push('モデルにばらつき');
+    else if(rows.length>=2)reasons.push('モデル一致度良好');
+  }
+  if(lead>=12){level='LOW';reasons.push(`${lead}日先`);}
+  else if(lead>=8){if(level==='HIGH')level='MEDIUM';reasons.push(`${lead}日先`);}
+  else if(lead>=4){reasons.push(`${lead}日先`);}
+  else reasons.push(lead===0?'当日':`${lead}日先`);
+  const label={HIGH:'高',MEDIUM:'中',LOW:'低'}[level]||'中';
+  return {level,label,reason:reasons.slice(0,3).join('・'),lead,modelCount:rows.length};
+}
 function gradeRank(g){return({A:1,B:2,C:3,D:4,E:5})[g]||9;} function verdict(g){return({A:'かなり良好',B:'概ね登山可能',C:'注意が必要',D:'かなり厳しい',E:'中止推奨'})[g]||'–';}
-function maxThunder(v){const r={LOW:1,MEDIUM:2,HIGH:3,EXTREME:4};return [...v].sort((a,b)=>r[b]-r[a])[0]||'LOW';} function overallConfidence(v){return v.includes('LOW')?'LOW':v.includes('MEDIUM')?'MEDIUM':'HIGH';}
+function maxThunder(v){const r={LOW:1,MEDIUM:2,HIGH:3,EXTREME:4};return [...v].sort((a,b)=>r[b]-r[a])[0]||'LOW';} function overallConfidence(v){return v.includes('LOW')||v.includes('FALLBACK')?'LOW':v.includes('MEDIUM')?'MEDIUM':'HIGH';}
 function num(v,d=1){return Number.isFinite(v)?v.toFixed(d):'–';}
 
 
@@ -3934,8 +6212,31 @@ function collectRouteMapPointsFromForm(){
     },index);
   }).filter(Boolean);
 }
+function routePointTypeIcon(type){
+  if(type==='peak')return '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 31 16 12l6 9 4-5 10 15H4z"/><path d="m13 17 3-5 3 5"/></svg>';
+  if(type==='hut')return '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17 20 7l14 10v16H6V17z"/><path d="M15 33V22h10v11"/><path d="M20 18v4"/></svg>';
+  return '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 31h26"/><path d="m9 30 8-14 5 7 4-5 6 12"/><circle cx="10" cy="10" r="3"/><path d="m12 13 5 4-3 6m3-6 5-2"/></svg>';
+}
+function routePointDateParts(point){
+  const date=String(point?.date||'').trim();
+  const time=String(point?.time||'').trim();
+  if(!date&&!time)return {date:'日時未設定',time:''};
+  return {date:date||'日付未設定',time:time||'時刻未設定'};
+}
 function routeMapListHtml(points){
-  return points.map(point=>`<span class="route-point-pill type-${esc(point.type||'peak')}"><b>${String(point.order).padStart(2,'0')}</b><strong>${esc(point.name||'地点')}</strong><small>${esc(routeTypeBadgeLabel(point.type))} / ${esc(routePointDateTime(point))}</small></span>`).join('');
+  const head=`<div class="route-point-list-head"><div><span class="route-list-pin" aria-hidden="true">⌖</span><strong>通過ポイント</strong></div><b>${String(points.length).padStart(2,'0')} <small>ポイント</small></b></div>`;
+  const rows=points.map((point,index)=>{
+    const type=point.type||'peak',dt=routePointDateParts(point),last=index===points.length-1;
+    return `<article class="route-point-pill type-${esc(type)}${last?' is-last':''}">
+      <div class="route-point-rail" aria-hidden="true"><span class="route-point-dot"></span></div>
+      <div class="route-point-no">${String(point.order).padStart(2,'0')}</div>
+      <div class="route-point-type-icon">${routePointTypeIcon(type)}</div>
+      <div class="route-point-copy"><strong>${esc(point.name||'地点')}</strong><small>${esc(routeTypeBadgeLabel(type))}${point.stay?' ・ 宿泊':''}</small></div>
+      <div class="route-point-datetime"><span class="route-date-icon" aria-hidden="true">▦</span><div><b>${esc(dt.date)}</b><small>${esc(dt.time)}</small></div></div>
+      <span class="route-point-chevron" aria-hidden="true">›</span>
+    </article>`;
+  }).join('');
+  return head+`<div class="route-point-timeline">${rows}</div>`;
 }
 function routeMapPopupHtml(point){
   const role=point.role?`<div>${esc(point.role)}</div>`:'';
@@ -3975,14 +6276,21 @@ function invalidateRouteMap(state,callback=null){
     requestAnimationFrame(()=>{if(typeof callback==='function')callback();});
   });
 }
+const MOBILE_ROUTE_MAP_INITIAL_ZOOM=13;
 function fitRouteMapToPoints(state,latlngs){
   if(!state?.map||!latlngs.length)return;
   try{
     if(latlngs.length===1){
-      state.map.setView(latlngs[0],13,{animate:false});
+      state.map.setView(latlngs[0],MOBILE_ROUTE_MAP_INITIAL_ZOOM,{animate:false});
       return;
     }
     const bounds=L.latLngBounds(latlngs);
+    if(window.matchMedia?.('(max-width: 900px)')?.matches){
+      // Smartphone: keep a consistent, close initial scale like the route-map reference image.
+      // Users can still zoom with the +/- controls afterwards.
+      state.map.setView(bounds.getCenter(),MOBILE_ROUTE_MAP_INITIAL_ZOOM,{animate:false});
+      return;
+    }
     state.map.fitBounds(bounds,{padding:[28,28],maxZoom:13,animate:false});
   }catch(_){}
 }
@@ -4040,16 +6348,28 @@ function thunderBadge(level){
   if(lv==='MEDIUM')return `<span class="thunder-badge medium">⚡ MEDIUM</span>`;
   return `<span class="thunder-badge low">LOW</span>`;
 }
+function weatherIconSvg(kind){
+  const common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const icons={
+    sun:'<circle cx="24" cy="24" r="7.5"/><path d="M24 4.5v6M24 37.5v6M4.5 24h6M37.5 24h6M10.2 10.2l4.3 4.3M33.5 33.5l4.3 4.3M37.8 10.2l-4.3 4.3M14.5 33.5l-4.3 4.3"/>',
+    partly:'<circle cx="18" cy="17" r="7"/><path d="M18 3v5M18 26v4M4 17h5M27 17h5M8.5 7.5l3.5 3.5M28 7.5l-3.5 3.5"/><path d="M14 38h23a7 7 0 0 0 0-14 10 10 0 0 0-19-2 7 7 0 0 0-4 16z"/>',
+    cloud:'<path d="M10 36h27a8 8 0 0 0 0-16 11 11 0 0 0-21 3 7 7 0 0 0-6 13z"/>',
+    shower:'<path d="M10 31h27a8 8 0 0 0 0-16 11 11 0 0 0-21 3 7 7 0 0 0-6 13z"/><path d="M17 36l-2 5M26 36l-2 5M35 36l-2 5"/>',
+    rain:'<path d="M10 29h27a8 8 0 0 0 0-16 11 11 0 0 0-21 3 7 7 0 0 0-6 13z"/><path d="M15 34l-3 8M24 34l-3 8M33 34l-3 8M40 34l-3 8"/>',
+    unknown:'<circle cx="24" cy="24" r="17"/><path d="M19 18a6 6 0 1 1 8 5.7c-2 .9-3 2.1-3 4.3M24 35h.01"/>'
+  };
+  return `<svg ${common}>${icons[kind]||icons.unknown}</svg>`;
+}
 function weatherVisual(r){
   const cloud=Number.isFinite(r.cloud)?r.cloud:NaN;
   const rain=Number.isFinite(r.rain)?r.rain:NaN;
-  const thunder=String(r.thunder||'LOW').toUpperCase();
-  if(thunder==='EXTREME'||thunder==='HIGH') return {icon:'⛈️',label:'雷雨',cls:'storm'};
-  if(Number.isFinite(rain)&&rain>=3) return {icon:'🌧️',label:'雨',cls:'rain'};
-  if(Number.isFinite(rain)&&rain>=0.5) return {icon:'🌦️',label:(Number.isFinite(cloud)&&cloud>=70)?'雨時々くもり':'にわか雨',cls:'shower'};
-  if(Number.isFinite(cloud)&&cloud>=85) return {icon:'☁️',label:'くもり',cls:'cloud'};
-  if(Number.isFinite(cloud)&&cloud>=55) return {icon:'⛅',label:'晴れ時々くもり',cls:'partly'};
-  return {icon:'☀️',label:'晴れ',cls:'sun'};
+  let kind='unknown',label='予報値';
+  if(Number.isFinite(rain)&&rain>=3){kind='rain';label='雨';}
+  else if(Number.isFinite(rain)&&rain>=0.5){kind='shower';label=(Number.isFinite(cloud)&&cloud>=70)?'雨時々くもり':'にわか雨';}
+  else if(Number.isFinite(cloud)&&cloud>=85){kind='cloud';label='くもり';}
+  else if(Number.isFinite(cloud)&&cloud>=55){kind='partly';label='晴れ時々くもり';}
+  else if(Number.isFinite(cloud)||Number.isFinite(rain)){kind='sun';label='晴れ';}
+  return {icon:weatherIconSvg(kind),label,cls:kind};
 }
 function windDirectionLabel(deg){
   if(!Number.isFinite(deg)) return '–';
@@ -4069,63 +6389,129 @@ function visibilityShort(v){
   if(v>=1000) return `${(v/1000).toFixed(1)}`;
   return `${Math.round(v)}`;
 }
+function visibilityEvaluation(v){
+  if(!Number.isFinite(v)) return {label:'判定不可',cls:'unknown'};
+  const km=v/1000;
+  if(km<0.5)return {label:'危険',cls:'danger'};
+  if(km<1)return {label:'警戒',cls:'warning'};
+  if(km<3)return {label:'注意',cls:'caution'};
+  if(km<10)return {label:'良好',cls:'good'};
+  if(km<20)return {label:'かなり良好',cls:'great'};
+  return {label:'絶景期待',cls:'excellent'};
+}
+function visibilityGaugePct(value){
+  if(!Number.isFinite(value)) return 0;
+  const km=Math.max(0,value/1000);
+  const knots=[[0,0],[0.5,18],[1,32],[3,50],[10,72],[20,92],[40,100]];
+  for(let i=1;i<knots.length;i++){
+    if(km<=knots[i][0]){
+      const [x0,p0]=knots[i-1],[x1,p1]=knots[i];
+      return p0+(p1-p0)*((km-x0)/(x1-x0));
+    }
+  }
+  return 100;
+}
+function metricGauge(kind,value){
+  if(kind==='visibility'){
+    const pct=visibilityGaugePct(value);
+    return `<div class="rf-gauge rf-gauge-visibility" aria-hidden="true"><div class="rf-gauge-track"><span class="rf-gauge-zone z-danger"></span><span class="rf-gauge-zone z-warning"></span><span class="rf-gauge-zone z-caution"></span><span class="rf-gauge-zone z-good"></span><span class="rf-gauge-zone z-great"></span><span class="rf-gauge-zone z-excellent"></span><span class="rf-gauge-thumb gauge-visibility" style="left:${pct.toFixed(1)}%"></span></div><div class="rf-vis-ticks"><span style="left:18%">0.5</span><span style="left:32%">1</span><span style="left:50%">3</span><span style="left:72%">10</span><span style="left:92%">20+</span></div></div>`;
+  }
+  const defs={
+    temp:{min:-10,max:35,left:'低',right:'高'},
+    wind:{min:0,max:20,left:'弱',right:'強'},
+    rain:{min:0,max:10,left:'少',right:'多'}
+  };
+  const d=defs[kind]||defs.temp;
+  const pct=Number.isFinite(value)?clamp(((value-d.min)/(d.max-d.min))*100,0,100):0;
+  return `<div class="rf-gauge" aria-hidden="true"><span class="rf-gauge-edge">${d.left}</span><div class="rf-gauge-track"><span class="rf-gauge-fill gauge-${kind}" style="width:${pct.toFixed(1)}%"></span><span class="rf-gauge-thumb gauge-${kind}" style="left:${pct.toFixed(1)}%"></span></div><span class="rf-gauge-edge">${d.right}</span></div>`;
+}
+function pointMetricIcon(kind){
+  const common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
+  if(kind==='temp')return `<svg ${common}><path d="M20 9a4 4 0 0 1 8 0v20.5a8 8 0 1 1-8 0V9z"/><path d="M24 15v19"/><circle cx="24" cy="36" r="3"/></svg>`;
+  if(kind==='wind')return `<svg ${common}><path d="M6 17h23c6 0 6-9 0-9-4 0-5 2-5 5"/><path d="M6 25h31c6 0 6 9 0 9-4 0-5-2-5-5"/><path d="M6 33h16"/></svg>`;
+  if(kind==='rain')return `<svg ${common}><path d="M15 28h19a8 8 0 0 0 1-16 12 12 0 0 0-22 4 6 6 0 0 0 2 12z"/><path d="M18 33l-2 5M25 33l-2 5M32 33l-2 5"/></svg>`;
+  if(kind==='direction')return `<svg ${common}><path d="M12 35L36 11"/><path d="M21 11h15v15"/></svg>`;
+  if(kind==='visibility')return `<svg ${common}><path d="M4 24s7-11 20-11 20 11 20 11-7 11-20 11S4 24 4 24z"/><circle cx="24" cy="24" r="5"/></svg>`;
+  return '';
+}
+function pointForecastMessage(r){
+  const g=r.grade||'A';
+  if(g==='A')return {cls:'good',text:'到着時は大きな気象上の注意要素は少ない見込みです。'};
+  if(g==='B')return {cls:'fair',text:'概ね安定していますが、一部の気象要素に注意してください。'};
+  if(g==='C')return {cls:'caution',text:'注意要素があります。到着前に最新予報を再確認してください。'};
+  return {cls:'warning',text:'強い注意要素があります。行動判断は最新情報を確認して慎重に。'};
+}
 function pointForecastRow(r,i,total){
   const hz=Object.fromEntries((r.hazards||[]).map(h=>[h.type,h]));
   const wx=weatherVisual(r);
   const typeLabel=TYPE_LABEL[r.point.type]||r.point.type||'地点';
   const elev=Math.round(r.point.elevation||0);
   const visUnit=Number.isFinite(r.visibility)?(r.visibility>=1000?'km':'m'):' ';
-  const isLast=i===total-1;
-  const topLine=i===0?' hidden':'';
-  const bottomLine=isLast?' hidden':'';
-  return `<article class="route-forecast-row${isLast?' is-last':''}">
-    <div class="rf-track" aria-hidden="true">
-      <span class="rf-line top${topLine}"></span>
-      <span class="rf-dot"></span>
-      <span class="rf-line bottom${bottomLine}"></span>
+  const msg=pointForecastMessage(r);
+  const windDeg=r.providerRows?.[0]?.row?.windDir ?? NaN;
+  const visEval=visibilityEvaluation(r.visibility);
+  const windDegLabel=Number.isFinite(windDeg)?`(${Math.round((((windDeg%360)+360)%360))}°)`: '風の向き';
+  const conf=pointForecastConfidence(r);
+  return `<article class="route-forecast-row point-dashboard-card">
+    <div class="rf-point-head">
+      <div class="rf-point-copy">
+        <div class="rf-time"><small>${esc(r.point.date||'----/--/--')}</small><strong>${esc(r.point.time||'--:--')}</strong></div>
+        <div class="rf-place"><b>${esc(r.point.name)}</b><small>${esc(typeLabel)} / 標高 ${elev.toLocaleString('ja-JP')}m</small><div class="rf-confidence rf-confidence-${conf.level.toLowerCase()}" title="予測信頼度はモデル一致度・比較モデル数・予報までの日数から算出した相対指標です"><span>予測信頼度</span><b>${conf.label}</b><small>${esc(conf.reason)}</small></div></div>
+      </div>
+      <div class="rf-weather wx-${wx.cls}"><span class="rf-weather-icon" aria-hidden="true">${wx.icon}</span><small>${wx.label}</small></div>
     </div>
-    <div class="rf-place">
-      <b>${esc(r.point.name)}</b>
-      <small>${esc(typeLabel)} / 標高 ${elev.toLocaleString('ja-JP')}m</small>
+    <div class="rf-metrics-grid">
+      <div class="rf-metric temp${hazardMetricClass(hz.temp)}" data-label="気温">
+        <div class="rf-metric-title"><span class="rf-metric-symbol temp">${pointMetricIcon('temp')}</span><b>気温</b></div>
+        <div class="rf-value-wrap"><strong>${num(r.temp,0)}</strong><small>℃</small></div>
+        ${metricGauge('temp',r.temp)}
+      </div>
+      <div class="rf-metric wind${hazardMetricClass(hz.wind)}" data-label="風">
+        <div class="rf-metric-title"><span class="rf-metric-symbol wind">${pointMetricIcon('wind')}</span><b>風</b></div>
+        <div class="rf-value-wrap"><strong>${num(r.wind,0)}</strong><small>m/s</small></div>
+        ${metricGauge('wind',r.wind)}
+      </div>
+      <div class="rf-metric rain${hazardMetricClass(hz.rain)}" data-label="雨">
+        <div class="rf-metric-title"><span class="rf-metric-symbol rain">${pointMetricIcon('rain')}</span><b>雨</b></div>
+        <div class="rf-value-wrap"><strong>${num(r.rain,1)}</strong><small>mm/h</small></div>
+        ${metricGauge('rain',r.rain)}
+      </div>
+      <div class="rf-direction" data-label="風向">
+        <div class="rf-metric-title"><span class="rf-metric-symbol direction">${pointMetricIcon('direction')}</span><b>風向</b></div>
+        <div class="rf-direction-main"><strong>${windDirectionArrow(windDeg)}</strong><b>${windDirectionLabel(windDeg)}</b></div>
+        <small>${windDegLabel}</small>
+      </div>
+      <div class="rf-metric vis${hazardMetricClass(hz.visibility)}" data-label="視界">
+        <div class="rf-metric-title"><span class="rf-metric-symbol visibility">${pointMetricIcon('visibility')}</span><b>視界</b><em class="rf-vis-eval ${visEval.cls}">${visEval.label}</em></div>
+        <div class="rf-value-wrap"><strong>${visibilityShort(r.visibility)}</strong><small>${visUnit}</small></div>
+        ${metricGauge('visibility',r.visibility)}
+      </div>
     </div>
-    <div class="rf-time"><small>${esc(r.point.date||'----/--/--')}</small><strong>${esc(r.point.time||'--:--')}</strong></div>
-    <div class="rf-weather ${wx.cls}">
-      <span class="rf-weather-icon" aria-hidden="true">${wx.icon}</span>
-      <small>${wx.label}</small>
-    </div>
-    <div class="rf-metric temp${hazardMetricClass(hz.temp)}" data-label="気温"><strong>${num(r.temp,0)}</strong><small>℃</small></div>
-    <div class="rf-metric wind${hazardMetricClass(hz.wind)}" data-label="風"><strong>${num(r.wind,0)}</strong><small>m/s</small></div>
-    <div class="rf-metric rain${hazardMetricClass(hz.rain)}" data-label="雨"><strong>${num(r.rain,1)}</strong><small>mm/h</small></div>
-    <div class="rf-direction" data-label="風向">
-      <strong>${windDirectionArrow(r.providerRows?.[0]?.row?.windDir ?? NaN)}</strong>
-      <small>${windDirectionLabel(r.providerRows?.[0]?.row?.windDir ?? NaN)}</small>
-    </div>
-    <div class="rf-metric vis${hazardMetricClass(hz.visibility)}" data-label="視界"><strong>${visibilityShort(r.visibility)}</strong><small>${visUnit}</small></div>
+    <div class="rf-point-message ${msg.cls}"><span>✓</span><p>${esc(msg.text)}</p></div>
   </article>`;
 }
+
 function renderPointForecastTimeline(points){
   const el=$('forecastCards');
   if(!el) return;
-  el.innerHTML=`<div class="route-forecast-board">
-    <div class="route-forecast-head">
-      <span class="rf-col-place">地点</span>
-      <span class="rf-col-time">日時</span>
-      <span class="rf-col-weather">天気</span>
-      <span>気温</span>
-      <span>風</span>
-      <span>雨</span>
-      <span>風向</span>
-      <span>視界</span>
-    </div>
+  el.innerHTML=`<div class="route-forecast-board point-dashboard-board">
     <div class="route-forecast-list">${points.map((r,i)=>pointForecastRow(r,i,points.length)).join('')}</div>
-    <div class="route-forecast-foot">※ 各地点の通過時刻に対する代表予報値です。詳細なモデル比較は「06 気象モデル詳細」を参照してください。</div>
+    <div class="route-forecast-foot">※ 各地点の通過時刻に対する代表予報値です。「予測信頼度」はモデル一致度・比較モデル数・予報までの日数から算出する相対指標で、的中率を保証するものではありません。詳細なモデル比較は「06 気象モデル詳細」を参照してください。</div>
   </div>`;
 }
 
 function renderAll(points,overnight=[]){
 
-  $('results').classList.remove('hidden'); renderWeatherCharts(points); renderDecisionCommentary(points); renderRouteAlerts(points); renderRouteMaps(points.map(x=>x.point)); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]); const best=points.reduce((a,b)=>gradeRank(b.grade)<gradeRank(a.grade)?b:a,points[0]);
-  $('grade').textContent=worst.grade; $('verdict').textContent=verdict(worst.grade); $('bestWindow').textContent=`${best.point.date} ${best.point.time} ${best.point.name}`; $('maxWind').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.wind))))} m/s`; $('maxRain').textContent=`${num(max(points.flatMap(x=>x.providerRows.map(y=>y.row.rain))))} mm/h`; $('thunderRisk').innerHTML=thunderBadge(maxThunder(points.map(x=>x.thunder))); $('confidence').textContent=overallConfidence(points.map(x=>x.confidence));
+  $('results').classList.remove('hidden'); renderWeatherCharts(points); renderDecisionCommentary(points); renderRouteMaps(points.map(x=>x.point)); const worst=points.reduce((a,b)=>gradeRank(b.grade)>gradeRank(a.grade)?b:a,points[0]);
+  const maxWindValue=max(points.flatMap(x=>x.providerRows.map(y=>y.row.wind))); const maxRainValue=max(points.flatMap(x=>x.providerRows.map(y=>y.row.rain))); const thunderLevel=maxThunder(points.map(x=>x.thunder)); const confidenceLevel=overallConfidence(points.map(x=>x.confidence));
+  $('grade').textContent=worst.grade; $('verdict').textContent=verdict(worst.grade);
+  const gradeLabels={A:'EXCELLENT',B:'GOOD',C:'CAUTION',D:'HARD',E:'STOP'}; const verdictNotes={A:'全体としてかなり安定した予報です。',B:'一部に注意点はありますが、全体としては比較的安定しています。',C:'注意要素があります。通過時刻と場所を確認してください。',D:'強い気象リスクを含む計画です。見直しを推奨します。',E:'非常に強い気象リスクがあります。中止を含めて再検討してください。'};
+  $('gradeLabel').textContent=gradeLabels[worst.grade]||'–'; $('verdictNote').textContent=verdictNotes[worst.grade]||'ルート全体の気象条件を確認してください。';
+  $('maxWind').textContent=`${num(maxWindValue)} m/s`; $('maxWindLabel').textContent=maxWindValue<5?'弱い':maxWindValue<10?'やや強い':maxWindValue<15?'強い':'非常に強い';
+  $('maxRain').textContent=`${num(maxRainValue)} mm/h`; $('maxRainLabel').textContent=maxRainValue<0.2?'ほとんどなし':maxRainValue<1?'弱い':maxRainValue<5?'雨に注意':'強い雨';
+  $('thunderRisk').textContent=thunderLevel; $('thunderRiskLabel').textContent=({LOW:'低い',MEDIUM:'注意',HIGH:'高い',EXTREME:'非常に高い'})[thunderLevel]||'–';
+  $('confidence').textContent=confidenceLevel; $('confidenceLabel').textContent=({LOW:'低い',MEDIUM:'中程度',HIGH:'高い'})[confidenceLevel]||'–';
+  const setMarker=(id,pct)=>{const el=$(id);if(el)el.style.left=`${Math.max(2,Math.min(98,pct))}%`;}; setMarker('maxWindMarker',(maxWindValue/20)*100); setMarker('maxRainMarker',(maxRainValue/20)*100); setMarker('thunderMarker',({LOW:8,MEDIUM:38,HIGH:68,EXTREME:94})[thunderLevel]||8); setMarker('confidenceMarker',({LOW:8,MEDIUM:50,HIGH:94})[confidenceLevel]||8);
   renderPointForecastTimeline(points);
   const overnightWithArrival=overnight.map(o=>{const match=points.find(r=>r.point===o.point||(r.point.name===o.point.name&&r.point.date===o.point.date&&r.point.time===o.point.time));return {...o,arrivalTemp:match?.temp};});
   renderOvernights(overnightWithArrival);
@@ -4136,6 +6522,26 @@ async function proxyFetch(url){return fetch(`/api/proxy?url=${encodeURIComponent
 function setStatus(t,e=false){const els=[$('statusDesktop'),$('statusMobile')].filter(Boolean);if(!els.length){console.warn('status elements missing:',t);return;}els.forEach(el=>{el.textContent=t;el.classList.remove('hidden');el.classList.toggle('error',e);});}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 function todayLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+
+
+// V1.4.17: 燧ヶ岳〜至仏山縦走回廊を両山の固定候補にも追加。
+Object.assign(BUILTIN_ROUTE_CATALOG, {
+  '燧ヶ岳': [
+    ...(BUILTIN_ROUTE_CATALOG['燧ヶ岳']||[]),
+    {id:'fixed1417-oze-miharashi',type:'hut',name:'見晴（尾瀬小屋・見晴地区）',lat:36.940556,lon:139.251944,elevation:1418,source:'固定候補'},
+    {id:'fixed1417-oze-ryugu',type:'hut',name:'龍宮小屋',lat:36.932500,lon:139.238333,elevation:1402,source:'固定候補'},
+    {id:'fixed1417-oze-yamanohana',type:'trailhead',name:'山ノ鼻（至仏山東面登山道入口・登り専用）',lat:36.915833,lon:139.198056,elevation:1410,source:'固定候補'},
+    {id:'fixed1417-oze-shibutsu-link',type:'peak',name:'至仏山',lat:36.903474,lon:139.173248,elevation:2228,source:'固定候補'}
+  ],
+  '至仏山': [
+    ...(BUILTIN_ROUTE_CATALOG['至仏山']||[]),
+    {id:'fixed1417-oze-yamanohana-rev',type:'trailhead',name:'山ノ鼻（至仏山東面登山道入口・登り専用）',lat:36.915833,lon:139.198056,elevation:1410,source:'固定候補'},
+    {id:'fixed1417-oze-ryugu-rev',type:'hut',name:'龍宮小屋',lat:36.932500,lon:139.238333,elevation:1402,source:'固定候補'},
+    {id:'fixed1417-oze-miharashi-rev',type:'hut',name:'見晴（尾瀬小屋・見晴地区）',lat:36.940556,lon:139.251944,elevation:1418,source:'固定候補'},
+    {id:'fixed1417-oze-hiuchi-link',type:'peak',name:'燧ヶ岳（柴安嵓）',lat:36.955102,lon:139.285334,elevation:2356,source:'固定候補'}
+  ]
+});
+
 function logEvent(event_name,details={}){fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,app_version:APP_VERSION,event_name,...details})}).catch(()=>{});}
 
 
@@ -4210,13 +6616,19 @@ Object.assign(BUILTIN_ROUTE_CATALOG, {
     {id:'fixed16-shikoku-tsurugi-minokoshi',type:'trailhead',name:'見ノ越 剣山登山口',lat:33.866558,lon:134.089036,elevation:1394,source:'固定候補'},
     {id:'fixed16-shikoku-tsurugi-nishijima',type:'trailhead',name:'剣山観光登山リフト西島駅',lat:33.860656,lon:134.092260,elevation:1750,source:'固定候補'},
     {id:'fixed16-shikoku-tsurugi-hutte',type:'hut',name:'剣山頂上ヒュッテ',lat:33.855000,lon:134.096111,elevation:1939,source:'固定候補'},
-    {id:'fixed16-shikoku-tsurugi-peak',type:'peak',name:'剣山',lat:33.853611,lon:134.094167,elevation:1955,source:'固定候補'}
+    {id:'fixed16-shikoku-tsurugi-peak',type:'peak',name:'剣山',lat:33.853611,lon:134.094167,elevation:1955,source:'固定候補'},
+    {id:'fixed1416-shikoku-jirogyu',type:'peak',name:'次郎笈',lat:33.843056,lon:134.086111,elevation:1930,source:'固定候補'},
+    {id:'fixed1416-shikoku-shiraga-hut',type:'hut',name:'白髪避難小屋',lat:33.821944,lon:134.001222,elevation:1666,source:'固定候補'},
+    {id:'fixed1416-shikoku-miune-link',type:'peak',name:'三嶺',lat:33.839444,lon:133.987778,elevation:1894,source:'固定候補'}
   ],
   '三嶺': [
     {id:'fixed16-shikoku-miune-nagoro',type:'trailhead',name:'名頃登山口 三嶺',lat:33.852472,lon:134.023972,elevation:907,source:'固定候補'},
     {id:'fixed16-shikoku-miune-hikariishi',type:'trailhead',name:'光石登山口',lat:33.804472,lon:133.971694,elevation:910,source:'固定候補'},
     {id:'fixed16-shikoku-miune-hut',type:'hut',name:'三嶺ヒュッテ',lat:33.840556,lon:133.991389,elevation:1845,source:'固定候補'},
-    {id:'fixed16-shikoku-miune-peak',type:'peak',name:'三嶺',lat:33.839444,lon:133.987778,elevation:1894,source:'固定候補'}
+    {id:'fixed16-shikoku-miune-peak',type:'peak',name:'三嶺',lat:33.839444,lon:133.987778,elevation:1894,source:'固定候補'},
+    {id:'fixed1416-shikoku-shiraga-hut-rev',type:'hut',name:'白髪避難小屋',lat:33.821944,lon:134.001222,elevation:1666,source:'固定候補'},
+    {id:'fixed1416-shikoku-jirogyu-rev',type:'peak',name:'次郎笈',lat:33.843056,lon:134.086111,elevation:1930,source:'固定候補'},
+    {id:'fixed1416-shikoku-tsurugi-link',type:'peak',name:'剣山',lat:33.853611,lon:134.094167,elevation:1955,source:'固定候補'}
   ],
   '東赤石山': [
     {id:'fixed16-shikoku-higashiakaishi-seba',type:'trailhead',name:'瀬場登山口 東赤石山',lat:33.853278,lon:133.390639,elevation:652,source:'固定候補'},
@@ -5004,4 +7416,47 @@ MOUNTAIN_REGION['ジャンダルム'] = 'nishiho_yake';
   const gendarmePoint={id:'fixed37-hotaka-gendarme',type:'peak',name:'ジャンダルム',lat:V1237_GENDARME.latitude,lon:V1237_GENDARME.longitude,elevation:V1237_GENDARME.elevation,source:'固定候補'};
   const old=REGIONAL_CATALOG.nishiho_yake||[];
   if(!old.some(p=>p.name==='ジャンダルム')) REGIONAL_CATALOG.nishiho_yake=[...old,gendarmePoint];
+}
+
+// V1.4.23 final enforcement: later legacy Object.assign blocks must not remove the new traverse candidates.
+// Keep this block after all historical catalog patches.
+{
+  const kujuPeaks = [
+    {id:'v1423-final-kuju-kuju',type:'peak',name:'久住山',lat:33.082187,lon:131.240871,elevation:1786,source:'固定候補'},
+    {id:'v1423-final-kuju-naka',type:'peak',name:'中岳(くじゅう)',lat:33.085833,lon:131.248889,elevation:1791,source:'固定候補'},
+    {id:'v1423-final-kuju-mimata',type:'peak',name:'三俣山',lat:33.103889,lon:131.246389,elevation:1744,source:'固定候補'},
+    {id:'v1423-final-kuju-taisen',type:'peak',name:'大船山',lat:33.095000,lon:131.280556,elevation:1786,source:'固定候補'},
+    {id:'v1423-final-kuju-hossho',type:'peak',name:'星生山',lat:33.090833,lon:131.232500,elevation:1762,source:'固定候補'}
+  ];
+  const kujuShared = [
+    {id:'v1423-final-kuju-wakare',type:'hut',name:'久住分かれ避難小屋',lat:33.086028,lon:131.238806,elevation:1638,source:'固定候補'}
+  ];
+  for (const mountainName of ['久住山','大船山','中岳(くじゅう)','三俣山','星生山']) {
+    const old=BUILTIN_ROUTE_CATALOG[mountainName]||[];
+    const merged=[...kujuPeaks,...kujuShared,...old];
+    const seen=new Set();
+    BUILTIN_ROUTE_CATALOG[mountainName]=merged.filter(p=>{
+      const k=`${p.type}:${p.name}`;
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+
+  const hououCommon = [
+    {id:'v1423-final-houou-yakushi',type:'peak',name:'薬師岳(鳳凰)',lat:35.696111,lon:138.311667,elevation:2780,source:'固定候補'},
+    {id:'v1423-final-houou-kannon',type:'peak',name:'観音岳(鳳凰)',lat:35.701667,lon:138.304722,elevation:2841,source:'固定候補'},
+    {id:'v1423-final-houou-jizo',type:'peak',name:'地蔵岳(鳳凰)',lat:35.712222,lon:138.298611,elevation:2764,source:'固定候補'}
+  ];
+  for (const mountainName of ['薬師岳(鳳凰)','観音岳(鳳凰)','地蔵岳(鳳凰)']) {
+    const old=BUILTIN_ROUTE_CATALOG[mountainName]||[];
+    const merged=[...hououCommon,...old];
+    const seen=new Set();
+    BUILTIN_ROUTE_CATALOG[mountainName]=merged.filter(p=>{
+      const k=`${p.type}:${p.name}`;
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+  BUILTIN_ROUTE_CATALOG['鳳凰山']=BUILTIN_ROUTE_CATALOG['薬師岳(鳳凰)'];
+  BUILTIN_ROUTE_CATALOG['地蔵ヶ岳']=BUILTIN_ROUTE_CATALOG['地蔵岳(鳳凰)'];
 }
