@@ -27,7 +27,7 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "1.4.77"
+APP_VERSION = "1.4.79"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
@@ -823,14 +823,14 @@ def _bytes_response(status: int, ctype: str, body: bytes, *, cache_control: str 
 
 
 def _national_grade(max_wind: float, max_gust: float, max_rain: float, max_cape: float, min_temp: float, min_visibility: float | None, *, caution_hours: int = 0, severe_hours: int = 0, extreme_hours: int = 0):
-    # V1.4.77: 全国スクリーニングは「1時間の最大値だけで即C」にしない。
-    # 6〜15時の継続時間を加味し、極端値は即C、強い注意が3時間以上ならC、
-    # 一時的な強い注意または注意状態が3時間以上ならBとする。
-    if extreme_hours >= 1 or severe_hours >= 3:
-        return "C", "厳しい条件が継続する、または極端な注意要素があります。詳細分析で時間帯とルート全体を確認してください。"
+    # V1.4.79: 全国簡易判定は「てんくらの感覚」に近づけ、風・雨を主判定にする。
+    # 雷(CAPE)・視界・低温は詳細注意情報として残すが、それだけでABCをCへ落とさない。
+    # 6〜15時の10時間のうち、強い風雨の継続時間を重視する。
+    if extreme_hours >= 1 or severe_hours >= 4:
+        return "C", "6〜15時に強い風または雨が見込まれ、登山には厳しめの条件です。時間帯別の詳細を確認してください。"
     if severe_hours >= 1 or caution_hours >= 3:
-        return "B", "注意要素があります。発生する時間帯を確認して判断してください。"
-    return "A", "日中の大半で大きな注意要素は見当たりません。詳細分析で最終確認してください。"
+        return "B", "6〜15時の一部で風または雨の影響が見込まれます。比較的よい時間帯を確認してください。"
+    return "A", "6〜15時は風雨の大きな影響が比較的少なく、登山候補にしやすい条件です。詳細分析で最終確認してください。"
 
 @app.post("/api/national-outlook")
 def national_outlook():
@@ -857,7 +857,7 @@ def national_outlook():
         except (TypeError,ValueError): elev=None
         points.append({"name":name,"lat":lat,"lon":lon,"elevation":elev})
     if not points: return jsonify(error="有効な地点がありません"), 400
-    key="national-outlook:"+date_text+":"+"|".join(f'{p["name"]}:{p["lat"]:.4f}:{p["lon"]:.4f}' for p in points)
+    key=f"national-outlook:{APP_VERSION}:"+date_text+":"+"|".join(f'{p["name"]}:{p["lat"]:.4f}:{p["lon"]:.4f}' for p in points)
     cached=_cache_get(key)
     if cached:
         status,ctype,body=cached
@@ -904,9 +904,11 @@ def national_outlook():
                         except (TypeError,ValueError,IndexError):
                             return default
                     w=hv("wind_speed_10m",0); g=hv("wind_gusts_10m",w); r=hv("precipitation",0); cp=hv("cape",0); tp=hv("temperature_2m",99); vv=hv("visibility",None)
-                    extreme = w>=20 or g>=28 or r>=10 or cp>=1200 or tp<=-12 or (vv is not None and vv<150)
-                    severe = w>=15 or g>=20 or r>=4 or cp>=700 or tp<=-7 or (vv is not None and vv<400)
-                    caution = w>=10 or g>=15 or r>=1.5 or cp>=300 or tp<=0 or (vv is not None and vv<1500)
+                    # V1.4.79: ABCは風・雨を主軸にする。突風/CAPE/視界/低温は表示上の注意情報。
+                    # 10m平均風を中心にし、瞬間的な突風だけではC判定にしない。
+                    extreme = w>=18 or r>=8
+                    severe = w>=13 or r>=3
+                    caution = w>=8 or r>=0.8
                     if extreme: extreme_hours+=1
                     if severe: severe_hours+=1
                     if caution: caution_hours+=1

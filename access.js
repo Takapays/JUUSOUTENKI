@@ -142,6 +142,22 @@
 
   function rowHtml(r){return `<div class="ta-route"><div class="ta-route-label">${esc(r[0])}</div><div><strong>${esc(r[1])}</strong><div class="ta-meta">${esc(r[2]||'')} ${r[3]?`｜ ${esc(r[3])}`:''}</div></div></div>`;}
   function transitHtml(r){return `<div class="ta-transit"><div class="ta-transit-main"><strong>${esc(r[0])}</strong><span>${esc(r[1])}</span></div><b>${esc(r[2]||'')}</b></div>`;}
+  function detailRow(label,value){return `<div class="ta-detail-row"><dt>${esc(label)}</dt><dd>${esc(value||'要公式確認')}</dd></div>`;}
+  function infoStatus(data){return (data.links||[]).length ? '固定情報＋公式確認先あり' : '固定情報・最新状況は要公式確認';}
+  function facilityText(data,kind){
+    if(kind==='toilet') return data.toilet || '設置場所・利用可否は現地／公式情報で確認';
+    if(kind==='water') return data.water || '水場・飲用可否は現地／公式情報で確認';
+    if(kind==='fee') return data.parkingFee || (/無料/.test(data.parking||'')?'無料の記載あり':'料金・利用条件は現地／公式情報で確認');
+    return '要公式確認';
+  }
+  function ensureCarRows(data,key){
+    if((data.car||[]).length) return data.car;
+    return [[data.nearestIC||'最寄IC',`${data.nearestIC||'最寄IC'} → ${key}`, '距離は要確認', data.drive||'所要時間は要確認']];
+  }
+  function ensureTransitRows(data,key){
+    if((data.transitRows||[]).length) return data.transitRows;
+    return [[`主要駅・バス停 → ${key}`,data.transit||'公共交通情報は要確認','時刻・運行日を公式確認']];
+  }
 
   function ensureModal(){
     if(document.getElementById('trailheadAccessModal')) return;
@@ -159,20 +175,42 @@
     const hit=findAccess(name); if(!hit) return;
     const {key,data}=hit, modal=document.getElementById('trailheadAccessModal');
     modal.querySelector('#taTitle').textContent=`${key} 登山口`;
-    modal.querySelector('#taSub').textContent=`${data.area}｜${data.prefecture}`;
+    modal.querySelector('#taSub').textContent=`${data.area||'山域情報'}｜${data.prefecture||'所在地要確認'}`;
     const links=(data.links||[]).map(([label,url])=>`<a class="ta-source" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`).join('');
+    const tips=(data.tips||[]).length?data.tips:[`${key}を起点とする山行では、道路規制・駐車場・公共交通の当日情報を出発前に確認してください。`];
+    const carRows=ensureCarRows(data,key), transitRows=ensureTransitRows(data,key);
     modal.querySelector('#taBody').innerHTML=`
+      <p class="ta-status-note"><b>アクセス情報：</b>${esc(infoStatus(data))}。固定情報を見やすく整理しています。運行時刻・料金・通行止め等の変動情報は出発前に公式情報で確認してください。</p>
       <div class="ta-quick">
-        <div><span>最寄IC</span><b>${esc(data.nearestIC)}</b></div><div><span>ICから</span><b>${esc(data.drive)}</b></div><div><span>駐車場</span><b>${esc(data.parking)}</b></div><div><span>公共交通</span><b>${esc(data.transit)}</b></div>
+        <div><span>最寄IC</span><b>${esc(data.nearestIC||'要確認')}</b></div>
+        <div><span>ICから</span><b>${esc(data.drive||'要確認')}</b></div>
+        <div><span>駐車場</span><b>${esc(data.parking||'要確認')}</b></div>
+        <div><span>公共交通</span><b>${esc(data.transit||'要確認')}</b></div>
+        <div><span>駐車料金</span><b>${esc(facilityText(data,'fee'))}</b></div>
+        <div><span>情報状態</span><b>${esc((data.links||[]).length?'公式リンクあり':'要公式確認')}</b></div>
       </div>
-      <div class="ta-alert"><b>⚠ アクセス注意</b><span>${esc(data.roadNote)}</span></div>
+      <div class="ta-alert"><b>⚠ アクセス注意</b><span>${esc(data.roadNote||'道路・林道・交通機関の最新状況を出発前に確認してください。')}</span></div>
       <div class="ta-grid">
-        <article class="ta-card"><header><h3>🚗 車で行く</h3></header><div class="ta-card-body">${(data.car||[]).map(rowHtml).join('')}</div></article>
-        <article class="ta-card"><header><h3>🚌 公共交通で行く</h3></header><div class="ta-card-body">${(data.transitRows||[]).map(transitHtml).join('')}</div></article>
+        <article class="ta-card"><header><h3>🚗 車で行く</h3><span>ルート目安</span></header><div class="ta-card-body">${carRows.map(rowHtml).join('')}</div></article>
+        <article class="ta-card"><header><h3>🚌 公共交通で行く</h3><span>運行日要確認</span></header><div class="ta-card-body">${transitRows.map(transitHtml).join('')}</div></article>
       </div>
-      <article class="ta-card ta-tips"><header><h3>📍 登山者向けポイント</h3><span>チャッピーまとめ</span></header><div class="ta-card-body"><ul>${(data.tips||[]).map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div></article>
-      <div class="ta-sources"><b>最新情報：</b>${links || '<span>公式情報を確認してください</span>'}</div>
-      <p class="ta-fineprint">交通規制・運行日・料金・駐車場の運用は変更される場合があります。出発前に公式情報で最終確認してください。</p>`;
+      <div class="ta-detail-grid">
+        <article class="ta-card"><header><h3>🅿️ 駐車場・登山口設備</h3></header><div class="ta-card-body ta-detail-list">
+          ${detailRow('駐車場',data.parking||'要公式確認')}
+          ${detailRow('駐車料金',facilityText(data,'fee'))}
+          ${detailRow('トイレ',facilityText(data,'toilet'))}
+          ${detailRow('水場・飲料',facilityText(data,'water'))}
+        </div></article>
+        <article class="ta-card"><header><h3>✅ 出発前チェック</h3><span>当日確認</span></header><div class="ta-confirm">
+          <div class="ta-confirm-item"><i>01</i><span>道路・林道の通行止め／冬季閉鎖</span></div>
+          <div class="ta-confirm-item"><i>02</i><span>駐車場の満車・予約・マイカー規制</span></div>
+          <div class="ta-confirm-item"><i>03</i><span>バス・ロープウェイの運行日／最終便</span></div>
+          <div class="ta-confirm-item"><i>04</i><span>火山・登山道・工事等の入山規制</span></div>
+        </div></article>
+      </div>
+      <article class="ta-card ta-tips"><header><h3>📍 登山者向けポイント</h3><span>チャッピーまとめ</span></header><div class="ta-card-body"><ul>${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div></article>
+      <div class="ta-sources"><b>公式確認先：</b>${links || '<span>公式リンク未登録。自治体・観光協会・道路管理者・交通事業者等で最新情報を確認してください。</span>'}</div>
+      <p class="ta-fineprint">※ この画面の所要時間・駐車場・交通情報は登山計画の目安です。道路規制、季節バス、料金、駐車場運用、トイレ・水場の利用可否は変わる場合があります。</p>`;
     modal.classList.remove('hidden'); document.body.classList.add('ta-modal-open');
     modal.querySelector('.ta-close').focus();
   }

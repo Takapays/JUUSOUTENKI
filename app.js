@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.4.77';
+const APP_VERSION = '1.4.79';
 
 
 
