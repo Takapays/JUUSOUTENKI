@@ -3280,3 +3280,12 @@ body.install-guide-open{overflow:hidden}
 .national-marker-wrap{background:transparent!important;border:none!important}.national-marker{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.28);font-size:11px;font-weight:950}.national-marker.grade-a{background:#27895d}.national-marker.grade-b{background:#d39a16}.national-marker.grade-c{background:#c94f54}.national-marker.grade-u{background:#85928d;opacity:.72}
 @media(max-width:900px){.national-outlook{order:-3}.national-outlook-head{display:block}.national-outlook-controls{margin-top:12px}.national-outlook-controls label{flex:1}.national-outlook-controls input{width:100%;font-size:16px}.national-outlook-body{grid-template-columns:1fr}.national-outlook-map{height:390px}.national-outlook-detail{min-height:120px}}
 @media(max-width:520px){.national-outlook-map{height:330px}.national-outlook-controls{display:grid;grid-template-columns:1fr auto}.national-outlook-head h2{font-size:22px}.national-outlook-legend{font-size:10px;gap:5px}.national-outlook-detail{padding:12px}}
+
+
+/* V1.4.76: 通過ポイント読込を代表コースUIから分離し常時明示 */
+.mountain-route-load-primary{display:block;margin-top:10px;width:100%;position:relative;z-index:2}
+.mountain-route-load-primary #loadPoiBtn{display:flex!important;width:100%!important;min-width:0!important;min-height:46px!important;height:auto!important;margin:0!important;border-radius:11px!important;justify-content:center!important;font-size:14px;font-weight:900;white-space:normal!important}
+.mountain-route-actions{margin-top:8px}
+@media(max-width:700px){.mountain-route-load-primary #loadPoiBtn{min-height:50px!important;font-size:16px}}
+
+.national-map-fallback{min-height:260px;display:grid;place-items:center;padding:20px;text-align:center;color:#64786f;font-weight:800;background:#f4f8f6}

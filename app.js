@@ -3982,25 +3982,62 @@ async function openMountainFromNationalMap(name){
 async function runNationalOutlook(){
   const date=$('nationalOutlookDate')?.value, status=$('nationalOutlookStatus'), btn=$('nationalOutlookRun');
   if(!date){if(status)status.textContent='日付を選択してください。';return;}
-  const points=nationalOutlookPoints(); const eligible=points.filter(x=>x.eligible);
-  if(status)status.textContent=`${eligible.length}座を簡易判定中…`; if(btn)btn.disabled=true;
+  const points=nationalOutlookPoints();
+  const eligible=points.filter(x=>x.eligible);
+  if(!eligible.length){if(status)status.textContent='簡易判定できる山がありません。';return;}
+  if(btn)btn.disabled=true;
+  nationalOutlookResults=new Map();
+  renderNationalOutlookMarkers();
+  const batchSize=50;
+  const totalBatches=Math.ceil(eligible.length/batchSize);
+  let completed=0;
   try{
-    const res=await fetch('/api/national-outlook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,points:eligible})});
-    const data=await res.json().catch(()=>({})); if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
-    nationalOutlookResults=new Map((data.results||[]).map(x=>[x.name,x]));
-    renderNationalOutlookMarkers();
-    const counts={A:0,B:0,C:0}; for(const r of nationalOutlookResults.values())if(counts[r.grade]!=null)counts[r.grade]++;
-    if(status)status.innerHTML=`判定完了：<b>A ${counts.A}座</b> / <b>B ${counts.B}座</b> / <b>C ${counts.C}座</b> / 対象外 ${points.length-nationalOutlookResults.size}座`;
-  }catch(e){if(status)status.textContent=`全国判定に失敗しました：${e.message||e}`;}
-  finally{if(btn)btn.disabled=false;}
+    for(let i=0;i<eligible.length;i+=batchSize){
+      const batch=eligible.slice(i,i+batchSize);
+      const batchNo=Math.floor(i/batchSize)+1;
+      if(status)status.textContent=`${eligible.length}座を簡易判定中… ${batchNo}/${totalBatches}`;
+      // Render Free環境で1回の巨大リクエストがタイムアウトしないよう50座ずつ取得する。
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),28000);
+      let res;
+      try{
+        res=await fetch('/api/national-outlook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,points:batch}),signal:controller.signal});
+      }finally{clearTimeout(timer);}
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
+      for(const x of (data.results||[]))nationalOutlookResults.set(x.name,x);
+      completed+=batch.length;
+      renderNationalOutlookMarkers();
+      if(status)status.textContent=`${eligible.length}座を簡易判定中… ${Math.min(completed,eligible.length)}/${eligible.length}座`;
+      await new Promise(r=>setTimeout(r,0));
+    }
+    const counts={A:0,B:0,C:0};
+    for(const r of nationalOutlookResults.values())if(counts[r.grade]!=null)counts[r.grade]++;
+    if(status)status.innerHTML=`判定完了：<b>A ${counts.A}座</b> / <b>B ${counts.B}座</b> / <b>C ${counts.C}座</b> / 対象外・未取得 ${points.length-nationalOutlookResults.size}座`;
+  }catch(e){
+    const msg=e?.name==='AbortError'?'通信がタイムアウトしました。少し時間をおいて再度お試しください。':(e.message||e);
+    if(status)status.textContent=`全国判定に失敗しました：${msg}`;
+  }finally{if(btn)btn.disabled=false;}
 }
 function setupNationalOutlook(){
-  const el=$('nationalOutlookMap'),date=$('nationalOutlookDate'),btn=$('nationalOutlookRun'); if(!el||!window.L)return;
+  const el=$('nationalOutlookMap'),date=$('nationalOutlookDate'),btn=$('nationalOutlookRun'),status=$('nationalOutlookStatus');
+  // 判定ボタンは地図ライブラリの成否に関係なく必ず有効化する。
+  btn?.addEventListener('click',runNationalOutlook);
+  if(!el||!date)return;
   const today=new Date(); const local=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10); date.value=local;
   const max=new Date(today.getTime()+15*86400000); date.max=new Date(max.getTime()-max.getTimezoneOffset()*60000).toISOString().slice(0,10); date.min=local;
-  nationalOutlookMap=L.map(el,{zoomControl:true,scrollWheelZoom:false}).setView([36.2,138.0],5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:11,attribution:'&copy; OpenStreetMap contributors'}).addTo(nationalOutlookMap);
-  renderNationalOutlookMarkers(); btn?.addEventListener('click',runNationalOutlook);
+  if(!window.L){
+    el.innerHTML='<div class="national-map-fallback">地図の読み込みに失敗しました。全国判定は実行できます。</div>';
+    if(status)status.textContent='地図ライブラリを読み込めませんでしたが、「全国を判定」は実行できます。';
+    return;
+  }
+  try{
+    nationalOutlookMap=L.map(el,{zoomControl:true,scrollWheelZoom:false}).setView([36.2,138.0],5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:11,attribution:'&copy; OpenStreetMap contributors'}).addTo(nationalOutlookMap);
+    renderNationalOutlookMarkers();
+  }catch(e){
+    if(status)status.textContent=`地図の初期化に失敗しましたが、全国判定は実行できます：${e.message||e}`;
+  }
 }
 
 function init(){

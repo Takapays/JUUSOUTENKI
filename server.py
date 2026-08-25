@@ -843,7 +843,7 @@ def national_outlook():
     if target < today_jst or target > today_jst + timedelta(days=15):
         return jsonify(error="全国判定は今日から15日先までです"), 400
     raw_points = payload.get("points")
-    if not isinstance(raw_points, list) or not raw_points or len(raw_points) > 150:
+    if not isinstance(raw_points, list) or not raw_points or len(raw_points) > 300:
         return jsonify(error="判定地点数が不正です"), 400
     points=[]
     for x in raw_points:
