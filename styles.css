@@ -3289,3 +3289,18 @@ body.install-guide-open{overflow:hidden}
 @media(max-width:700px){.mountain-route-load-primary #loadPoiBtn{min-height:50px!important;font-size:16px}}
 
 .national-map-fallback{min-height:260px;display:grid;place-items:center;padding:20px;text-align:center;color:#64786f;font-weight:800;background:#f4f8f6}
+
+
+/* V1.4.77: header badges + load button vertical centering */
+.mountain-route-load-primary #loadPoiBtn{align-items:center!important;justify-content:center!important;line-height:1.25!important;padding-top:0!important;padding-bottom:0!important}
+.mobile-topbar-badges{display:none}
+@media(max-width:900px){
+  .mobile-topbar-badges{order:4;flex:0 0 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-top:6px}
+  .mobile-topbar-badges span{display:inline-flex;align-items:center;justify-content:center;border:1px solid #cfe0eb;background:#f6fbff;color:#194669;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:850;line-height:1.15;white-space:nowrap}
+}
+@media(max-width:430px){
+  .mobile-topbar-badges{gap:4px;margin-top:5px}
+  .mobile-topbar-badges span{font-size:8px;padding:4px 6px}
+}
+
+@media(min-width:901px) and (max-width:1120px){.topbar-badges span:nth-child(3){display:inline-flex!important}}

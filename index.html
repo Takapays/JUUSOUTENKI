@@ -59,7 +59,7 @@
         "description": "日本三百名山の登山口・山頂・山小屋などの通過地点と到着予定時刻をもとに、天気・気温・風・雨・雷・視界を地点別に分析する山岳天気・登山ルート予報ツール。",
         "image": "https://otenki.onrender.com/traten-ogp-v147.png",
         "featureList": [
-          "日本三百名山300座対応",
+          "日本三百名山 網羅",
           "登山ルートの地点・到着時刻別予報",
           "JMA・ECMWF・GFS・ICONの複数気象モデル比較",
           "風・雨・雷・気温・視界のリスク分析",
@@ -72,7 +72,7 @@
   }
   </script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-  <link rel="stylesheet" href="styles.css?v=1.4.76">
+  <link rel="stylesheet" href="styles.css?v=1.4.77">
   <link rel="stylesheet" href="access.css?v=6.0.1">
 </head>
 <body>
@@ -84,13 +84,16 @@
     <div class="topbar-center">
       <h1>その時、その場所の空を読む。</h1>
       <div class="topbar-badges">
-        <span>V1.4.76</span>
-        <span>日本三百名山 300座</span>
+        <span>V1.4.77</span>
+        <span>日本三百名山 網羅</span>
         <span>5系統アラート</span>
+        <span>全国一括判定</span>
+        <span>登山口アクセス情報</span>
       </div>
     </div>
     <div class="mobile-topbar-copy">その時、その場所の空を読む。</div>
-    <span class="mobile-topbar-version">V1.4.76</span>
+    <span class="mobile-topbar-version">V1.4.77</span>
+    <div class="mobile-topbar-badges" aria-label="トラテン機能"><span>日本三百名山 網羅</span><span>5系統アラート</span><span>全国一括判定</span><span>登山口アクセス情報</span></div>
     <a class="topbar-guide-link" href="guide.html" aria-label="トラテンの使い方を見る">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5h6.5a3 3 0 0 1 3 3v10a3.6 3.6 0 0 0-3-2H4.5z"/><path d="M19.5 5.5H13a3 3 0 0 0-3 3"/><path d="M13.5 5.5h6v11H13a3.6 3.6 0 0 0-3 2"/></svg>
       <span>使い方</span>
@@ -119,11 +122,11 @@
         <button id="nationalOutlookRun" class="primary" type="button">全国を判定</button>
       </div>
     </div>
-    <div class="national-outlook-legend" aria-label="判定凡例"><span class="grade-a">A</span>適性高め <span class="grade-b">B</span>注意あり <span class="grade-c">C</span>厳しい <span class="grade-u">?</span>簡易判定対象外</div>
-    <div id="nationalOutlookStatus" class="national-outlook-status">日付を選んで「全国を判定」を押してください。代表コース対応山をABC判定し、未対応山も地図に表示します。</div>
+    <div class="national-outlook-legend" aria-label="判定凡例"><span class="grade-a">A</span>適性高め <span class="grade-b">B</span>注意あり <span class="grade-c">C</span>厳しい <span class="grade-u">?</span>未取得</div>
+    <div id="nationalOutlookStatus" class="national-outlook-status">日付を選んで「全国を判定」を押してください。日本三百名山300座をABC簡易判定します。</div>
     <div class="national-outlook-body">
       <div id="nationalOutlookMap" class="national-outlook-map" aria-label="日本三百名山 全国山行マップ"></div>
-      <aside id="nationalOutlookDetail" class="national-outlook-detail"><strong>山をタップすると詳細を表示</strong><p>ABCは山頂付近の6〜15時を使う軽量判定です。</p></aside>
+      <aside id="nationalOutlookDetail" class="national-outlook-detail"><strong>山をタップすると詳細を表示</strong><p>ABCは山頂付近の6〜15時を使い、悪条件の継続時間も考慮する軽量判定です。</p></aside>
     </div>
     <p class="national-outlook-note">※ABCは候補地を絞るための簡易指標です。登山可否を保証するものではありません。最終判断は「この山を詳しく分析」から通過地点・時刻・複数モデルを確認してください。</p>
   </section>
@@ -338,7 +341,7 @@
   </div>
 </footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="app.js?v=1.4.76"></script>
+<script src="app.js?v=1.4.77"></script>
   <script src="access-data.js?v=6.0.1"></script>
   <script src="access.js?v=6.0.1"></script>
 </body>

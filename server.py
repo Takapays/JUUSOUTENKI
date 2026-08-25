@@ -27,7 +27,7 @@ from typing import Any
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-APP_VERSION = "1.4.73"
+APP_VERSION = "1.4.77"
 PORT = int(os.environ.get("PORT", "8000"))
 UPSTREAM_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "45"))
 OVERPASS_TIMEOUT = int(os.environ.get("OVERPASS_TIMEOUT", "70"))
@@ -822,14 +822,15 @@ def _bytes_response(status: int, ctype: str, body: bytes, *, cache_control: str 
     return response
 
 
-def _national_grade(max_wind: float, max_gust: float, max_rain: float, max_cape: float, min_temp: float, min_visibility: float | None):
-    severe = max_wind >= 15 or max_gust >= 20 or max_rain >= 4 or max_cape >= 500 or min_temp <= -5 or (min_visibility is not None and min_visibility < 500)
-    caution = max_wind >= 10 or max_gust >= 15 or max_rain >= 1.5 or max_cape >= 200 or min_temp <= 0 or (min_visibility is not None and min_visibility < 2000)
-    if severe:
-        return "C", "強い注意要素があります。詳細分析で時間帯とルート全体を確認してください。"
-    if caution:
-        return "B", "注意要素があります。条件と時間帯を確認して判断してください。"
-    return "A", "大きな注意要素は見当たりません。詳細分析で最終確認してください。"
+def _national_grade(max_wind: float, max_gust: float, max_rain: float, max_cape: float, min_temp: float, min_visibility: float | None, *, caution_hours: int = 0, severe_hours: int = 0, extreme_hours: int = 0):
+    # V1.4.77: 全国スクリーニングは「1時間の最大値だけで即C」にしない。
+    # 6〜15時の継続時間を加味し、極端値は即C、強い注意が3時間以上ならC、
+    # 一時的な強い注意または注意状態が3時間以上ならBとする。
+    if extreme_hours >= 1 or severe_hours >= 3:
+        return "C", "厳しい条件が継続する、または極端な注意要素があります。詳細分析で時間帯とルート全体を確認してください。"
+    if severe_hours >= 1 or caution_hours >= 3:
+        return "B", "注意要素があります。発生する時間帯を確認して判断してください。"
+    return "A", "日中の大半で大きな注意要素は見当たりません。詳細分析で最終確認してください。"
 
 @app.post("/api/national-outlook")
 def national_outlook():
@@ -893,9 +894,25 @@ def national_outlook():
                 wind=vals("wind_speed_10m"); gust=vals("wind_gusts_10m"); rain=vals("precipitation"); cape=vals("cape"); temp=vals("temperature_2m"); vis=vals("visibility")
                 if not (wind and rain and temp): continue
                 max_w=max(wind); max_g=max(gust) if gust else max_w; max_r=max(rain); max_c=max(cape) if cape else 0; min_t=min(temp); min_v=min(vis) if vis else None
-                grade,summary=_national_grade(max_w,max_g,max_r,max_c,min_t,min_v)
-                thunder="HIGH" if max_c>=500 else "MEDIUM" if max_c>=200 else "LOW"
-                results.append({"name":p["name"],"grade":grade,"summary":summary,"maxWind":round(max_w,1),"maxGust":round(max_g,1),"maxRain":round(max_r,1),"maxCape":round(max_c),"minTemp":round(min_t,1),"minVisibility":round(min_v) if min_v is not None else None,"thunder":thunder})
+                caution_hours=severe_hours=extreme_hours=0
+                for i in idx:
+                    def hv(k, default=None):
+                        a=hourly.get(k) or []
+                        try:
+                            v=float(a[i])
+                            return v if math.isfinite(v) else default
+                        except (TypeError,ValueError,IndexError):
+                            return default
+                    w=hv("wind_speed_10m",0); g=hv("wind_gusts_10m",w); r=hv("precipitation",0); cp=hv("cape",0); tp=hv("temperature_2m",99); vv=hv("visibility",None)
+                    extreme = w>=20 or g>=28 or r>=10 or cp>=1200 or tp<=-12 or (vv is not None and vv<150)
+                    severe = w>=15 or g>=20 or r>=4 or cp>=700 or tp<=-7 or (vv is not None and vv<400)
+                    caution = w>=10 or g>=15 or r>=1.5 or cp>=300 or tp<=0 or (vv is not None and vv<1500)
+                    if extreme: extreme_hours+=1
+                    if severe: severe_hours+=1
+                    if caution: caution_hours+=1
+                grade,summary=_national_grade(max_w,max_g,max_r,max_c,min_t,min_v,caution_hours=caution_hours,severe_hours=severe_hours,extreme_hours=extreme_hours)
+                thunder="HIGH" if max_c>=700 else "MEDIUM" if max_c>=300 else "LOW"
+                results.append({"name":p["name"],"grade":grade,"summary":summary,"maxWind":round(max_w,1),"maxGust":round(max_g,1),"maxRain":round(max_r,1),"maxCape":round(max_c),"minTemp":round(min_t,1),"minVisibility":round(min_v) if min_v is not None else None,"thunder":thunder,"cautionHours":caution_hours,"severeHours":severe_hours})
     except Exception as exc:
         return jsonify(error=f"全国簡易予報の取得に失敗しました: {exc}"), 502
     payload_out=json.dumps({"date":date_text,"results":results,"version":APP_VERSION},ensure_ascii=False).encode("utf-8")
