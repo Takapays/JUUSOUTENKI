@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const APP_VERSION = '1.4.79';
+const APP_VERSION = '1.4.80';
 
 
 
@@ -3981,9 +3981,9 @@ function renderNationalOutlookMarkers(){
 }
 function showNationalOutlookDetail(p,result){
   const box=$('nationalOutlookDetail');if(!box)return;
-  if(!result){box.innerHTML=`<div class="national-detail-grade grade-u">?</div><div><h3>${esc(p.name)}</h3><p>${p.eligible?'まだ判定していません。':'代表コース未対応のため、全国簡易判定は対象外です。'}</p>${p.eligible?'<button type="button" class="secondary national-detail-open">この山を詳しく分析</button>':''}</div>`;}
+  if(!result){box.innerHTML=`<div class="national-detail-grade grade-u">?</div><div><h3>${esc(p.name)}</h3><p>${p.eligible?'まだ判定していません。':'代表コース未対応のため、全国簡易判定は対象外です。'}</p>${p.eligible?'<button type="button" class="secondary national-detail-open">この山を山行設定に入力</button>':''}</div>`;}
   else{
-    box.innerHTML=`<div class="national-detail-grade grade-${result.grade.toLowerCase()}">${result.grade}</div><div><h3>${esc(p.name)}</h3><p>${esc(result.summary||'')}</p><dl><div><dt>最大風速</dt><dd>${num(result.maxWind)} m/s</dd></div><div><dt>最大降水</dt><dd>${num(result.maxRain)} mm/h</dd></div><div><dt>雷指標</dt><dd>${esc(result.thunder||'–')}</dd></div><div><dt>最低気温</dt><dd>${num(result.minTemp)} ℃</dd></div><div><dt>最小視界</dt><dd>${Number.isFinite(result.minVisibility)?Math.round(result.minVisibility/100)/10+' km':'–'}</dd></div></dl><button type="button" class="primary national-detail-open">この山を詳しく分析</button></div>`;
+    box.innerHTML=`<div class="national-detail-grade grade-${result.grade.toLowerCase()}">${result.grade}</div><div><h3>${esc(p.name)}</h3><p>${esc(result.summary||'')}</p><dl><div><dt>最大風速</dt><dd>${num(result.maxWind)} m/s</dd></div><div><dt>最大降水</dt><dd>${num(result.maxRain)} mm/h</dd></div><div><dt>雷指標</dt><dd>${esc(result.thunder||'–')}</dd></div><div><dt>最低気温</dt><dd>${num(result.minTemp)} ℃</dd></div><div><dt>最小視界</dt><dd>${Number.isFinite(result.minVisibility)?Math.round(result.minVisibility/100)/10+' km':'–'}</dd></div></dl><button type="button" class="primary national-detail-open">この山を山行設定に入力</button></div>`;
   }
   box.querySelector('.national-detail-open')?.addEventListener('click',()=>openMountainFromNationalMap(p.name));
 }
